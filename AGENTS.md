@@ -1,27 +1,15 @@
-# Kitchen Notes repository instructions
+# 厨房手记项目约束
 
-## Product context
+## 开始工作前
 
-- This repository is a learning-oriented Flutter application for collecting,
-  organizing, searching, and cooking from personal recipes.
-- Read `docs/MVP_REQUIREMENTS.md` before changing product behavior.
-- Read `docs/CODEX_WORKFLOW.md` when the task is intended to teach a Codex
-  workflow.
-- The working product name and bundle identifiers are temporary unless the user
-  explicitly finalizes them.
+- 本项目用于学习 Flutter、组件化、数据库和 Codex 工作流。
+- 修改产品行为前阅读 `docs/MVP_REQUIREMENTS.md`。
+- 新增或重命名文件前阅读 `docs/NAMING_CONVENTIONS.md`。
+- 涉及 Codex 教学时阅读 `docs/CODEX_WORKFLOW.md`。
+- 产品名和 Bundle ID 尚未最终确定。
+- 交付代码时简要说明本次涉及的架构边界或 Flutter 知识点。
 
-## Learning objective
-
-- Treat architecture decisions as part of the deliverable. In the final
-  response, briefly explain the boundary, pattern, or Flutter mechanism that the
-  change demonstrates.
-- Prefer a small, reviewable implementation that teaches one concept clearly.
-- Do not hide meaningful architecture behind generated boilerplate.
-
-## Target component architecture
-
-The repository is migrating from the current single-package feature-first
-structure to a multi-package Flutter workspace. Keep dependencies directed:
+## 组件边界
 
 ```text
 app
@@ -31,75 +19,36 @@ app
 └── app_core
 ```
 
-Target packages:
+- `app` 负责路由、依赖装配和跨 Feature 协调，Feature 之间禁止直接依赖。
+- Domain 不依赖 Flutter、Drift、平台插件或网络库；Data 实现 Domain 接口。
+- Presentation 不得使用 Drift 生成类型或直接访问数据库。
+- 跨组件通信使用 callback、Riverpod、UseCase、Repository Stream 或类型化导航。
+- 禁止使用全局 EventBus。
+- 通用视觉组件放入 `design_system`，业务组件留在所属 Feature。
 
-- `app_core`: shared result types, failures, logging abstractions, and utilities.
-- `design_system`: themes, tokens, reusable presentational components, and
-  accessibility conventions.
-- `recipe_domain`: entities, repository contracts, use cases, and domain events.
-- `recipe_data`: Drift tables, migrations, mappers, OCR/AI adapters, and
-  repository implementations.
-- `feature_home`
-- `feature_recipe_library`
-- `feature_recipe_editor`
-- `feature_import`
-- `feature_cooking`
-- The app package is the composition root and owns routing, dependency wiring,
-  and cross-feature coordination.
+## 命名摘要
 
-### Boundary rules
+- 文件使用 `snake_case` 和明确的职责后缀。
+- 页面必须使用 `*_page.dart` / `*Page`，禁止新增 `screen`。
+- 抽取到独立文件的 UI 子组件必须使用 `*_widget.dart` / `*Widget`。
+- 禁止含义模糊的 `utils`、`helpers`、`common`、`manager`。
+- 其它后缀和例外以 `docs/NAMING_CONVENTIONS.md` 为准。
+- `*.g.dart` 等生成文件保留工具命名，禁止手动编辑。
 
-- A feature package must not import another feature package.
-- Presentation code must not import Drift-generated rows or database classes.
-- Domain packages must not depend on Flutter, Drift, platform plugins, or HTTP
-  clients.
-- Data packages implement interfaces declared by the domain package.
-- Reusable visual components belong in `design_system`; feature-specific
-  widgets stay inside their feature.
-- Keep package public APIs small. Export only intentional entry points from a
-  package-level library file.
-- Do not introduce a global event bus. Communicate through:
-  - callbacks for local widget interactions;
-  - Riverpod providers for scoped application state and dependency injection;
-  - domain use cases and repository streams for business data;
-  - typed navigation intents coordinated by the app package;
-  - explicit domain events only for asynchronous workflows that truly cross
-    feature boundaries.
+## 数据、AI 与 UI
 
-## State and data rules
+- 核心浏览、编辑和烹饪必须离线可用。
+- 原始导入内容与用户修改分开保存，用户修改优先。
+- 云端 AI 通过抽象接口访问，客户端禁止保存服务密钥。
+- 修改 Drift 表时必须升级 schema、补充迁移、生成代码并添加数据库测试。
+- 极简与手账风格共享业务页面，通过 Design Token 和展示组件切换。
+- 禁止在 Feature 中新增硬编码颜色、间距、字体或圆角。
+- 烹饪模式必须易读、大点击区域、无广告。
+- 默认使用中文文案，并考虑语义标签、Tooltip 和系统文字缩放。
 
-- Keep the application local-first. Core recipe browsing and cooking must work
-  without a network connection.
-- Preserve original imported text and user-edited data separately.
-- User edits always take precedence over later AI extraction.
-- Cloud AI must be accessed through an abstraction and never directly from a
-  widget.
-- Never place service API keys in the Flutter client.
-- Do not edit generated files such as `*.g.dart` manually.
-- When changing Drift tables:
-  1. increase the schema version;
-  2. add or update a migration;
-  3. regenerate code;
-  4. add a migration or database test.
+## 验证
 
-## UI rules
-
-- Support both scrapbook and minimal presentation styles without duplicating
-  business screens.
-- Use design tokens instead of hard-coded feature colors, spacing, typography,
-  or radii.
-- Keep cooking-mode content highly legible, with large targets and no ads.
-- Use Chinese user-facing copy unless the product requirements specify another
-  locale.
-- Avoid gender-exclusive wording or imagery even though women are the primary
-  audience.
-- New interactive elements must have meaningful semantics or tooltips where
-  appropriate.
-
-## Verification
-
-Run the smallest relevant checks during iteration and all of these before
-handing off a completed code change:
+完成代码修改后运行：
 
 ```sh
 dart format --output=none --set-exit-if-changed .
@@ -107,23 +56,12 @@ flutter analyze
 flutter test
 ```
 
-After changing Drift declarations:
+修改 Drift 声明后额外运行 `dart run build_runner build`。
 
-```sh
-dart run build_runner build
-```
+## 修改纪律
 
-For platform-facing changes, also build or run the affected platform when the
-local toolchain is available.
-
-## Change discipline
-
-- Preserve unrelated user changes.
-- Do not add a production dependency without explaining what boundary it serves
-  and why an existing dependency is insufficient.
-- Keep behavior changes and architecture refactors in separate commits when
-  practical.
-- Update `docs/MVP_REQUIREMENTS.md` when an accepted product requirement changes.
-- Update `README.md` when setup, tooling, or top-level structure changes.
-- Never commit secrets, signing material, generated build directories, or local
-  environment paths.
+- 保留无关的用户修改。
+- 新增生产依赖时说明用途和现有依赖无法满足的原因。
+- 产品需求变化时更新 `docs/MVP_REQUIREMENTS.md`。
+- 工程结构或启动方式变化时更新 `README.md`。
+- 禁止提交密钥、签名材料、构建目录和本地环境路径。

@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kitchen_notes/src/data/recipe_repository.dart';
-import 'package:kitchen_notes/src/features/recipes/widgets/recipe_card.dart';
+import 'package:kitchen_notes/src/features/recipes/widgets/recipe_card_widget.dart';
 
-class RecipeLibraryScreen extends ConsumerStatefulWidget {
-  const RecipeLibraryScreen({super.key});
+class RecipeLibraryPage extends ConsumerStatefulWidget {
+  const RecipeLibraryPage({super.key});
 
   @override
-  ConsumerState<RecipeLibraryScreen> createState() =>
-      _RecipeLibraryScreenState();
+  ConsumerState<RecipeLibraryPage> createState() => _RecipeLibraryPageState();
 }
 
-class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
+class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
   final _searchController = TextEditingController();
   var _query = '';
   var _filter = 'all';
@@ -105,7 +104,7 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final recipe = items[index];
-                    return RecipeCard(
+                    return RecipeCardWidget(
                       recipe: recipe,
                       onTap: () => context.push('/recipes/${recipe.id}'),
                       onFavorite: () => ref

@@ -15,6 +15,7 @@
 - [MVP 需求文档](docs/MVP_REQUIREMENTS.md)
 - [Codex CLI 与 VS Code 学习工作流](docs/CODEX_WORKFLOW.md)
 - [Codex 项目约束](AGENTS.md)
+- [Dart 与 Flutter 命名规范](docs/NAMING_CONVENTIONS.md)
 
 ## 技术结构
 

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kitchen_notes/src/theme/app_theme.dart';
 
-class ImportInboxScreen extends StatelessWidget {
-  const ImportInboxScreen({super.key});
+class ImportInboxPage extends StatelessWidget {
+  const ImportInboxPage({super.key});
 
   @override
   Widget build(BuildContext context) {

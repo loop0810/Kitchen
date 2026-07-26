@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:kitchen_notes/src/data/app_database.dart';
 import 'package:kitchen_notes/src/theme/app_theme.dart';
 
-class RecipeCard extends StatelessWidget {
-  const RecipeCard({
+class RecipeCardWidget extends StatelessWidget {
+  const RecipeCardWidget({
     super.key,
     required this.recipe,
     required this.onTap,

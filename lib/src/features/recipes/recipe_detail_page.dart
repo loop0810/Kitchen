@@ -4,8 +4,8 @@ import 'package:kitchen_notes/src/data/app_database.dart';
 import 'package:kitchen_notes/src/data/recipe_repository.dart';
 import 'package:kitchen_notes/src/theme/app_theme.dart';
 
-class RecipeDetailScreen extends ConsumerWidget {
-  const RecipeDetailScreen({super.key, required this.recipeId});
+class RecipeDetailPage extends ConsumerWidget {
+  const RecipeDetailPage({super.key, required this.recipeId});
 
   final String recipeId;
 

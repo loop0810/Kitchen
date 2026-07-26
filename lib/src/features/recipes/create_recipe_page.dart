@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kitchen_notes/src/data/recipe_repository.dart';
 
-class CreateRecipeScreen extends ConsumerStatefulWidget {
-  const CreateRecipeScreen({super.key});
+class CreateRecipePage extends ConsumerStatefulWidget {
+  const CreateRecipePage({super.key});
 
   @override
-  ConsumerState<CreateRecipeScreen> createState() => _CreateRecipeScreenState();
+  ConsumerState<CreateRecipePage> createState() => _CreateRecipePageState();
 }
 
-class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
+class _CreateRecipePageState extends ConsumerState<CreateRecipePage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _summaryController = TextEditingController();

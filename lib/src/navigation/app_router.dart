@@ -1,11 +1,11 @@
 import 'package:go_router/go_router.dart';
-import 'package:kitchen_notes/src/features/home/home_screen.dart';
-import 'package:kitchen_notes/src/features/imports/import_inbox_screen.dart';
-import 'package:kitchen_notes/src/features/profile/profile_screen.dart';
-import 'package:kitchen_notes/src/features/recipes/create_recipe_screen.dart';
-import 'package:kitchen_notes/src/features/recipes/recipe_detail_screen.dart';
-import 'package:kitchen_notes/src/features/recipes/recipe_library_screen.dart';
-import 'package:kitchen_notes/src/features/search/search_screen.dart';
+import 'package:kitchen_notes/src/features/home/home_page.dart';
+import 'package:kitchen_notes/src/features/imports/import_inbox_page.dart';
+import 'package:kitchen_notes/src/features/profile/profile_page.dart';
+import 'package:kitchen_notes/src/features/recipes/create_recipe_page.dart';
+import 'package:kitchen_notes/src/features/recipes/recipe_detail_page.dart';
+import 'package:kitchen_notes/src/features/recipes/recipe_library_page.dart';
+import 'package:kitchen_notes/src/features/search/search_page.dart';
 import 'package:kitchen_notes/src/navigation/main_shell.dart';
 
 final appRouter = GoRouter(
@@ -17,14 +17,14 @@ final appRouter = GoRouter(
       branches: [
         StatefulShellBranch(
           routes: [
-            GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+            GoRoute(path: '/', builder: (context, state) => const HomePage()),
           ],
         ),
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/recipes',
-              builder: (context, state) => const RecipeLibraryScreen(),
+              builder: (context, state) => const RecipeLibraryPage(),
             ),
           ],
         ),
@@ -32,7 +32,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/inbox',
-              builder: (context, state) => const ImportInboxScreen(),
+              builder: (context, state) => const ImportInboxPage(),
             ),
           ],
         ),
@@ -40,7 +40,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/profile',
-              builder: (context, state) => const ProfileScreen(),
+              builder: (context, state) => const ProfilePage(),
             ),
           ],
         ),
@@ -49,16 +49,16 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/search',
       builder: (context, state) =>
-          SearchScreen(initialQuery: state.uri.queryParameters['q'] ?? ''),
+          SearchPage(initialQuery: state.uri.queryParameters['q'] ?? ''),
     ),
     GoRoute(
       path: '/recipes/new',
-      builder: (context, state) => const CreateRecipeScreen(),
+      builder: (context, state) => const CreateRecipePage(),
     ),
     GoRoute(
       path: '/recipes/:id',
       builder: (context, state) =>
-          RecipeDetailScreen(recipeId: state.pathParameters['id']!),
+          RecipeDetailPage(recipeId: state.pathParameters['id']!),
     ),
   ],
 );

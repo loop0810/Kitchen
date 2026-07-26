@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kitchen_notes/src/data/recipe_repository.dart';
-import 'package:kitchen_notes/src/features/recipes/widgets/recipe_card.dart';
+import 'package:kitchen_notes/src/features/recipes/widgets/recipe_card_widget.dart';
 
-class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key, required this.initialQuery});
+class SearchPage extends ConsumerStatefulWidget {
+  const SearchPage({super.key, required this.initialQuery});
 
   final String initialQuery;
 
   @override
-  ConsumerState<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {
+class _SearchPageState extends ConsumerState<SearchPage> {
   late final TextEditingController _controller;
   late String _query;
 
@@ -95,7 +95,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final recipe = items[index];
-                    return RecipeCard(
+                    return RecipeCardWidget(
                       recipe: recipe,
                       onTap: () => context.push('/recipes/${recipe.id}'),
                       onFavorite: () => ref
