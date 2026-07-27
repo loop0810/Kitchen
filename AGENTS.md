@@ -12,11 +12,14 @@
 ## 组件边界
 
 ```text
-app
-├── feature_* ──> recipe_domain
-├── recipe_data ─> recipe_domain
-├── design_system
-└── app_core
+kitchen_notes
+├── kitchen_{home,import,profile} ──> kitchen_design_system + kitchen_app_core
+├── kitchen_recipe_{library,editor} ──> kitchen_recipe_domain
+│                                      + kitchen_design_system
+│                                      + kitchen_app_core
+├── kitchen_recipe_data ──> kitchen_recipe_domain
+├── kitchen_design_system
+└── kitchen_app_core
 ```
 
 - `app` 负责路由、依赖装配和跨 Feature 协调，Feature 之间禁止直接依赖。
@@ -29,8 +32,12 @@ app
 ## 命名摘要
 
 - 文件使用 `snake_case` 和明确的职责后缀。
+- 每个组件内的 Dart 文件必须使用
+  `docs/NAMING_CONVENTIONS.md` 规定的唯一组件前缀；公共 barrel、`main.dart`
+  和生成文件按文档中的例外处理。
 - 页面必须使用 `*_page.dart` / `*Page`，禁止新增 `screen`。
 - 抽取到独立文件的 UI 子组件必须使用 `*_widget.dart` / `*Widget`。
+- 常量文件使用颜色、间距等具体职责命名，禁止以含义宽泛的 `tokens` 命名。
 - 禁止含义模糊的 `utils`、`helpers`、`common`、`manager`。
 - 其它后缀和例外以 `docs/NAMING_CONVENTIONS.md` 为准。
 - `*.g.dart` 等生成文件保留工具命名，禁止手动编辑。
@@ -41,7 +48,7 @@ app
 - 原始导入内容与用户修改分开保存，用户修改优先。
 - 云端 AI 通过抽象接口访问，客户端禁止保存服务密钥。
 - 修改 Drift 表时必须升级 schema、补充迁移、生成代码并添加数据库测试。
-- 极简与手账风格共享业务页面，通过 Design Token 和展示组件切换。
+- 极简与手账风格共享业务页面，通过 Design System 视觉常量和展示组件切换。
 - 禁止在 Feature 中新增硬编码颜色、间距、字体或圆角。
 - 烹饪模式必须易读、大点击区域、无广告。
 - 默认使用中文文案，并考虑语义标签、Tooltip 和系统文字缩放。

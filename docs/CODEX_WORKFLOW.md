@@ -76,7 +76,9 @@ codex
 
 1. 使用 VS Code 打开项目根目录。
 2. 打开 Codex 侧栏。
-3. 打开 `lib/src/data/recipe_repository.dart`，将文件加入当前对话。
+3. 打开
+   `packages/kitchen_recipe_data/lib/src/kitchen_recipe_data_recipe_repository_impl.dart`，
+   将文件加入当前对话。
 4. 询问：
 
    > 解释这个 Repository 当前同时承担了哪些职责，并给出拆分到 domain 与
@@ -115,14 +117,15 @@ codex
 ### 规划组件化迁移
 
 ```text
-根据 AGENTS.md 的目标依赖图，把 recipe domain 从现有单体工程中拆出。
+根据 AGENTS.md 的目标依赖图，检查 `kitchen_recipe_domain` 与现有 Feature
+之间的边界。
 先输出迁移顺序、公共 API、风险和测试策略，不修改文件。
 ```
 
 ### 实现一个切片
 
 ```text
-实现“RecipeRepository 接口迁移到 recipe_domain”这一个切片。
+实现“为 `kitchen_recipe_domain` 增加一个 Recipe UseCase”这一个切片。
 不要同时调整 UI。完成后运行相关测试，并解释 feature、domain、data
 之间的依赖方向。
 ```

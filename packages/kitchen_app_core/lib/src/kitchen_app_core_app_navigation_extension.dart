@@ -1,0 +1,27 @@
+import 'package:flutter/widgets.dart';
+import 'package:go_router/go_router.dart';
+
+import 'kitchen_app_core_app_route_names.dart';
+
+extension AppNavigationExtension on BuildContext {
+  void goToImportInbox() => goNamed(AppRouteNames.importInbox);
+
+  Future<T?> pushSearch<T>(String query) {
+    return pushNamed<T>(AppRouteNames.search, queryParameters: {'q': query});
+  }
+
+  Future<T?> pushCreateRecipe<T>() {
+    return pushNamed<T>(AppRouteNames.createRecipe);
+  }
+
+  Future<T?> pushRecipeDetail<T>(String recipeId) {
+    return pushNamed<T>(
+      AppRouteNames.recipeDetail,
+      pathParameters: {'id': recipeId},
+    );
+  }
+
+  void goToRecipeDetail(String recipeId) {
+    goNamed(AppRouteNames.recipeDetail, pathParameters: {'id': recipeId});
+  }
+}

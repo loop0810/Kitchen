@@ -23,18 +23,41 @@
 - Riverpod：状态与依赖管理
 - GoRouter：声明式导航和四个主入口
 - Drift + SQLite：本地数据库和迁移
-- 当前为 Feature-first 单 package 结构
-- 目标为 app、domain、data、design system 与 feature packages 组成的组件化结构
+- Flutter Pub Workspace：管理组件化 package
+- Domain Entity / UseCase / Repository：隔离 UI 与 Drift
+- Feature dependency port + Riverpod override：由根 App 完成依赖装配
 
 主要目录：
 
 ```text
-lib/src/
-├── data/          数据库与 Repository
-├── features/      业务功能
-├── navigation/    路由与主导航
-└── theme/         视觉主题和设计令牌
+lib/
+├── main.dart              Data 生命周期与 Feature 依赖装配
+└── src/
+    ├── kitchen_notes_app.dart    根 MaterialApp
+    └── navigation/               路由表与四栏 MainShell
+packages/
+├── kitchen_app_core/      路由名称与导航扩展
+├── kitchen_design_system/ 主题与视觉常量
+├── kitchen_recipe_domain/ 纯 Dart 实体、UseCase 与 Repository 接口
+├── kitchen_recipe_data/   Drift、Mapper 与 Repository 实现
+├── kitchen_recipe_library/菜谱库、搜索、详情与业务卡片
+├── kitchen_recipe_editor/ 手动创建菜谱
+├── kitchen_home/          首页
+├── kitchen_import/        导入箱
+└── kitchen_profile/       我的页面与全局视觉风格状态
 ```
+
+依赖方向：
+
+```text
+kitchen_notes → 所有组件（组合根）
+Feature → kitchen_app_core + kitchen_design_system
+Recipe Feature → kitchen_recipe_domain
+kitchen_recipe_data → kitchen_recipe_domain
+```
+
+Feature 不直接依赖 Data、根 App 或其他 Feature。菜谱库和编辑器公开依赖端口，
+根 App 将同一个 Repository 实例包装为 UseCase 后通过 Riverpod override 注入。
 
 ## 运行
 
@@ -44,7 +67,24 @@ dart run build_runner build
 flutter run
 ```
 
-修改 Drift 表结构后，需要重新运行代码生成。
+根工程使用 Pub Workspace 管理全部 `kitchen_*` package，`flutter pub get`
+会统一解析组件依赖。
+
+修改 Drift 表结构后，在 `packages/kitchen_recipe_data` 中重新运行代码生成：
+
+```sh
+cd packages/kitchen_recipe_data
+dart run build_runner build
+```
+
+全量验证：
+
+```sh
+dart format --output=none --set-exit-if-changed .
+flutter analyze
+flutter test
+flutter test packages/*/test
+```
 
 ## 当前环境说明
 

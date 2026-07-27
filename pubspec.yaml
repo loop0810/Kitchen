@@ -21,6 +21,17 @@ version: 1.0.0+1
 environment:
   sdk: ^3.12.0
 
+workspace:
+  - packages/kitchen_app_core
+  - packages/kitchen_design_system
+  - packages/kitchen_home
+  - packages/kitchen_import
+  - packages/kitchen_profile
+  - packages/kitchen_recipe_data
+  - packages/kitchen_recipe_domain
+  - packages/kitchen_recipe_editor
+  - packages/kitchen_recipe_library
+
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
 # consider running `flutter pub upgrade --major-versions`. Alternatively,
@@ -36,10 +47,15 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_riverpod: ^2.6.1
   go_router: ^17.3.0
-  drift: ^2.34.2
-  path_provider: ^2.1.6
-  path: ^1.9.1
-  uuid: ^4.6.0
+  kitchen_app_core: ^0.1.0
+  kitchen_design_system: ^0.1.0
+  kitchen_home: ^0.1.0
+  kitchen_import: ^0.1.0
+  kitchen_profile: ^0.1.0
+  kitchen_recipe_data: ^0.1.0
+  kitchen_recipe_domain: ^0.1.0
+  kitchen_recipe_editor: ^0.1.0
+  kitchen_recipe_library: ^0.1.0
 
 dev_dependencies:
   flutter_test:
@@ -51,8 +67,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  build_runner: ^2.15.1
-  drift_dev: ^2.34.5
 
 hooks:
   user_defines:

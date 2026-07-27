@@ -1,0 +1,1 @@
+enum AppVisualStyle { minimal, scrapbook }

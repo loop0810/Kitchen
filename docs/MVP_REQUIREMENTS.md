@@ -556,18 +556,22 @@ MVP 免费提供：
 
 ### 12.1 组件化目标
 
-采用 Flutter 多 package 组件化结构：
+采用 Flutter Pub Workspace 管理的多 package 组件化结构，内部 package 统一使用
+`kitchen_*` 前缀：
 
-- app：组合根、路由、依赖装配。
-- app_core：基础类型和横切能力。
-- design_system：主题、Token 和通用 UI。
-- recipe_domain：实体、用例和接口。
-- recipe_data：数据库、Repository 实现、OCR 和 AI adapter。
-- feature_home。
-- feature_recipe_library。
-- feature_recipe_editor。
-- feature_import。
-- feature_cooking。
+- `kitchen_notes`：组合根、路由、依赖装配和跨 Feature 协调。
+- `kitchen_app_core`：无领域含义的导航契约与横切能力。
+- `kitchen_design_system`：主题、视觉常量和通用视觉组件。
+- `kitchen_recipe_domain`：纯 Dart 实体、UseCase 和 Repository 接口。
+- `kitchen_recipe_data`：Drift 数据库、Mapper 和 Repository 实现。
+- `kitchen_home`。
+- `kitchen_recipe_library`。
+- `kitchen_recipe_editor`。
+- `kitchen_import`。
+- `kitchen_profile`。
+
+当前没有独立的烹饪 Feature；实现逐步烹饪时再按实际边界建立，避免提前创建空
+package。
 
 依赖规则以项目根目录 `AGENTS.md` 为准。
 
@@ -631,7 +635,7 @@ FederatedSearchCoordinator
 
 ## 15. 当前实现状态
 
-截至 2026-07-25：
+截至 2026-07-27：
 
 | 模块 | 状态 |
 | --- | --- |
@@ -655,22 +659,20 @@ FederatedSearchCoordinator
 | 导入确认流程 | 未实现 |
 | 逐步烹饪 | 未实现 |
 | 烹饪记录 | 未实现 |
-| 多 package 组件化 | 待重构 |
+| 多 package 组件化 | 已完成基础拆分 |
 | 云端备份与公共菜谱 | 非 MVP，接口预留 |
 | AI 手绘 | 后续付费功能 |
 
 ## 16. 推荐开发顺序
 
-1. 将现有单 package 工程重构为目标组件架构。
-2. 完成 recipe domain、recipe data 和设计系统边界。
-3. 完成菜谱编辑能力。
-4. 完成逐步烹饪和 CookSession。
-5. 建立 ImportTask 状态机和导入箱。
-6. 接入 iOS Share Extension 与 Android Share Intent。
-7. 接入端侧 OCR。
-8. 接入端侧模型和云端 AI adapter。
-9. 接入 AI 次数、服务端预算和激励广告。
-10. 完成隐私、数据导出和发布准备。
+1. 完成菜谱编辑能力。
+2. 完成逐步烹饪和 CookSession。
+3. 建立 ImportTask 状态机和导入箱。
+4. 接入 iOS Share Extension 与 Android Share Intent。
+5. 接入端侧 OCR。
+6. 接入端侧模型和云端 AI adapter。
+7. 接入 AI 次数、服务端预算和激励广告。
+8. 完成隐私、数据导出和发布准备。
 
 ## 17. MVP 验收清单
 

@@ -1,0 +1,22 @@
+name: kitchen_recipe_editor
+description: Manual recipe creation feature.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  kitchen_app_core: ^0.1.0
+  kitchen_design_system: ^0.1.0
+  kitchen_recipe_domain: ^0.1.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  go_router: ^17.3.0
