@@ -6,6 +6,8 @@
 - 修改产品行为前阅读 `docs/MVP_REQUIREMENTS.md`。
 - 新增或重命名文件前阅读 `docs/NAMING_CONVENTIONS.md`。
 - 涉及 Codex 教学时阅读 `docs/CODEX_WORKFLOW.md`。
+- 修改 `packages/**` 前阅读 `packages/AGENTS.md`。
+- 修改含有子级 `AGENTS.md` 的组件前，继续阅读该组件的专项约束。
 - 产品名和 Bundle ID 尚未最终确定。
 - 交付代码时简要说明本次涉及的架构边界或 Flutter 知识点。
 
@@ -22,36 +24,16 @@ kitchen_notes
 └── kitchen_app_core
 ```
 
-- `app` 负责路由、依赖装配和跨 Feature 协调，Feature 之间禁止直接依赖。
-- Domain 不依赖 Flutter、Drift、平台插件或网络库；Data 实现 Domain 接口。
-- Presentation 不得使用 Drift 生成类型或直接访问数据库。
+- 根 App 负责路由、依赖装配和跨 Feature 协调。
+- Feature 之间禁止直接依赖。
 - 跨组件通信使用 callback、Riverpod、UseCase、Repository Stream 或类型化导航。
 - 禁止使用全局 EventBus。
-- 通用视觉组件放入 `design_system`，业务组件留在所属 Feature。
 
-## 命名摘要
-
-- 文件使用 `snake_case` 和明确的职责后缀。
-- 每个组件内的 Dart 文件必须使用
-  `docs/NAMING_CONVENTIONS.md` 规定的唯一组件前缀；公共 barrel、`main.dart`
-  和生成文件按文档中的例外处理。
-- 页面必须使用 `*_page.dart` / `*Page`，禁止新增 `screen`。
-- 抽取到独立文件的 UI 子组件必须使用 `*_widget.dart` / `*Widget`。
-- 常量文件使用颜色、间距等具体职责命名，禁止以含义宽泛的 `tokens` 命名。
-- 禁止含义模糊的 `utils`、`helpers`、`common`、`manager`。
-- 其它后缀和例外以 `docs/NAMING_CONVENTIONS.md` 为准。
-- `*.g.dart` 等生成文件保留工具命名，禁止手动编辑。
-
-## 数据、AI 与 UI
+## 产品通用约束
 
 - 核心浏览、编辑和烹饪必须离线可用。
-- 原始导入内容与用户修改分开保存，用户修改优先。
-- 云端 AI 通过抽象接口访问，客户端禁止保存服务密钥。
-- 修改 Drift 表时必须升级 schema、补充迁移、生成代码并添加数据库测试。
-- 极简与手账风格共享业务页面，通过 Design System 视觉常量和展示组件切换。
-- 禁止在 Feature 中新增硬编码颜色、间距、字体或圆角。
-- 烹饪模式必须易读、大点击区域、无广告。
 - 默认使用中文文案，并考虑语义标签、Tooltip 和系统文字缩放。
+- 烹饪模式必须易读、大点击区域、无广告。
 
 ## 验证
 
@@ -61,9 +43,10 @@ kitchen_notes
 dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test
+flutter test packages/*/test
 ```
 
-修改 Drift 声明后额外运行 `dart run build_runner build`。
+组件专项验证以对应子级 `AGENTS.md` 为准。
 
 ## 修改纪律
 

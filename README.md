@@ -14,7 +14,11 @@
 
 - [MVP 需求文档](docs/MVP_REQUIREMENTS.md)
 - [Codex CLI 与 VS Code 学习工作流](docs/CODEX_WORKFLOW.md)
-- [Codex 项目约束](AGENTS.md)
+- [Codex 项目通用约束](AGENTS.md)
+- [Package 通用约束](packages/AGENTS.md)
+- [Recipe Data 专项约束](packages/kitchen_recipe_data/AGENTS.md)
+- [Recipe Domain 专项约束](packages/kitchen_recipe_domain/AGENTS.md)
+- [Design System 专项约束](packages/kitchen_design_system/AGENTS.md)
 - [Dart 与 Flutter 命名规范](docs/NAMING_CONVENTIONS.md)
 
 ## 技术结构

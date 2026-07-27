@@ -37,6 +37,26 @@
 CLI 和 IDE 扩展都会读取项目中的 `AGENTS.md`，因此不需要分别维护两套
 工程规则。
 
+## 分层 AGENTS.md
+
+项目约束按作用域分层：
+
+```text
+AGENTS.md
+└── packages/AGENTS.md
+    ├── kitchen_recipe_data/AGENTS.md
+    ├── kitchen_recipe_domain/AGENTS.md
+    └── kitchen_design_system/AGENTS.md
+```
+
+- 根文件保存所有任务都需要的架构红线、验证和修改纪律。
+- `packages/AGENTS.md` 保存 package 公共 API、依赖和命名规则。
+- 组件子文件保存 Drift、纯 Dart 或视觉系统等专项规则。
+- 从组件目录启动 Codex 时，会按根目录到当前目录的顺序合并约束。
+- 从项目根目录启动时，根文件要求在修改对应组件前主动读取子级约束。
+
+这种结构避免无关任务长期携带数据库等专项说明，同时让规则靠近实际代码。
+
 ## 项目开始前
 
 当前项目应纳入 Git 管理，以便查看差异、使用 `/review` 并建立可恢复的
