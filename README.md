@@ -12,7 +12,13 @@
 
 ## 项目文档
 
+- [文档导航](docs/README.md)
+- [产品需求总纲](docs/PRODUCT_REQUIREMENTS.md)
 - [MVP 需求文档](docs/MVP_REQUIREMENTS.md)
+- [菜谱功能需求文档](docs/RECIPE_REQUIREMENTS.md)
+- [Figma 视觉设计 Brief](docs/FIGMA_DESIGN_BRIEF.md)
+- [基础服务目录](docs/services/README.md)
+- [产品与架构决策记录](docs/DECISION_LOG.md)
 - [Codex CLI 与 VS Code 学习工作流](docs/CODEX_WORKFLOW.md)
 - [Codex 项目通用约束](AGENTS.md)
 - [Package 通用约束](packages/AGENTS.md)
@@ -44,7 +50,7 @@ packages/
 ├── kitchen_design_system/ 主题与视觉常量
 ├── kitchen_recipe_domain/ 纯 Dart 实体、UseCase 与 Repository 接口
 ├── kitchen_recipe_data/   Drift、Mapper 与 Repository 实现
-├── kitchen_recipe_library/菜谱库、搜索、详情与业务卡片
+├── kitchen_recipe_library/菜谱库、搜索、详情与业务展示组件
 ├── kitchen_recipe_editor/ 手动创建菜谱
 ├── kitchen_home/          首页
 ├── kitchen_import/        导入箱

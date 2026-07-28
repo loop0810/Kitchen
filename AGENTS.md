@@ -3,7 +3,8 @@
 ## 开始工作前
 
 - 本项目用于学习 Flutter、组件化、数据库和 Codex 工作流。
-- 修改产品行为前阅读 `docs/MVP_REQUIREMENTS.md`。
+- 修改产品行为前先阅读 `docs/README.md`，再按其中路由只读取与任务相关的
+  权威需求或服务文档；涉及当前版本范围时必须阅读 `docs/MVP_REQUIREMENTS.md`。
 - 新增或重命名文件前阅读 `docs/NAMING_CONVENTIONS.md`。
 - 涉及 Codex 教学时阅读 `docs/CODEX_WORKFLOW.md`。
 - 修改 `packages/**` 前阅读 `packages/AGENTS.md`。
@@ -52,6 +53,7 @@ flutter test packages/*/test
 
 - 保留无关的用户修改。
 - 新增生产依赖时说明用途和现有依赖无法满足的原因。
-- 产品需求变化时更新 `docs/MVP_REQUIREMENTS.md`。
+- 产品需求变化时更新对应权威需求文档和 `docs/DECISION_LOG.md`；影响当前版本
+  范围时同时更新 `docs/MVP_REQUIREMENTS.md`。
 - 工程结构或启动方式变化时更新 `README.md`。
 - 禁止提交密钥、签名材料、构建目录和本地环境路径。
