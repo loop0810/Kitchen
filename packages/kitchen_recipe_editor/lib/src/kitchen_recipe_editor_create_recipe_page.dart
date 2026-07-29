@@ -46,6 +46,7 @@ class _CreateRecipePageState extends ConsumerState<CreateRecipePage> {
 
   Future<void> _save() async {
     final input = _createInput;
+    // 页面先校验一次以立即标记字段；UseCase 内仍会再次校验，防止其他入口绕过规则。
     final validationFailure = const CreateRecipeValidationService()(input);
     if (validationFailure != null) {
       _applyValidationFailure(validationFailure);
@@ -61,6 +62,7 @@ class _CreateRecipePageState extends ConsumerState<CreateRecipePage> {
       final id = await ref
           .read(recipeEditorDependenciesProvider)
           .createRecipe(input);
+      // await 期间用户可能已经退出页面；mounted 防止继续使用已销毁的 context。
       if (mounted) context.replaceWithRecipeDetail(id);
     } on CreateRecipeValidationFailure catch (failure) {
       if (mounted) _applyValidationFailure(failure);
@@ -242,6 +244,7 @@ class _CreateRecipePageState extends ConsumerState<CreateRecipePage> {
 
   TemplateRenderData get _templateRenderData {
     const parser = IngredientLineParserService();
+    // 预览与最终保存共用同一个领域解析器，避免用户看到的结果和落库结果不一致。
     final ingredients = _linesOf(_ingredientsController)
         .take(4)
         .map(parser.call)

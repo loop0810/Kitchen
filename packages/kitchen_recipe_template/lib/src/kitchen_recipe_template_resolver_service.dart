@@ -21,6 +21,7 @@ class TemplateResolverService {
   final TemplateAppVersionValueObject currentAppVersion;
 
   TemplateResolution call(RecipeTemplateSelectionValueObject selection) {
+    // 菜谱保存模板 ID + 版本，确保模板升级后仍能复现当时选择的版式。
     final requested = catalog.find(
       id: selection.templateId,
       version: selection.templateVersion,
@@ -29,6 +30,7 @@ class TemplateResolverService {
       return TemplateResolution(definition: requested, usedFallback: false);
     }
 
+    // 模板被移除或需要更高 App 版本时回退到内置模板，菜谱内容仍可离线阅读。
     final fallback = catalog.find(
       id: defaultSelection.templateId,
       version: defaultSelection.templateVersion,

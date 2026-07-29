@@ -7,6 +7,7 @@ class RecipeEditorDependencies {
   final CreateRecipeUseCase createRecipe;
 }
 
+// 编辑器只依赖创建菜谱这一项业务能力，不接触 Repository 或数据库类型。
 final recipeEditorDependenciesProvider = Provider<RecipeEditorDependencies>((
   ref,
 ) {

@@ -6,8 +6,13 @@ class TemplateAppVersionValueObject
     required this.patch,
   });
 
+  /// 不兼容变更对应的主版本号。
   final int major;
+
+  /// 向后兼容功能变更对应的次版本号。
   final int minor;
+
+  /// 向后兼容修复对应的补丁版本号。
   final int patch;
 
   static TemplateAppVersionValueObject? tryParse(String value) {

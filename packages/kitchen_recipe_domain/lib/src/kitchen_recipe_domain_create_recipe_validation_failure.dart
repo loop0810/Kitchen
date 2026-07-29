@@ -5,6 +5,7 @@ class CreateRecipeValidationFailure implements Exception {
     : assert(errors.isNotEmpty),
       errors = Map.unmodifiable(errors);
 
+  /// 按字段保存的错误文案；一个校验结果可以同时包含多个字段错误。
   final Map<CreateRecipeValidationField, String> errors;
 
   String get firstError => errors.values.first;

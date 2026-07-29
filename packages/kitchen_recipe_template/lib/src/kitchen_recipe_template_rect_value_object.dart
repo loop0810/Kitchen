@@ -6,9 +6,16 @@ class TemplateRectValueObject {
     required this.height,
   });
 
+  /// 矩形左边缘相对画布宽度的比例，取值范围为 0～1。
   final double left;
+
+  /// 矩形上边缘相对画布高度的比例，取值范围为 0～1。
   final double top;
+
+  /// 矩形宽度相对画布宽度的比例，取值范围为 0～1。
   final double width;
+
+  /// 矩形高度相对画布高度的比例，取值范围为 0～1。
   final double height;
 
   bool get isNormalized {

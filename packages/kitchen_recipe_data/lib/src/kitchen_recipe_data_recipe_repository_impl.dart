@@ -13,6 +13,7 @@ class RecipeRepositoryImpl implements RecipeRepository {
 
   @override
   Stream<List<RecipeJournalSummaryEntity>> watchRecipes(RecipeQuery query) {
+    // Repository 负责把领域查询翻译为数据库参数，并把数据库快照映射回领域对象。
     return _database
         .watchRecipeSummaries(
           query: query.text,
@@ -46,6 +47,8 @@ class RecipeRepositoryImpl implements RecipeRepository {
     final now = DateTime.now();
     final incomplete = input.ingredients.isEmpty || input.steps.isEmpty;
 
+    // 菜谱主记录、食材组、食材和步骤必须原子写入：任意一条失败时，
+    // transaction 会回滚全部更改，数据库不会留下“半份菜谱”。
     await _database.transaction(() async {
       await _database
           .into(_database.recipes)
@@ -76,6 +79,8 @@ class RecipeRepositoryImpl implements RecipeRepository {
               ),
             );
         for (final (index, line) in input.ingredients.indexed) {
+          // 用户输入仍是自然语言行；Domain Service 先拆出名称和显示用量，
+          // Data 层只负责把解析结果持久化。
           final parsed = const IngredientLineParserService()(line);
           await _database
               .into(_database.ingredients)
@@ -119,6 +124,7 @@ class RecipeRepositoryImpl implements RecipeRepository {
 
   int _coverColorFor(String title) {
     const colors = [0xFFF4B9A8, 0xFFF1CA7B, 0xFFAFC5A7, 0xFFB9CBE0, 0xFFE4B8C5];
+    // 用标题散列选择初始颜色，无需维护随机状态；选中结果会随菜谱一起持久化。
     return colors[title.hashCode.abs() % colors.length];
   }
 }

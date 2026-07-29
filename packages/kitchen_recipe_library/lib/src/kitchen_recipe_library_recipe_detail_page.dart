@@ -51,6 +51,8 @@ class _RecipeDetailContent extends ConsumerWidget {
                         recipeId: recipe.id,
                         isFavorite: !recipe.isFavorite,
                       );
+                  // 详情使用一次性 Future；写入完成后主动失效缓存以读取最新收藏状态。
+                  // 菜谱列表使用数据库 Stream，会由 Drift 自动推送更新，无需手动刷新。
                   ref.invalidate(recipeDetailProvider(recipe.id));
                 },
                 icon: Icon(
@@ -191,6 +193,7 @@ class _RecipeDetailContent extends ConsumerWidget {
 
   List<Widget> _ingredientSections() {
     final widgets = <Widget>[];
+    // 旧数据可能没有食材分组，详情页仍要能按原顺序正常展示。
     if (detail.groups.isEmpty) {
       return detail.ingredients
           .map((ingredient) => _IngredientTile(ingredient: ingredient))

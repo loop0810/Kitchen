@@ -7,6 +7,7 @@ class TemplateValidatorService {
   const TemplateValidatorService();
 
   List<TemplateValidationFailure> call(TemplateDefinition definition) {
+    // 不在首个错误处返回：模板导入工具可以一次展示所有问题，减少反复修改。
     final failures = <TemplateValidationFailure>[];
     if (definition.id.trim().isEmpty) {
       failures.add(
@@ -79,6 +80,7 @@ class TemplateValidatorService {
         );
       }
       if (!slotKinds.add(slot.kind)) {
+        // 同类槽位重复会让渲染器无法判断哪个是权威内容位置。
         failures.add(
           TemplateValidationFailure(
             code: TemplateValidationFailureCode.duplicateSlot,
@@ -103,6 +105,7 @@ class TemplateValidatorService {
       TemplateSlotKind.primaryIngredients,
       TemplateSlotKind.detailAction,
     };
+    // 标题、主要食材和详情入口构成手账摘要的最小可用信息。
     for (final requiredKind in requiredKinds.difference(slotKinds)) {
       failures.add(
         TemplateValidationFailure(

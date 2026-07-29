@@ -12,9 +12,18 @@ class RecipeDetailEntity {
     required this.tags,
   });
 
+  /// 菜谱的基础信息。
   final RecipeEntity recipe;
+
+  /// 按展示顺序排列的食材分组。
   final List<IngredientGroupEntity> groups;
+
+  /// 按展示顺序排列的全部食材。
   final List<IngredientEntity> ingredients;
+
+  /// 按执行顺序排列的全部烹饪步骤。
   final List<RecipeStepEntity> steps;
+
+  /// 用户为菜谱添加的标签名称。
   final List<String> tags;
 }

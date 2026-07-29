@@ -5,6 +5,7 @@ class CreateRecipeValidationService {
   const CreateRecipeValidationService();
 
   CreateRecipeValidationFailure? call(CreateRecipeInput input) {
+    // 一次收集全部字段错误，便于 UI 同时标记多个输入框。
     final errors = <CreateRecipeValidationField, String>{};
     final title = input.title.trim();
     if (title.isEmpty) {

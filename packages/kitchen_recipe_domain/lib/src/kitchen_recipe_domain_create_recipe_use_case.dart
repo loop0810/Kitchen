@@ -12,6 +12,8 @@ class CreateRecipeUseCase {
   final CreateRecipeValidationService validationService;
 
   Future<String> call(CreateRecipeInput input) {
+    // UseCase 是业务入口：先执行与 UI 无关的领域校验，通过后才允许持久化。
+    // 因为校验也在这里执行，未来的导入流程或其他页面不会绕过同一套规则。
     final failure = validationService(input);
     if (failure != null) throw failure;
     return _repository.createRecipe(input);

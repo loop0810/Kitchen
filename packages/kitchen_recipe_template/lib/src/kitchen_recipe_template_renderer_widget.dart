@@ -23,15 +23,19 @@ class RecipeTemplateRendererWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 模板内部元素很多，但无障碍用户需要的是菜谱摘要而非每个装饰节点。
+    // 外层提供一条完整语义，内部通过 ExcludeSemantics 避免重复朗读。
     return Semantics(
       container: true,
       label: _semanticLabel,
       child: ExcludeSemantics(
+        // 模板卡片经常出现在滚动列表中，RepaintBoundary 将其绘制与周围 UI 隔离。
         child: RepaintBoundary(
           child: AspectRatio(
             aspectRatio: definition.aspectRatio,
             child: LayoutBuilder(
               builder: (context, constraints) {
+                // 模板以固定设计宽度定义字号，渲染时按实际卡片宽度同比缩放。
                 final fontScale = constraints.maxWidth / definition.designWidth;
                 return ColoredBox(
                   color: Color(definition.canvasColorValue),
@@ -93,6 +97,7 @@ class RecipeTemplateRendererWidget extends StatelessWidget {
     BoxConstraints constraints,
     Widget child,
   ) {
+    // 槽位使用 0～1 标准化坐标，同一模板因此能适配详情预览和较小的列表缩略图。
     return Positioned(
       left: constraints.maxWidth * rect.left,
       top: constraints.maxHeight * rect.top,
@@ -172,6 +177,7 @@ class _SlotWidget extends StatelessWidget {
                   SizedBox(width: 6 * fontScale),
                   ConstrainedBox(
                     constraints: BoxConstraints(
+                      // 限制用量列宽，优先给更有识别价值的食材名称留空间。
                       maxWidth: constraints.maxWidth * 0.42,
                     ),
                     child: Text(

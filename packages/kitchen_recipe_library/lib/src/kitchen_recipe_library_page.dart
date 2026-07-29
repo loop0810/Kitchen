@@ -27,6 +27,7 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 查询对象是 StreamProvider.family 的缓存键；搜索或筛选变化会切换到对应数据库流。
     final recipes = ref.watch(
       recipesProvider(RecipeQuery(text: _query, statusFilter: _filter)),
     );

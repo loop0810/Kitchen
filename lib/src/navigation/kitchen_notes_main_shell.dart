@@ -15,6 +15,7 @@ class MainShell extends StatelessWidget {
         onDestinationSelected: (index) {
           navigationShell.goBranch(
             index,
+            // 再次点击当前 Tab 时回到该分支的初始页；切换 Tab 时则恢复原导航栈。
             initialLocation: index == navigationShell.currentIndex,
           );
         },

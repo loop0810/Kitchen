@@ -10,6 +10,8 @@ import 'package:kitchen_recipe_library/kitchen_recipe_library.dart';
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
+    // StatefulShellRoute 为每个底部导航分支保留独立导航栈和页面状态。
+    // 例如从菜谱库切到“我的”再返回时，菜谱库不会重新从根页面开始。
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),
@@ -52,6 +54,7 @@ final appRouter = GoRouter(
         ),
       ],
     ),
+    // 搜索、创建和详情属于跨 Tab 的全局页面，因此放在 Shell 之外。
     GoRoute(
       path: '/search',
       name: AppRouteNames.search,

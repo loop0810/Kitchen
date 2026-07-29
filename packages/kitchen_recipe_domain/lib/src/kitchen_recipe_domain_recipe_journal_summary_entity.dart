@@ -7,6 +7,9 @@ class RecipeJournalSummaryEntity {
     required this.primaryIngredients,
   });
 
+  /// 摘要对应的菜谱基础信息。
   final RecipeEntity recipe;
+
+  /// 手账缩略图优先展示的食材，数量通常不超过四项。
   final List<IngredientSummaryValueObject> primaryIngredients;
 }

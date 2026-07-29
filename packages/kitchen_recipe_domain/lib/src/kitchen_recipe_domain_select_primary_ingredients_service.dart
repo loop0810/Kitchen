@@ -22,9 +22,11 @@ class SelectPrimaryIngredientsService {
         final leftIsSeasoning = _isSeasoning(leftGroup);
         final rightIsSeasoning = _isSeasoning(rightGroup);
         if (leftIsSeasoning != rightIsSeasoning) {
+          // 手账摘要空间有限，主料优先于盐、油等调味料展示。
           return leftIsSeasoning ? 1 : -1;
         }
 
+        // 同类食材保持数据库中的“分组顺序 → 组内顺序”，避免摘要顺序跳动。
         final groupComparison = (leftGroup?.position ?? -1).compareTo(
           rightGroup?.position ?? -1,
         );
