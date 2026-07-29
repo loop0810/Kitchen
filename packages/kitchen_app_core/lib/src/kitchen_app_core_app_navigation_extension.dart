@@ -21,7 +21,10 @@ extension AppNavigationExtension on BuildContext {
     );
   }
 
-  void goToRecipeDetail(String recipeId) {
-    goNamed(AppRouteNames.recipeDetail, pathParameters: {'id': recipeId});
+  void replaceWithRecipeDetail(String recipeId) {
+    pushReplacementNamed(
+      AppRouteNames.recipeDetail,
+      pathParameters: {'id': recipeId},
+    );
   }
 }

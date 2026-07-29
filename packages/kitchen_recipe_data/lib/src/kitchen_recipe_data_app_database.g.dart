@@ -112,6 +112,30 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         requiredDuringInsert: false,
         defaultValue: const Constant('inheritDefault'),
       );
+  static const VerificationMeta _templateIdMeta = const VerificationMeta(
+    'templateId',
+  );
+  @override
+  late final GeneratedColumn<String> templateId = GeneratedColumn<String>(
+    'template_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('builtin.journal.basic'),
+  );
+  static const VerificationMeta _templateVersionMeta = const VerificationMeta(
+    'templateVersion',
+  );
+  @override
+  late final GeneratedColumn<int> templateVersion = GeneratedColumn<int>(
+    'template_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   static const VerificationMeta _isFavoriteMeta = const VerificationMeta(
     'isFavorite',
   );
@@ -204,6 +228,8 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     cookMinutes,
     difficulty,
     presentationStyle,
+    templateId,
+    templateVersion,
     isFavorite,
     lastCookedAt,
     cookCount,
@@ -285,6 +311,21 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         presentationStyle.isAcceptableOrUnknown(
           data['presentation_style']!,
           _presentationStyleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('template_id')) {
+      context.handle(
+        _templateIdMeta,
+        templateId.isAcceptableOrUnknown(data['template_id']!, _templateIdMeta),
+      );
+    }
+    if (data.containsKey('template_version')) {
+      context.handle(
+        _templateVersionMeta,
+        templateVersion.isAcceptableOrUnknown(
+          data['template_version']!,
+          _templateVersionMeta,
         ),
       );
     }
@@ -384,6 +425,14 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         DriftSqlType.string,
         data['${effectivePrefix}presentation_style'],
       )!,
+      templateId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}template_id'],
+      )!,
+      templateVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}template_version'],
+      )!,
       isFavorite: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_favorite'],
@@ -431,6 +480,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
   final int? cookMinutes;
   final String difficulty;
   final String presentationStyle;
+  final String templateId;
+  final int templateVersion;
   final bool isFavorite;
   final DateTime? lastCookedAt;
   final int cookCount;
@@ -448,6 +499,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     this.cookMinutes,
     required this.difficulty,
     required this.presentationStyle,
+    required this.templateId,
+    required this.templateVersion,
     required this.isFavorite,
     this.lastCookedAt,
     required this.cookCount,
@@ -474,6 +527,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     }
     map['difficulty'] = Variable<String>(difficulty);
     map['presentation_style'] = Variable<String>(presentationStyle);
+    map['template_id'] = Variable<String>(templateId);
+    map['template_version'] = Variable<int>(templateVersion);
     map['is_favorite'] = Variable<bool>(isFavorite);
     if (!nullToAbsent || lastCookedAt != null) {
       map['last_cooked_at'] = Variable<DateTime>(lastCookedAt);
@@ -503,6 +558,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           : Value(cookMinutes),
       difficulty: Value(difficulty),
       presentationStyle: Value(presentationStyle),
+      templateId: Value(templateId),
+      templateVersion: Value(templateVersion),
       isFavorite: Value(isFavorite),
       lastCookedAt: lastCookedAt == null && nullToAbsent
           ? const Value.absent()
@@ -530,6 +587,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       cookMinutes: serializer.fromJson<int?>(json['cookMinutes']),
       difficulty: serializer.fromJson<String>(json['difficulty']),
       presentationStyle: serializer.fromJson<String>(json['presentationStyle']),
+      templateId: serializer.fromJson<String>(json['templateId']),
+      templateVersion: serializer.fromJson<int>(json['templateVersion']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       lastCookedAt: serializer.fromJson<DateTime?>(json['lastCookedAt']),
       cookCount: serializer.fromJson<int>(json['cookCount']),
@@ -552,6 +611,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       'cookMinutes': serializer.toJson<int?>(cookMinutes),
       'difficulty': serializer.toJson<String>(difficulty),
       'presentationStyle': serializer.toJson<String>(presentationStyle),
+      'templateId': serializer.toJson<String>(templateId),
+      'templateVersion': serializer.toJson<int>(templateVersion),
       'isFavorite': serializer.toJson<bool>(isFavorite),
       'lastCookedAt': serializer.toJson<DateTime?>(lastCookedAt),
       'cookCount': serializer.toJson<int>(cookCount),
@@ -572,6 +633,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     Value<int?> cookMinutes = const Value.absent(),
     String? difficulty,
     String? presentationStyle,
+    String? templateId,
+    int? templateVersion,
     bool? isFavorite,
     Value<DateTime?> lastCookedAt = const Value.absent(),
     int? cookCount,
@@ -589,6 +652,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     cookMinutes: cookMinutes.present ? cookMinutes.value : this.cookMinutes,
     difficulty: difficulty ?? this.difficulty,
     presentationStyle: presentationStyle ?? this.presentationStyle,
+    templateId: templateId ?? this.templateId,
+    templateVersion: templateVersion ?? this.templateVersion,
     isFavorite: isFavorite ?? this.isFavorite,
     lastCookedAt: lastCookedAt.present ? lastCookedAt.value : this.lastCookedAt,
     cookCount: cookCount ?? this.cookCount,
@@ -616,6 +681,12 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       presentationStyle: data.presentationStyle.present
           ? data.presentationStyle.value
           : this.presentationStyle,
+      templateId: data.templateId.present
+          ? data.templateId.value
+          : this.templateId,
+      templateVersion: data.templateVersion.present
+          ? data.templateVersion.value
+          : this.templateVersion,
       isFavorite: data.isFavorite.present
           ? data.isFavorite.value
           : this.isFavorite,
@@ -644,6 +715,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           ..write('cookMinutes: $cookMinutes, ')
           ..write('difficulty: $difficulty, ')
           ..write('presentationStyle: $presentationStyle, ')
+          ..write('templateId: $templateId, ')
+          ..write('templateVersion: $templateVersion, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('lastCookedAt: $lastCookedAt, ')
           ..write('cookCount: $cookCount, ')
@@ -666,6 +739,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     cookMinutes,
     difficulty,
     presentationStyle,
+    templateId,
+    templateVersion,
     isFavorite,
     lastCookedAt,
     cookCount,
@@ -687,6 +762,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           other.cookMinutes == this.cookMinutes &&
           other.difficulty == this.difficulty &&
           other.presentationStyle == this.presentationStyle &&
+          other.templateId == this.templateId &&
+          other.templateVersion == this.templateVersion &&
           other.isFavorite == this.isFavorite &&
           other.lastCookedAt == this.lastCookedAt &&
           other.cookCount == this.cookCount &&
@@ -706,6 +783,8 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
   final Value<int?> cookMinutes;
   final Value<String> difficulty;
   final Value<String> presentationStyle;
+  final Value<String> templateId;
+  final Value<int> templateVersion;
   final Value<bool> isFavorite;
   final Value<DateTime?> lastCookedAt;
   final Value<int> cookCount;
@@ -724,6 +803,8 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.cookMinutes = const Value.absent(),
     this.difficulty = const Value.absent(),
     this.presentationStyle = const Value.absent(),
+    this.templateId = const Value.absent(),
+    this.templateVersion = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.lastCookedAt = const Value.absent(),
     this.cookCount = const Value.absent(),
@@ -743,6 +824,8 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.cookMinutes = const Value.absent(),
     this.difficulty = const Value.absent(),
     this.presentationStyle = const Value.absent(),
+    this.templateId = const Value.absent(),
+    this.templateVersion = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.lastCookedAt = const Value.absent(),
     this.cookCount = const Value.absent(),
@@ -766,6 +849,8 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Expression<int>? cookMinutes,
     Expression<String>? difficulty,
     Expression<String>? presentationStyle,
+    Expression<String>? templateId,
+    Expression<int>? templateVersion,
     Expression<bool>? isFavorite,
     Expression<DateTime>? lastCookedAt,
     Expression<int>? cookCount,
@@ -785,6 +870,8 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       if (cookMinutes != null) 'cook_minutes': cookMinutes,
       if (difficulty != null) 'difficulty': difficulty,
       if (presentationStyle != null) 'presentation_style': presentationStyle,
+      if (templateId != null) 'template_id': templateId,
+      if (templateVersion != null) 'template_version': templateVersion,
       if (isFavorite != null) 'is_favorite': isFavorite,
       if (lastCookedAt != null) 'last_cooked_at': lastCookedAt,
       if (cookCount != null) 'cook_count': cookCount,
@@ -806,6 +893,8 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Value<int?>? cookMinutes,
     Value<String>? difficulty,
     Value<String>? presentationStyle,
+    Value<String>? templateId,
+    Value<int>? templateVersion,
     Value<bool>? isFavorite,
     Value<DateTime?>? lastCookedAt,
     Value<int>? cookCount,
@@ -825,6 +914,8 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       cookMinutes: cookMinutes ?? this.cookMinutes,
       difficulty: difficulty ?? this.difficulty,
       presentationStyle: presentationStyle ?? this.presentationStyle,
+      templateId: templateId ?? this.templateId,
+      templateVersion: templateVersion ?? this.templateVersion,
       isFavorite: isFavorite ?? this.isFavorite,
       lastCookedAt: lastCookedAt ?? this.lastCookedAt,
       cookCount: cookCount ?? this.cookCount,
@@ -866,6 +957,12 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     if (presentationStyle.present) {
       map['presentation_style'] = Variable<String>(presentationStyle.value);
     }
+    if (templateId.present) {
+      map['template_id'] = Variable<String>(templateId.value);
+    }
+    if (templateVersion.present) {
+      map['template_version'] = Variable<int>(templateVersion.value);
+    }
     if (isFavorite.present) {
       map['is_favorite'] = Variable<bool>(isFavorite.value);
     }
@@ -905,6 +1002,8 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
           ..write('cookMinutes: $cookMinutes, ')
           ..write('difficulty: $difficulty, ')
           ..write('presentationStyle: $presentationStyle, ')
+          ..write('templateId: $templateId, ')
+          ..write('templateVersion: $templateVersion, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('lastCookedAt: $lastCookedAt, ')
           ..write('cookCount: $cookCount, ')
@@ -2661,6 +2760,8 @@ typedef $$RecipesTableCreateCompanionBuilder =
       Value<int?> cookMinutes,
       Value<String> difficulty,
       Value<String> presentationStyle,
+      Value<String> templateId,
+      Value<int> templateVersion,
       Value<bool> isFavorite,
       Value<DateTime?> lastCookedAt,
       Value<int> cookCount,
@@ -2681,6 +2782,8 @@ typedef $$RecipesTableUpdateCompanionBuilder =
       Value<int?> cookMinutes,
       Value<String> difficulty,
       Value<String> presentationStyle,
+      Value<String> templateId,
+      Value<int> templateVersion,
       Value<bool> isFavorite,
       Value<DateTime?> lastCookedAt,
       Value<int> cookCount,
@@ -2821,6 +2924,16 @@ class $$RecipesTableFilterComposer
 
   ColumnFilters<String> get presentationStyle => $composableBuilder(
     column: $table.presentationStyle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get templateId => $composableBuilder(
+    column: $table.templateId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get templateVersion => $composableBuilder(
+    column: $table.templateVersion,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3014,6 +3127,16 @@ class $$RecipesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get templateId => $composableBuilder(
+    column: $table.templateId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get templateVersion => $composableBuilder(
+    column: $table.templateVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isFavorite => $composableBuilder(
     column: $table.isFavorite,
     builder: (column) => ColumnOrderings(column),
@@ -3091,6 +3214,16 @@ class $$RecipesTableAnnotationComposer
 
   GeneratedColumn<String> get presentationStyle => $composableBuilder(
     column: $table.presentationStyle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get templateId => $composableBuilder(
+    column: $table.templateId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get templateVersion => $composableBuilder(
+    column: $table.templateVersion,
     builder: (column) => column,
   );
 
@@ -3264,6 +3397,8 @@ class $$RecipesTableTableManager
                 Value<int?> cookMinutes = const Value.absent(),
                 Value<String> difficulty = const Value.absent(),
                 Value<String> presentationStyle = const Value.absent(),
+                Value<String> templateId = const Value.absent(),
+                Value<int> templateVersion = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime?> lastCookedAt = const Value.absent(),
                 Value<int> cookCount = const Value.absent(),
@@ -3282,6 +3417,8 @@ class $$RecipesTableTableManager
                 cookMinutes: cookMinutes,
                 difficulty: difficulty,
                 presentationStyle: presentationStyle,
+                templateId: templateId,
+                templateVersion: templateVersion,
                 isFavorite: isFavorite,
                 lastCookedAt: lastCookedAt,
                 cookCount: cookCount,
@@ -3302,6 +3439,8 @@ class $$RecipesTableTableManager
                 Value<int?> cookMinutes = const Value.absent(),
                 Value<String> difficulty = const Value.absent(),
                 Value<String> presentationStyle = const Value.absent(),
+                Value<String> templateId = const Value.absent(),
+                Value<int> templateVersion = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime?> lastCookedAt = const Value.absent(),
                 Value<int> cookCount = const Value.absent(),
@@ -3320,6 +3459,8 @@ class $$RecipesTableTableManager
                 cookMinutes: cookMinutes,
                 difficulty: difficulty,
                 presentationStyle: presentationStyle,
+                templateId: templateId,
+                templateVersion: templateVersion,
                 isFavorite: isFavorite,
                 lastCookedAt: lastCookedAt,
                 cookCount: cookCount,

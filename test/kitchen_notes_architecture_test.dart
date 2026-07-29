@@ -43,6 +43,13 @@ void main() {
     expect(dataSource, isNot(contains('package:flutter/material.dart')));
     expect(dataSource, isNot(contains('package:flutter/widgets.dart')));
 
+    final templateSource = _librarySource(
+      'packages/kitchen_recipe_template/lib',
+    );
+    expect(templateSource, isNot(contains('kitchen_recipe_data')));
+    expect(templateSource, isNot(contains('kitchen_recipe_library')));
+    expect(templateSource, isNot(contains('kitchen_recipe_editor')));
+
     final coreSource = _librarySource('packages/kitchen_app_core/lib');
     expect(coreSource, isNot(contains('kitchen_recipe_domain')));
 
@@ -105,6 +112,7 @@ void main() {
       'kitchen_recipe_domain': 'kitchen_recipe_domain_',
       'kitchen_recipe_editor': 'kitchen_recipe_editor_',
       'kitchen_recipe_library': 'kitchen_recipe_library_',
+      'kitchen_recipe_template': 'kitchen_recipe_template_',
     };
 
     for (final MapEntry(key: package, value: prefix) in prefixes.entries) {

@@ -20,7 +20,7 @@ final recipeLibraryDependenciesProvider = Provider<RecipeLibraryDependencies>((
 });
 
 final recipesProvider = StreamProvider.autoDispose
-    .family<List<RecipeEntity>, RecipeQuery>((ref, query) {
+    .family<List<RecipeJournalSummaryEntity>, RecipeQuery>((ref, query) {
       return ref.watch(recipeLibraryDependenciesProvider).watchRecipes(query);
     });
 

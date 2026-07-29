@@ -50,6 +50,7 @@ packages/
 ├── kitchen_design_system/ 主题与视觉常量
 ├── kitchen_recipe_domain/ 纯 Dart 实体、UseCase 与 Repository 接口
 ├── kitchen_recipe_data/   Drift、Mapper 与 Repository 实现
+├── kitchen_recipe_template/版本化模板、校验、降级与共享 Flutter 渲染器
 ├── kitchen_recipe_library/菜谱库、搜索、详情与业务展示组件
 ├── kitchen_recipe_editor/ 手动创建菜谱
 ├── kitchen_home/          首页
@@ -63,6 +64,7 @@ packages/
 kitchen_notes → 所有组件（组合根）
 Feature → kitchen_app_core + kitchen_design_system
 Recipe Feature → kitchen_recipe_domain
+Recipe Feature → kitchen_recipe_template → kitchen_recipe_domain
 kitchen_recipe_data → kitchen_recipe_domain
 ```
 

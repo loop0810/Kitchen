@@ -120,9 +120,10 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
                   ),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
-                    final recipe = items[index];
+                    final summary = items[index];
+                    final recipe = summary.recipe;
                     return RecipeCardWidget(
-                      recipe: recipe,
+                      recipe: summary,
                       onTap: () => context.pushRecipeDetail(recipe.id),
                       onFavorite: () => ref
                           .read(recipeLibraryDependenciesProvider)

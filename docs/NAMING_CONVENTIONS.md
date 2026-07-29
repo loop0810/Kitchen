@@ -20,6 +20,7 @@
 | `kitchen_recipe_data` | `kitchen_recipe_data_` |
 | `kitchen_recipe_editor` | `kitchen_recipe_editor_` |
 | `kitchen_recipe_library` | `kitchen_recipe_library_` |
+| `kitchen_recipe_template` | `kitchen_recipe_template_` |
 
 - 一个组件只能使用表中列出的一个前缀，禁止在同一组件中混用简称和全称。
 - package 公共 barrel 使用 package 本身的名称，例如

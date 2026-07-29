@@ -31,6 +31,7 @@ workspace:
   - packages/kitchen_recipe_domain
   - packages/kitchen_recipe_editor
   - packages/kitchen_recipe_library
+  - packages/kitchen_recipe_template
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -56,6 +57,7 @@ dependencies:
   kitchen_recipe_domain: ^0.1.0
   kitchen_recipe_editor: ^0.1.0
   kitchen_recipe_library: ^0.1.0
+  kitchen_recipe_template: ^0.1.0
 
 dev_dependencies:
   flutter_test:

@@ -42,26 +42,33 @@ class _AppRepository implements RecipeRepository {
   }) async {}
 
   @override
-  Stream<List<RecipeEntity>> watchRecipes(RecipeQuery query) {
+  Stream<List<RecipeJournalSummaryEntity>> watchRecipes(RecipeQuery query) {
     final now = DateTime(2026, 7, 27);
     return Stream.value([
-      RecipeEntity(
-        id: 'recipe-1',
-        title: '装配测试菜谱',
-        summary: '',
-        category: '家常菜',
-        servings: null,
-        prepMinutes: null,
-        cookMinutes: null,
-        difficulty: '简单',
-        presentationStyle: 'inheritDefault',
-        isFavorite: false,
-        lastCookedAt: null,
-        cookCount: 0,
-        status: RecipeStatus.ready,
-        coverColor: 0xFFF4B9A8,
-        createdAt: now,
-        updatedAt: now,
+      RecipeJournalSummaryEntity(
+        recipe: RecipeEntity(
+          id: 'recipe-1',
+          title: '装配测试菜谱',
+          summary: '',
+          category: '家常菜',
+          servings: null,
+          prepMinutes: null,
+          cookMinutes: null,
+          difficulty: '简单',
+          presentationStyle: 'inheritDefault',
+          templateSelection: const RecipeTemplateSelectionValueObject(
+            templateId: 'builtin.journal.basic',
+            templateVersion: 1,
+          ),
+          isFavorite: false,
+          lastCookedAt: null,
+          cookCount: 0,
+          status: RecipeStatus.ready,
+          coverColor: 0xFFF4B9A8,
+          createdAt: now,
+          updatedAt: now,
+        ),
+        primaryIngredients: const [],
       ),
     ]);
   }

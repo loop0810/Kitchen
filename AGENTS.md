@@ -17,9 +17,11 @@
 ```text
 kitchen_notes
 ├── kitchen_{home,import,profile} ──> kitchen_design_system + kitchen_app_core
-├── kitchen_recipe_{library,editor} ──> kitchen_recipe_domain
+├── kitchen_recipe_{library,editor} ──> kitchen_recipe_template
+│                                      + kitchen_recipe_domain
 │                                      + kitchen_design_system
 │                                      + kitchen_app_core
+├── kitchen_recipe_template ──> kitchen_recipe_domain
 ├── kitchen_recipe_data ──> kitchen_recipe_domain
 ├── kitchen_design_system
 └── kitchen_app_core

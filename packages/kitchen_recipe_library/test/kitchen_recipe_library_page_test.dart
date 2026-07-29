@@ -8,7 +8,7 @@ import 'package:kitchen_recipe_library/kitchen_recipe_library.dart';
 
 void main() {
   testWidgets('菜谱库等待 Repository Stream 时展示加载状态', (tester) async {
-    final controller = StreamController<List<RecipeEntity>>();
+    final controller = StreamController<List<RecipeJournalSummaryEntity>>();
     addTearDown(controller.close);
     final repository = _LibraryRepository(
       streamFactory: (query) => controller.stream,
@@ -22,7 +22,7 @@ void main() {
 
   testWidgets('菜谱库展示加载、数据与筛选状态', (tester) async {
     final repository = _LibraryRepository(
-      streamFactory: (query) => Stream.value([_recipe]),
+      streamFactory: (query) => Stream.value([_summary]),
     );
     await tester.pumpWidget(_testApp(repository, const RecipeLibraryPage()));
     await tester.pumpAndSettle();
@@ -45,7 +45,7 @@ void main() {
 
   testWidgets('搜索页传递文本查询并展示结果', (tester) async {
     final repository = _LibraryRepository(
-      streamFactory: (query) => Stream.value([_recipe]),
+      streamFactory: (query) => Stream.value([_summary]),
     );
     await tester.pumpWidget(
       _testApp(repository, const SearchPage(initialQuery: '番茄')),
@@ -108,6 +108,7 @@ final _recipe = RecipeEntity(
   cookMinutes: 10,
   difficulty: '简单',
   presentationStyle: 'inheritDefault',
+  templateSelection: _templateSelection,
   isFavorite: false,
   lastCookedAt: null,
   cookCount: 0,
@@ -115,6 +116,12 @@ final _recipe = RecipeEntity(
   coverColor: 0xFFF4B9A8,
   createdAt: _now,
   updatedAt: _now,
+);
+final _summary = RecipeJournalSummaryEntity(
+  recipe: _recipe,
+  primaryIngredients: const [
+    IngredientSummaryValueObject(name: '鸡蛋', amountText: '2 个'),
+  ],
 );
 final _detail = RecipeDetailEntity(
   recipe: _recipe,
@@ -157,7 +164,8 @@ final _detail = RecipeDetailEntity(
 class _LibraryRepository implements RecipeRepository {
   _LibraryRepository({required this.streamFactory, this.detail});
 
-  final Stream<List<RecipeEntity>> Function(RecipeQuery query) streamFactory;
+  final Stream<List<RecipeJournalSummaryEntity>> Function(RecipeQuery query)
+  streamFactory;
   final RecipeDetailEntity? detail;
   RecipeQuery? lastQuery;
   String? favoriteRecipeId;
@@ -179,8 +187,13 @@ class _LibraryRepository implements RecipeRepository {
   }
 
   @override
-  Stream<List<RecipeEntity>> watchRecipes(RecipeQuery query) {
+  Stream<List<RecipeJournalSummaryEntity>> watchRecipes(RecipeQuery query) {
     lastQuery = query;
     return streamFactory(query);
   }
 }
+
+const _templateSelection = RecipeTemplateSelectionValueObject(
+  templateId: 'builtin.journal.basic',
+  templateVersion: 1,
+);

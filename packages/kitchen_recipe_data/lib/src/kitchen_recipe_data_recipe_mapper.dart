@@ -14,6 +14,10 @@ abstract final class RecipeMapper {
       cookMinutes: recipe.cookMinutes,
       difficulty: recipe.difficulty,
       presentationStyle: recipe.presentationStyle,
+      templateSelection: RecipeTemplateSelectionValueObject(
+        templateId: recipe.templateId,
+        templateVersion: recipe.templateVersion,
+      ),
       isFavorite: recipe.isFavorite,
       lastCookedAt: recipe.lastCookedAt,
       cookCount: recipe.cookCount,
@@ -21,6 +25,29 @@ abstract final class RecipeMapper {
       coverColor: recipe.coverColor,
       createdAt: recipe.createdAt,
       updatedAt: recipe.updatedAt,
+    );
+  }
+
+  static RecipeJournalSummaryEntity summaryToDomain(RecipeSummaryData summary) {
+    final groups = summary.groups
+        .map(
+          (group) => IngredientGroupEntity(
+            id: group.id,
+            recipeId: group.recipeId,
+            name: group.name,
+            position: group.position,
+          ),
+        )
+        .toList(growable: false);
+    final ingredients = summary.ingredients
+        .map(_ingredientToDomain)
+        .toList(growable: false);
+    return RecipeJournalSummaryEntity(
+      recipe: toDomain(summary.recipe),
+      primaryIngredients: const SelectPrimaryIngredientsService()(
+        groups: groups,
+        ingredients: ingredients,
+      ),
     );
   }
 
@@ -38,20 +65,7 @@ abstract final class RecipeMapper {
           )
           .toList(growable: false),
       ingredients: detail.ingredients
-          .map(
-            (ingredient) => IngredientEntity(
-              id: ingredient.id,
-              recipeId: ingredient.recipeId,
-              groupId: ingredient.groupId,
-              name: ingredient.name,
-              amountText: ingredient.amountText,
-              amountValue: ingredient.amountValue,
-              unit: ingredient.unit,
-              preparation: ingredient.preparation,
-              isOptional: ingredient.isOptional,
-              position: ingredient.position,
-            ),
-          )
+          .map(_ingredientToDomain)
           .toList(growable: false),
       steps: detail.steps
           .map(
@@ -67,6 +81,21 @@ abstract final class RecipeMapper {
           )
           .toList(growable: false),
       tags: List.unmodifiable(detail.tags),
+    );
+  }
+
+  static IngredientEntity _ingredientToDomain(Ingredient ingredient) {
+    return IngredientEntity(
+      id: ingredient.id,
+      recipeId: ingredient.recipeId,
+      groupId: ingredient.groupId,
+      name: ingredient.name,
+      amountText: ingredient.amountText,
+      amountValue: ingredient.amountValue,
+      unit: ingredient.unit,
+      preparation: ingredient.preparation,
+      isOptional: ingredient.isOptional,
+      position: ingredient.position,
     );
   }
 

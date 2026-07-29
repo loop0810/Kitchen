@@ -1,0 +1,18 @@
+name: kitchen_recipe_template
+description: Versioned journal template models and Flutter renderer.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  kitchen_recipe_domain: ^0.1.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter

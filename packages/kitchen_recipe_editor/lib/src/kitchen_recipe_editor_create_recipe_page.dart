@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_app_core/kitchen_app_core.dart';
 import 'package:kitchen_design_system/kitchen_design_system.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
+import 'package:kitchen_recipe_template/kitchen_recipe_template.dart';
 
 import 'kitchen_recipe_editor_dependencies.dart';
 
@@ -14,13 +15,15 @@ class CreateRecipePage extends ConsumerStatefulWidget {
 }
 
 class _CreateRecipePageState extends ConsumerState<CreateRecipePage> {
-  final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _summaryController = TextEditingController();
   final _ingredientsController = TextEditingController();
   final _stepsController = TextEditingController();
   var _category = '家常菜';
   var _saving = false;
+  String? _titleError;
+  String? _categoryError;
+  String? _templateError;
 
   static const _categories = ['家常菜', '主食', '汤羹', '烘焙', '甜品', '小吃', '饮品', '其他'];
 
@@ -42,21 +45,25 @@ class _CreateRecipePageState extends ConsumerState<CreateRecipePage> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
+    final input = _createInput;
+    final validationFailure = const CreateRecipeValidationService()(input);
+    if (validationFailure != null) {
+      _applyValidationFailure(validationFailure);
+      return;
+    }
+    setState(() {
+      _titleError = null;
+      _categoryError = null;
+      _templateError = null;
+      _saving = true;
+    });
     try {
       final id = await ref
           .read(recipeEditorDependenciesProvider)
-          .createRecipe(
-            CreateRecipeInput(
-              title: _titleController.text,
-              summary: _summaryController.text,
-              category: _category,
-              ingredients: _linesOf(_ingredientsController),
-              steps: _linesOf(_stepsController),
-            ),
-          );
-      if (mounted) context.goToRecipeDetail(id);
+          .createRecipe(input);
+      if (mounted) context.replaceWithRecipeDetail(id);
+    } on CreateRecipeValidationFailure catch (failure) {
+      if (mounted) _applyValidationFailure(failure);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -66,6 +73,21 @@ class _CreateRecipePageState extends ConsumerState<CreateRecipePage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  void _applyValidationFailure(CreateRecipeValidationFailure failure) {
+    setState(() {
+      _titleError = failure.errorFor(CreateRecipeValidationField.title);
+      _categoryError = failure.errorFor(CreateRecipeValidationField.category);
+      _templateError = failure.errorFor(CreateRecipeValidationField.template);
+    });
+    _showValidationMessage(failure.firstError);
+  }
+
+  void _showValidationMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -81,97 +103,163 @@ class _CreateRecipePageState extends ConsumerState<CreateRecipePage> {
           const SizedBox(width: AppSpacing.s8),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.s16,
-            AppSpacing.s8,
-            AppSpacing.s16,
-            AppSpacing.s32,
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s16,
+          AppSpacing.s8,
+          AppSpacing.s16,
+          AppSpacing.s32,
+        ),
+        children: [
+          _Section(
+            title: '基本信息',
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _titleController,
+                  onChanged: (_) => setState(() => _titleError = null),
+                  decoration: InputDecoration(
+                    labelText: '菜名 *',
+                    hintText: '例如：番茄炒蛋',
+                    errorText: _titleError,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s12),
+                TextFormField(
+                  controller: _summaryController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: '简介',
+                    hintText: '这道菜有什么特别之处？',
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s12),
+                DropdownButtonFormField<String>(
+                  initialValue: _category,
+                  decoration: InputDecoration(
+                    labelText: '主分类',
+                    errorText: _categoryError,
+                  ),
+                  items: _categories
+                      .map(
+                        (category) => DropdownMenuItem(
+                          value: category,
+                          child: Text(category),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() {
+                    _category = value ?? _category;
+                    _categoryError = null;
+                  }),
+                ),
+              ],
+            ),
           ),
-          children: [
-            _Section(
-              title: '基本信息',
+          const SizedBox(height: AppSpacing.s16),
+          _Section(
+            title: '食材',
+            subtitle: '每行一种，名称和用量用空格或冒号分隔',
+            child: TextFormField(
+              controller: _ingredientsController,
+              onChanged: (_) => setState(() {}),
+              minLines: 5,
+              maxLines: 10,
+              decoration: const InputDecoration(
+                hintText: '番茄  2 个\n鸡蛋  3 个\n盐  适量',
+                alignLabelWithHint: true,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          _Section(
+            title: '手账预览',
+            subtitle: '缩略图最多展示前 4 项食材，完整食材会保留在详情中',
+            child: Center(
               child: Column(
                 children: [
-                  TextFormField(
-                    controller: _titleController,
-                    decoration: const InputDecoration(
-                      labelText: '菜名',
-                      hintText: '例如：番茄炒蛋',
-                    ),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty ? '请输入菜名' : null,
-                  ),
-                  const SizedBox(height: AppSpacing.s12),
-                  TextFormField(
-                    controller: _summaryController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: '简介',
-                      hintText: '这道菜有什么特别之处？',
+                  SizedBox(
+                    width: 220,
+                    child: RecipeTemplateRendererWidget(
+                      definition: BuiltInTemplates.basicJournal,
+                      data: _templateRenderData,
+                      mode: TemplateRenderMode.reader,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.s12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _category,
-                    decoration: const InputDecoration(labelText: '主分类'),
-                    items: _categories
-                        .map(
-                          (category) => DropdownMenuItem(
-                            value: category,
-                            child: Text(category),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) =>
-                        setState(() => _category = value ?? _category),
-                  ),
+                  if (_templateError != null) ...[
+                    const SizedBox(height: AppSpacing.s8),
+                    Text(
+                      _templateError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.s16),
-            _Section(
-              title: '食材',
-              subtitle: '每行一种，名称和用量用空格或冒号分隔',
-              child: TextFormField(
-                controller: _ingredientsController,
-                minLines: 5,
-                maxLines: 10,
-                decoration: const InputDecoration(
-                  hintText: '番茄  2 个\n鸡蛋  3 个\n盐  适量',
-                  alignLabelWithHint: true,
-                ),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          _Section(
+            title: '步骤',
+            subtitle: '每行一个步骤，保存后可以继续完善',
+            child: TextFormField(
+              controller: _stepsController,
+              onChanged: (_) => setState(() {}),
+              minLines: 6,
+              maxLines: 14,
+              decoration: const InputDecoration(
+                hintText: '番茄切块，鸡蛋打散。\n先将鸡蛋炒至凝固后盛出。\n炒软番茄，再放回鸡蛋。',
               ),
             ),
-            const SizedBox(height: AppSpacing.s16),
-            _Section(
-              title: '步骤',
-              subtitle: '每行一个步骤，保存后可以继续完善',
-              child: TextFormField(
-                controller: _stepsController,
-                minLines: 6,
-                maxLines: 14,
-                decoration: const InputDecoration(
-                  hintText: '番茄切块，鸡蛋打散。\n先将鸡蛋炒至凝固后盛出。\n炒软番茄，再放回鸡蛋。',
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s24),
-            FilledButton.icon(
-              onPressed: _saving ? null : _save,
-              icon: _saving
-                  ? const SizedBox.square(
-                      dimension: AppSize.icon18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.check_rounded),
-              label: Text(_saving ? '正在保存…' : '保存菜谱'),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpacing.s24),
+          FilledButton.icon(
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox.square(
+                    dimension: AppSize.icon18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.check_rounded),
+            label: Text(_saving ? '正在保存…' : '保存菜谱'),
+          ),
+        ],
       ),
+    );
+  }
+
+  CreateRecipeInput get _createInput {
+    return CreateRecipeInput(
+      title: _titleController.text,
+      summary: _summaryController.text,
+      category: _category,
+      ingredients: _linesOf(_ingredientsController),
+      steps: _linesOf(_stepsController),
+      templateSelection: BuiltInTemplates.defaultSelection,
+    );
+  }
+
+  TemplateRenderData get _templateRenderData {
+    const parser = IngredientLineParserService();
+    final ingredients = _linesOf(_ingredientsController)
+        .take(4)
+        .map(parser.call)
+        .map(
+          (ingredient) => TemplateIngredientData(
+            name: ingredient.name,
+            amountText: ingredient.amountText,
+          ),
+        )
+        .toList(growable: false);
+    return TemplateRenderData(
+      title: _titleController.text.trim().isEmpty
+          ? '菜名待补充'
+          : _titleController.text.trim(),
+      primaryIngredients: ingredients,
+      category: _category,
+      totalMinutes: null,
+      isIncomplete: ingredients.isEmpty || _linesOf(_stepsController).isEmpty,
     );
   }
 }

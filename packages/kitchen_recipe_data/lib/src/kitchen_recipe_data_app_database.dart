@@ -18,6 +18,9 @@ class Recipes extends Table {
   TextColumn get difficulty => text().withDefault(const Constant('简单'))();
   TextColumn get presentationStyle =>
       text().withDefault(const Constant('inheritDefault'))();
+  TextColumn get templateId =>
+      text().withDefault(const Constant('builtin.journal.basic'))();
+  IntColumn get templateVersion => integer().withDefault(const Constant(1))();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   DateTimeColumn get lastCookedAt => dateTime().nullable()();
   IntColumn get cookCount => integer().withDefault(const Constant(0))();
@@ -104,6 +107,18 @@ class RecipeDetailData {
   final List<String> tags;
 }
 
+class RecipeSummaryData {
+  const RecipeSummaryData({
+    required this.recipe,
+    required this.groups,
+    required this.ingredients,
+  });
+
+  final Recipe recipe;
+  final List<IngredientGroup> groups;
+  final List<Ingredient> ingredients;
+}
+
 @DriftDatabase(
   tables: [Recipes, IngredientGroups, Ingredients, RecipeSteps, RecipeTags],
 )
@@ -113,13 +128,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
       await _seedExampleRecipes();
+    },
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await migrator.addColumn(recipes, recipes.templateId);
+        await migrator.addColumn(recipes, recipes.templateVersion);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -163,6 +184,80 @@ class AppDatabase extends _$AppDatabase {
     }
     statement.orderBy([(recipe) => OrderingTerm.desc(recipe.updatedAt)]);
     return statement.watch();
+  }
+
+  Stream<List<RecipeSummaryData>> watchRecipeSummaries({
+    String query = '',
+    String statusFilter = 'all',
+  }) {
+    final statement = select(recipes).join([
+      leftOuterJoin(ingredients, ingredients.recipeId.equalsExp(recipes.id)),
+      leftOuterJoin(
+        ingredientGroups,
+        ingredientGroups.id.equalsExp(ingredients.groupId),
+      ),
+    ]);
+    final normalized = query.trim();
+    if (normalized.isNotEmpty) {
+      final pattern = '%$normalized%';
+      statement.where(
+        recipes.title.like(pattern) |
+            recipes.summary.like(pattern) |
+            recipes.category.like(pattern) |
+            existsQuery(
+              select(ingredients)..where(
+                (ingredient) =>
+                    ingredient.recipeId.equalsExp(recipes.id) &
+                    ingredient.name.like(pattern),
+              ),
+            ) |
+            existsQuery(
+              select(recipeTags)..where(
+                (tag) =>
+                    tag.recipeId.equalsExp(recipes.id) & tag.tag.like(pattern),
+              ),
+            ),
+      );
+    }
+    if (statusFilter == 'favorite') {
+      statement.where(recipes.isFavorite.equals(true));
+    } else if (statusFilter == 'cooked') {
+      statement.where(recipes.cookCount.isBiggerThanValue(0));
+    } else if (statusFilter == 'incomplete') {
+      statement.where(recipes.status.equals('incomplete'));
+    }
+    statement.orderBy([
+      OrderingTerm.desc(recipes.updatedAt),
+      OrderingTerm.asc(ingredients.position),
+    ]);
+
+    return statement.watch().map((rows) {
+      final summaries = <String, _MutableRecipeSummary>{};
+      for (final row in rows) {
+        final recipe = row.readTable(recipes);
+        final summary = summaries.putIfAbsent(
+          recipe.id,
+          () => _MutableRecipeSummary(recipe),
+        );
+        final ingredient = row.readTableOrNull(ingredients);
+        if (ingredient != null) {
+          summary.ingredients.add(ingredient);
+        }
+        final group = row.readTableOrNull(ingredientGroups);
+        if (group != null) {
+          summary.groups[group.id] = group;
+        }
+      }
+      return summaries.values
+          .map(
+            (summary) => RecipeSummaryData(
+              recipe: summary.recipe,
+              groups: summary.groups.values.toList(growable: false),
+              ingredients: summary.ingredients,
+            ),
+          )
+          .toList(growable: false);
+    });
   }
 
   Future<RecipeDetailData?> getRecipeDetail(String id) async {
@@ -359,6 +454,14 @@ class AppDatabase extends _$AppDatabase {
       ]);
     });
   }
+}
+
+class _MutableRecipeSummary {
+  _MutableRecipeSummary(this.recipe);
+
+  final Recipe recipe;
+  final Map<String, IngredientGroup> groups = {};
+  final List<Ingredient> ingredients = [];
 }
 
 LazyDatabase _openConnection() {

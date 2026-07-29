@@ -1,4 +1,4 @@
-import 'kitchen_recipe_domain_recipe_entity.dart';
+import 'kitchen_recipe_domain_recipe_journal_summary_entity.dart';
 import 'kitchen_recipe_domain_recipe_query.dart';
 import 'kitchen_recipe_domain_recipe_repository.dart';
 
@@ -7,7 +7,7 @@ class WatchRecipesUseCase {
 
   final RecipeRepository _repository;
 
-  Stream<List<RecipeEntity>> call(RecipeQuery query) {
+  Stream<List<RecipeJournalSummaryEntity>> call(RecipeQuery query) {
     return _repository.watchRecipes(query);
   }
 }

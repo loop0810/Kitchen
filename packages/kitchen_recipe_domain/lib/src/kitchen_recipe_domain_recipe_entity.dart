@@ -1,3 +1,5 @@
+import 'kitchen_recipe_domain_recipe_template_selection_value_object.dart';
+
 enum RecipeStatus { incomplete, ready, archived, deleted }
 
 class RecipeEntity {
@@ -11,6 +13,7 @@ class RecipeEntity {
     required this.cookMinutes,
     required this.difficulty,
     required this.presentationStyle,
+    required this.templateSelection,
     required this.isFavorite,
     required this.lastCookedAt,
     required this.cookCount,
@@ -29,6 +32,7 @@ class RecipeEntity {
   final int? cookMinutes;
   final String difficulty;
   final String presentationStyle;
+  final RecipeTemplateSelectionValueObject templateSelection;
   final bool isFavorite;
   final DateTime? lastCookedAt;
   final int cookCount;

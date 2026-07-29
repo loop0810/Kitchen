@@ -18,6 +18,10 @@ void main() {
       cookMinutes: 10,
       difficulty: '简单',
       presentationStyle: 'inheritDefault',
+      templateSelection: const RecipeTemplateSelectionValueObject(
+        templateId: 'builtin.journal.basic',
+        templateVersion: 1,
+      ),
       isFavorite: true,
       lastCookedAt: null,
       cookCount: 0,
@@ -27,6 +31,13 @@ void main() {
       updatedAt: now,
     );
 
+    final summary = RecipeJournalSummaryEntity(
+      recipe: recipe,
+      primaryIngredients: const [
+        IngredientSummaryValueObject(name: '鸡蛋', amountText: '2 个'),
+      ],
+    );
+
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -34,7 +45,7 @@ void main() {
             width: 240,
             height: 320,
             child: RecipeCardWidget(
-              recipe: recipe,
+              recipe: summary,
               onTap: () => tapped = true,
               onFavorite: () => favoriteTapped = true,
             ),
@@ -44,7 +55,8 @@ void main() {
     );
 
     expect(find.text('测试菜谱'), findsOneWidget);
-    expect(find.text('15 分钟'), findsOneWidget);
+    expect(find.text('鸡蛋'), findsOneWidget);
+    expect(find.text('2 个'), findsOneWidget);
     expect(find.text('待完善'), findsOneWidget);
     expect(find.byTooltip('取消收藏'), findsOneWidget);
 

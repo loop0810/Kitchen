@@ -19,15 +19,25 @@ void main() {
 
   test('列表查询将 Drift Row 映射为 Domain Entity', () async {
     final recipes = await repository.watchRecipes(const RecipeQuery()).first;
-    final tomatoEggs = recipes.singleWhere(
-      (recipe) => recipe.id == 'sample-tomato-eggs',
-    );
+    final tomatoEggs = recipes
+        .singleWhere((summary) => summary.recipe.id == 'sample-tomato-eggs')
+        .recipe;
 
     expect(tomatoEggs.title, '番茄炒蛋');
     expect(tomatoEggs.prepMinutes, 5);
     expect(tomatoEggs.cookMinutes, 10);
     expect(tomatoEggs.status, RecipeStatus.ready);
     expect(tomatoEggs.coverColor, 0xFFF4B9A8);
+    expect(tomatoEggs.templateSelection, _templateSelection);
+    final summary = recipes.singleWhere(
+      (item) => item.recipe.id == 'sample-tomato-eggs',
+    );
+    expect(summary.primaryIngredients.map((ingredient) => ingredient.name), [
+      '番茄',
+      '鸡蛋',
+      '盐',
+      '食用油',
+    ]);
   });
 
   test('列表查询保持搜索和状态筛选行为', () async {
@@ -50,10 +60,22 @@ void main() {
         )
         .first;
 
-    expect(ingredientResults.map((recipe) => recipe.title), contains('番茄炒蛋'));
-    expect(favoriteResults.map((recipe) => recipe.title), contains('红烧鸡翅'));
-    expect(cookedResults.map((recipe) => recipe.title), contains('红烧鸡翅'));
-    expect(incompleteResults.map((recipe) => recipe.title), contains('奶油南瓜汤'));
+    expect(
+      ingredientResults.map((summary) => summary.recipe.title),
+      contains('番茄炒蛋'),
+    );
+    expect(
+      favoriteResults.map((summary) => summary.recipe.title),
+      contains('红烧鸡翅'),
+    );
+    expect(
+      cookedResults.map((summary) => summary.recipe.title),
+      contains('红烧鸡翅'),
+    );
+    expect(
+      incompleteResults.map((summary) => summary.recipe.title),
+      contains('奶油南瓜汤'),
+    );
   });
 
   test('设置收藏后列表 Stream 返回目标状态', () async {
@@ -69,7 +91,7 @@ void main() {
         .first;
 
     expect(
-      favorites.map((recipe) => recipe.id),
+      favorites.map((summary) => summary.recipe.id),
       contains('sample-tomato-eggs'),
     );
   });
@@ -91,6 +113,7 @@ void main() {
         category: '主食',
         ingredients: ['面条  100 克', '葱  少许'],
         steps: ['煮面', '拌入葱油'],
+        templateSelection: _templateSelection,
       ),
     );
 
@@ -99,6 +122,7 @@ void main() {
     expect(detail.recipe.status, RecipeStatus.ready);
     expect(detail.ingredients, hasLength(2));
     expect(detail.steps, hasLength(2));
+    expect(detail.recipe.templateSelection, _templateSelection);
   });
 
   test('缺少食材或步骤的创建内容保持待完善状态', () async {
@@ -109,6 +133,7 @@ void main() {
         category: '其他',
         ingredients: [],
         steps: [],
+        templateSelection: _templateSelection,
       ),
     );
 
@@ -116,3 +141,8 @@ void main() {
     expect(detail!.recipe.status, RecipeStatus.incomplete);
   });
 }
+
+const _templateSelection = RecipeTemplateSelectionValueObject(
+  templateId: 'builtin.journal.basic',
+  templateVersion: 1,
+);

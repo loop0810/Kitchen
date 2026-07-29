@@ -12,15 +12,16 @@ class RecipeRepositoryImpl implements RecipeRepository {
   final _uuid = const Uuid();
 
   @override
-  Stream<List<RecipeEntity>> watchRecipes(RecipeQuery query) {
+  Stream<List<RecipeJournalSummaryEntity>> watchRecipes(RecipeQuery query) {
     return _database
-        .watchRecipes(
+        .watchRecipeSummaries(
           query: query.text,
           statusFilter: _statusFilterToData(query.statusFilter),
         )
         .map(
-          (recipes) =>
-              recipes.map(RecipeMapper.toDomain).toList(growable: false),
+          (summaries) => summaries
+              .map(RecipeMapper.summaryToDomain)
+              .toList(growable: false),
         );
   }
 
@@ -54,6 +55,8 @@ class RecipeRepositoryImpl implements RecipeRepository {
               title: input.title.trim(),
               summary: Value(input.summary.trim()),
               category: Value(input.category),
+              templateId: Value(input.templateSelection.templateId),
+              templateVersion: Value(input.templateSelection.templateVersion),
               status: Value(incomplete ? 'incomplete' : 'ready'),
               coverColor: _coverColorFor(input.title),
               createdAt: now,
@@ -73,7 +76,7 @@ class RecipeRepositoryImpl implements RecipeRepository {
               ),
             );
         for (final (index, line) in input.ingredients.indexed) {
-          final parsed = _parseIngredient(line);
+          final parsed = const IngredientLineParserService()(line);
           await _database
               .into(_database.ingredients)
               .insert(
@@ -81,8 +84,8 @@ class RecipeRepositoryImpl implements RecipeRepository {
                   id: _uuid.v4(),
                   recipeId: recipeId,
                   groupId: Value(groupId),
-                  name: parsed.$1,
-                  amountText: Value(parsed.$2),
+                  name: parsed.name,
+                  amountText: Value(parsed.amountText),
                   position: index,
                 ),
               );
@@ -112,20 +115,6 @@ class RecipeRepositoryImpl implements RecipeRepository {
       RecipeStatusFilter.cooked => 'cooked',
       RecipeStatusFilter.incomplete => 'incomplete',
     };
-  }
-
-  (String, String) _parseIngredient(String line) {
-    final normalized = line.trim();
-    final separator = RegExp(r'\s{2,}|[：:]');
-    final parts = normalized.split(separator);
-    if (parts.length > 1) {
-      return (parts.first.trim(), parts.sublist(1).join(' ').trim());
-    }
-    final match = RegExp(
-      r'^(.+?)\s+([\d.]+.*|适量|少许|一小把|半[个碗勺杯])$',
-    ).firstMatch(normalized);
-    if (match != null) return (match.group(1)!, match.group(2)!);
-    return (normalized, '适量');
   }
 
   int _coverColorFor(String title) {

@@ -17,5 +17,5 @@ abstract final class AppSize {
   static const importIllustration = 72.0;
   static const filterBarHeight = 42.0;
   static const recipeHeaderHeight = 250.0;
-  static const recipeCardAspectRatio = 0.78;
+  static const recipeCardAspectRatio = 2 / 3;
 }
