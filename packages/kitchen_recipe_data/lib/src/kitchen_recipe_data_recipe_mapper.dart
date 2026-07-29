@@ -32,16 +32,6 @@ abstract final class RecipeMapper {
   }
 
   static RecipeJournalSummaryEntity summaryToDomain(RecipeSummaryData summary) {
-    final groups = summary.groups
-        .map(
-          (group) => IngredientGroupEntity(
-            id: group.id,
-            recipeId: group.recipeId,
-            name: group.name,
-            position: group.position,
-          ),
-        )
-        .toList(growable: false);
     final ingredients = summary.ingredients
         .map(_ingredientToDomain)
         .toList(growable: false);
@@ -49,7 +39,6 @@ abstract final class RecipeMapper {
       recipe: toDomain(summary.recipe),
       // “最多展示哪些主料”是产品规则而不是 SQL 规则，交给 Domain Service 计算。
       primaryIngredients: const SelectPrimaryIngredientsService()(
-        groups: groups,
         ingredients: ingredients,
       ),
     );
@@ -58,16 +47,6 @@ abstract final class RecipeMapper {
   static RecipeDetailEntity detailToDomain(RecipeDetailData detail) {
     return RecipeDetailEntity(
       recipe: toDomain(detail.recipe),
-      groups: detail.groups
-          .map(
-            (group) => IngredientGroupEntity(
-              id: group.id,
-              recipeId: group.recipeId,
-              name: group.name,
-              position: group.position,
-            ),
-          )
-          .toList(growable: false),
       ingredients: detail.ingredients
           .map(_ingredientToDomain)
           .toList(growable: false),
@@ -92,7 +71,6 @@ abstract final class RecipeMapper {
     return IngredientEntity(
       id: ingredient.id,
       recipeId: ingredient.recipeId,
-      groupId: ingredient.groupId,
       name: ingredient.name,
       amountText: ingredient.amountText,
       amountValue: ingredient.amountValue,

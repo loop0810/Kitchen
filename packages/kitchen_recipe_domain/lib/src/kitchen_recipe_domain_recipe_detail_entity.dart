@@ -1,12 +1,10 @@
 import 'kitchen_recipe_domain_ingredient_entity.dart';
-import 'kitchen_recipe_domain_ingredient_group_entity.dart';
 import 'kitchen_recipe_domain_recipe_entity.dart';
 import 'kitchen_recipe_domain_recipe_step_entity.dart';
 
 class RecipeDetailEntity {
   const RecipeDetailEntity({
     required this.recipe,
-    required this.groups,
     required this.ingredients,
     required this.steps,
     required this.tags,
@@ -14,9 +12,6 @@ class RecipeDetailEntity {
 
   /// 菜谱的基础信息。
   final RecipeEntity recipe;
-
-  /// 按展示顺序排列的食材分组。
-  final List<IngredientGroupEntity> groups;
 
   /// 按展示顺序排列的全部食材。
   final List<IngredientEntity> ingredients;

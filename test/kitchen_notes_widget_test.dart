@@ -42,6 +42,9 @@ class _AppRepository implements RecipeRepository {
   }) async {}
 
   @override
+  Future<void> updateRecipe(UpdateRecipeInput input) async {}
+
+  @override
   Stream<List<RecipeJournalSummaryEntity>> watchRecipes(RecipeQuery query) {
     final now = DateTime(2026, 7, 27);
     return Stream.value([

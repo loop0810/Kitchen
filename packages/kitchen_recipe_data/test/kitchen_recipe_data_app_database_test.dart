@@ -28,7 +28,7 @@ void main() {
     expect(results.map((recipe) => recipe.title), contains('番茄炒蛋'));
   });
 
-  test('schema v1 菜谱迁移后获得默认模板标识和版本', () async {
+  test('schema v1 菜谱迁移后获得模板字段并移除食材分组', () async {
     final directory = await Directory.systemTemp.createTemp(
       'kitchen_notes_migration_',
     );
@@ -55,6 +55,28 @@ void main() {
           updated_at INTEGER NOT NULL
         )
       ''')
+      ..execute('''
+        CREATE TABLE ingredient_groups (
+          id TEXT NOT NULL PRIMARY KEY,
+          recipe_id TEXT NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          position INTEGER NOT NULL
+        )
+      ''')
+      ..execute('''
+        CREATE TABLE ingredients (
+          id TEXT NOT NULL PRIMARY KEY,
+          recipe_id TEXT NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+          group_id TEXT REFERENCES ingredient_groups(id) ON DELETE SET NULL,
+          name TEXT NOT NULL,
+          amount_text TEXT NOT NULL DEFAULT '适量',
+          amount_value REAL,
+          unit TEXT,
+          preparation TEXT,
+          is_optional INTEGER NOT NULL DEFAULT 0 CHECK (is_optional IN (0, 1)),
+          position INTEGER NOT NULL
+        )
+      ''')
       ..execute(
         '''
         INSERT INTO recipes (
@@ -62,6 +84,21 @@ void main() {
         ) VALUES (?, ?, ?, ?, ?)
         ''',
         ['legacy-recipe', '旧菜谱', 0xFFF4B9A8, 0, 0],
+      )
+      ..execute(
+        '''
+        INSERT INTO ingredient_groups (id, recipe_id, name, position)
+        VALUES (?, ?, ?, ?)
+        ''',
+        ['legacy-group', 'legacy-recipe', '主料', 0],
+      )
+      ..execute(
+        '''
+        INSERT INTO ingredients (
+          id, recipe_id, group_id, name, amount_text, position
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        ''',
+        ['legacy-ingredient', 'legacy-recipe', 'legacy-group', '鸡蛋', '2 个', 0],
       )
       ..execute('PRAGMA user_version = 1')
       ..close();
@@ -77,7 +114,25 @@ void main() {
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.read<int>('user_version'), 2);
+      expect(version.read<int>('user_version'), 3);
+      final columns = await database
+          .customSelect('PRAGMA table_info(ingredients)')
+          .get();
+      expect(
+        columns.map((row) => row.read<String>('name')),
+        isNot(contains('group_id')),
+      );
+      final groupTable = await database
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'ingredient_groups'",
+          )
+          .get();
+      expect(groupTable, isEmpty);
+      final ingredient = await (database.select(
+        database.ingredients,
+      )..where((row) => row.id.equals('legacy-ingredient'))).getSingle();
+      expect(ingredient.name, '鸡蛋');
+      expect(ingredient.position, 0);
     } finally {
       await database.close();
       await directory.delete(recursive: true);

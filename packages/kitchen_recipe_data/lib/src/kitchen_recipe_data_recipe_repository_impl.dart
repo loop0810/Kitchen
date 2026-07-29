@@ -43,11 +43,10 @@ class RecipeRepositoryImpl implements RecipeRepository {
   @override
   Future<String> createRecipe(CreateRecipeInput input) async {
     final recipeId = _uuid.v4();
-    final groupId = _uuid.v4();
     final now = DateTime.now();
     final incomplete = input.ingredients.isEmpty || input.steps.isEmpty;
 
-    // 菜谱主记录、食材组、食材和步骤必须原子写入：任意一条失败时，
+    // 菜谱主记录、食材和步骤必须原子写入：任意一条失败时，
     // transaction 会回滚全部更改，数据库不会留下“半份菜谱”。
     await _database.transaction(() async {
       await _database
@@ -68,16 +67,6 @@ class RecipeRepositoryImpl implements RecipeRepository {
           );
 
       if (input.ingredients.isNotEmpty) {
-        await _database
-            .into(_database.ingredientGroups)
-            .insert(
-              IngredientGroupsCompanion.insert(
-                id: groupId,
-                recipeId: recipeId,
-                name: '食材',
-                position: 0,
-              ),
-            );
         for (final (index, line) in input.ingredients.indexed) {
           // 用户输入仍是自然语言行；Domain Service 先拆出名称和显示用量，
           // Data 层只负责把解析结果持久化。
@@ -88,7 +77,6 @@ class RecipeRepositoryImpl implements RecipeRepository {
                 IngredientsCompanion.insert(
                   id: _uuid.v4(),
                   recipeId: recipeId,
-                  groupId: Value(groupId),
                   name: parsed.name,
                   amountText: Value(parsed.amountText),
                   position: index,
@@ -111,6 +99,109 @@ class RecipeRepositoryImpl implements RecipeRepository {
       }
     });
     return recipeId;
+  }
+
+  @override
+  Future<void> updateRecipe(UpdateRecipeInput input) async {
+    final existing = await _database.getRecipeDetail(input.recipeId);
+    if (existing == null) {
+      throw StateError('Recipe ${input.recipeId} does not exist.');
+    }
+
+    final existingIngredientIds = existing.ingredients
+        .map((ingredient) => ingredient.id)
+        .toSet();
+    final existingStepIds = existing.steps.map((step) => step.id).toSet();
+    final suppliedIngredientIds = input.ingredients
+        .map((ingredient) => ingredient.id)
+        .nonNulls
+        .toList(growable: false);
+    final suppliedStepIds = input.steps
+        .map((step) => step.id)
+        .nonNulls
+        .toList(growable: false);
+    if (suppliedIngredientIds.toSet().length != suppliedIngredientIds.length ||
+        suppliedStepIds.toSet().length != suppliedStepIds.length ||
+        !existingIngredientIds.containsAll(suppliedIngredientIds) ||
+        !existingStepIds.containsAll(suppliedStepIds)) {
+      // 稳定 ID 只能引用当前菜谱已有的子项，防止错误输入覆盖其他菜谱的数据。
+      throw ArgumentError('Ingredient or step ID does not belong to recipe.');
+    }
+
+    final now = DateTime.now();
+    final status = input.ingredients.isEmpty || input.steps.isEmpty
+        ? 'incomplete'
+        : 'ready';
+
+    // 更新主表并同步两个有序子表必须处于同一事务。收藏、烹饪统计、创建时间、
+    // 标签以及当前编辑器尚未覆盖的主表字段都不会被这次写入改动。
+    await _database.transaction(() async {
+      await (_database.update(
+        _database.recipes,
+      )..where((row) => row.id.equals(input.recipeId))).write(
+        RecipesCompanion(
+          title: Value(input.title.trim()),
+          summary: Value(input.summary.trim()),
+          category: Value(input.category.trim()),
+          templateId: Value(input.templateSelection.templateId),
+          templateVersion: Value(input.templateSelection.templateVersion),
+          status: Value(status),
+          updatedAt: Value(now),
+        ),
+      );
+
+      final keptIngredientIds = suppliedIngredientIds.toSet();
+      await (_database.delete(_database.ingredients)..where(
+            (row) =>
+                row.recipeId.equals(input.recipeId) &
+                (keptIngredientIds.isEmpty
+                    ? const Constant(true)
+                    : row.id.isNotIn(keptIngredientIds)),
+          ))
+          .go();
+      for (final (position, ingredient) in input.ingredients.indexed) {
+        await _database
+            .into(_database.ingredients)
+            .insertOnConflictUpdate(
+              IngredientsCompanion.insert(
+                id: ingredient.id ?? _uuid.v4(),
+                recipeId: input.recipeId,
+                name: ingredient.name.trim(),
+                amountText: Value(ingredient.amountText.trim()),
+                amountValue: Value(ingredient.amountValue),
+                unit: Value(ingredient.unit),
+                preparation: Value(ingredient.preparation),
+                isOptional: Value(ingredient.isOptional),
+                position: position,
+              ),
+            );
+      }
+
+      final keptStepIds = suppliedStepIds.toSet();
+      await (_database.delete(_database.recipeSteps)..where(
+            (row) =>
+                row.recipeId.equals(input.recipeId) &
+                (keptStepIds.isEmpty
+                    ? const Constant(true)
+                    : row.id.isNotIn(keptStepIds)),
+          ))
+          .go();
+      for (final (position, step) in input.steps.indexed) {
+        await _database
+            .into(_database.recipeSteps)
+            .insertOnConflictUpdate(
+              RecipeStepsCompanion.insert(
+                id: step.id ?? _uuid.v4(),
+                recipeId: input.recipeId,
+                position: position,
+                title: Value(step.title),
+                instruction: step.instruction.trim(),
+                durationMinutes: Value(step.durationMinutes),
+                heatLevel: Value(step.heatLevel),
+              ),
+            );
+      }
+    });
   }
 
   String _statusFilterToData(RecipeStatusFilter filter) {

@@ -67,6 +67,12 @@ final appRouter = GoRouter(
       builder: (context, state) => const CreateRecipePage(),
     ),
     GoRoute(
+      path: '/recipes/:id/edit',
+      name: AppRouteNames.editRecipe,
+      builder: (context, state) =>
+          EditRecipePage(recipeId: state.pathParameters['id']!),
+    ),
+    GoRoute(
       path: '/recipes/:id',
       name: AppRouteNames.recipeDetail,
       builder: (context, state) =>

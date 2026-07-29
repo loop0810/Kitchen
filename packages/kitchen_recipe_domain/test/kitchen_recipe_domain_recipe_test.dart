@@ -75,6 +75,60 @@ void main() {
     expect(repository.createInput, isNull);
   });
 
+  test('UpdateRecipeUseCase 复用校验并将稳定子项输入委托给 Repository', () async {
+    final repository = _FakeRecipeRepository();
+    const input = UpdateRecipeInput(
+      recipeId: 'recipe-1',
+      title: '更新后的菜谱',
+      summary: '',
+      category: '家常菜',
+      ingredients: [
+        UpdateRecipeIngredientInput(
+          id: 'ingredient-1',
+          name: '鸡蛋',
+          amountText: '2 个',
+          amountValue: 2,
+          unit: '个',
+          preparation: '打散',
+          isOptional: false,
+        ),
+      ],
+      steps: [
+        UpdateRecipeStepInput(
+          id: 'step-1',
+          title: '准备',
+          instruction: '打散鸡蛋',
+          durationMinutes: 1,
+          heatLevel: null,
+        ),
+      ],
+      templateSelection: _templateSelection,
+    );
+
+    await UpdateRecipeUseCase(repository)(input);
+
+    expect(repository.updateInput, same(input));
+  });
+
+  test('UpdateRecipeUseCase 在调用 Repository 前拒绝空菜名', () async {
+    final repository = _FakeRecipeRepository();
+    const input = UpdateRecipeInput(
+      recipeId: 'recipe-1',
+      title: ' ',
+      summary: '',
+      category: '家常菜',
+      ingredients: [],
+      steps: [],
+      templateSelection: _templateSelection,
+    );
+
+    expect(
+      () => UpdateRecipeUseCase(repository)(input),
+      throwsA(isA<CreateRecipeValidationFailure>()),
+    );
+    expect(repository.updateInput, isNull);
+  });
+
   test('创建校验为超长菜名、空分类和无效模板返回字段错误', () {
     const service = CreateRecipeValidationService();
     final failure = service(
@@ -109,29 +163,16 @@ void main() {
     expect(parser('番茄：2 个').name, '番茄');
     expect(parser('番茄：2 个').amountText, '2 个');
     expect(parser('盐').amountText, '适量');
+    expect(parser('  2 个').name, isEmpty);
+    expect(parser('  2 个').amountText, '2 个');
   });
 
-  test('主要食材保持顺序并将调味料组排后，最多返回四项', () {
+  test('主要食材严格保持用户顺序并最多返回四项', () {
     const service = SelectPrimaryIngredientsService();
-    const groups = [
-      IngredientGroupEntity(
-        id: 'seasoning',
-        recipeId: 'recipe',
-        name: '调料',
-        position: 0,
-      ),
-      IngredientGroupEntity(
-        id: 'main',
-        recipeId: 'recipe',
-        name: '主料',
-        position: 1,
-      ),
-    ];
     const ingredients = [
       IngredientEntity(
         id: 'salt',
         recipeId: 'recipe',
-        groupId: 'seasoning',
         name: '盐',
         amountText: '适量',
         amountValue: null,
@@ -143,7 +184,6 @@ void main() {
       IngredientEntity(
         id: 'tomato',
         recipeId: 'recipe',
-        groupId: 'main',
         name: '番茄',
         amountText: '2 个',
         amountValue: 2,
@@ -154,9 +194,9 @@ void main() {
       ),
     ];
 
-    final result = service(groups: groups, ingredients: ingredients);
+    final result = service(ingredients: ingredients);
 
-    expect(result.map((ingredient) => ingredient.name), ['番茄', '盐']);
+    expect(result.map((ingredient) => ingredient.name), ['盐', '番茄']);
   });
 }
 
@@ -169,6 +209,7 @@ class _FakeRecipeRepository implements RecipeRepository {
   bool? favoriteValue;
   String? detailRecipeId;
   CreateRecipeInput? createInput;
+  UpdateRecipeInput? updateInput;
 
   @override
   Future<String> createRecipe(CreateRecipeInput input) async {
@@ -181,6 +222,11 @@ class _FakeRecipeRepository implements RecipeRepository {
   Future<RecipeDetailEntity?> getRecipeDetail(String recipeId) async {
     detailRecipeId = recipeId;
     return null;
+  }
+
+  @override
+  Future<void> updateRecipe(UpdateRecipeInput input) async {
+    updateInput = input;
   }
 
   @override

@@ -2,6 +2,7 @@ import 'kitchen_recipe_domain_create_recipe_input.dart';
 import 'kitchen_recipe_domain_recipe_detail_entity.dart';
 import 'kitchen_recipe_domain_recipe_journal_summary_entity.dart';
 import 'kitchen_recipe_domain_recipe_query.dart';
+import 'kitchen_recipe_domain_update_recipe_input.dart';
 
 /// 菜谱领域需要的持久化契约。
 ///
@@ -14,6 +15,8 @@ abstract interface class RecipeRepository {
   Future<RecipeDetailEntity?> getRecipeDetail(String recipeId);
 
   Future<String> createRecipe(CreateRecipeInput input);
+
+  Future<void> updateRecipe(UpdateRecipeInput input);
 
   Future<void> setFavorite({
     required String recipeId,

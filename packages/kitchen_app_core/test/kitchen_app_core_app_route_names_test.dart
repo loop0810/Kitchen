@@ -14,4 +14,10 @@ void main() {
 
     expect(location, '/recipes/recipe%2F%E4%B8%AD%E6%96%87');
   });
+
+  test('编辑位置正确编码 ID 参数', () {
+    final location = AppRouteNames.editRecipeLocation('recipe/中文');
+
+    expect(location, '/recipes/recipe%2F%E4%B8%AD%E6%96%87/edit');
+  });
 }

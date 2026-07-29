@@ -2,7 +2,6 @@ class IngredientEntity {
   const IngredientEntity({
     required this.id,
     required this.recipeId,
-    required this.groupId,
     required this.name,
     required this.amountText,
     required this.amountValue,
@@ -17,9 +16,6 @@ class IngredientEntity {
 
   /// 所属菜谱的 ID。
   final String recipeId;
-
-  /// 所属食材分组 ID；为空表示该食材尚未分组。
-  final String? groupId;
 
   /// 食材名称，例如“番茄”。
   final String name;

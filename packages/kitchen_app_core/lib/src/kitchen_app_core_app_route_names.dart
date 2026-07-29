@@ -5,6 +5,7 @@ abstract final class AppRouteNames {
   static const profile = 'profile';
   static const search = 'search';
   static const createRecipe = 'createRecipe';
+  static const editRecipe = 'editRecipe';
   static const recipeDetail = 'recipeDetail';
 
   static String searchLocation(String query) {
@@ -13,5 +14,9 @@ abstract final class AppRouteNames {
 
   static String recipeDetailLocation(String recipeId) {
     return Uri(pathSegments: ['', 'recipes', recipeId]).toString();
+  }
+
+  static String editRecipeLocation(String recipeId) {
+    return Uri(pathSegments: ['', 'recipes', recipeId, 'edit']).toString();
   }
 }

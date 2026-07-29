@@ -140,6 +140,150 @@ void main() {
     final detail = await repository.getRecipeDetail(id);
     expect(detail!.recipe.status, RecipeStatus.incomplete);
   });
+
+  test('更新菜谱同步删除、新增和排序并保留未编辑元数据', () async {
+    final before = await repository.getRecipeDetail('sample-tomato-eggs');
+    final recipeBefore = before!.recipe;
+
+    await repository.updateRecipe(
+      UpdateRecipeInput(
+        recipeId: recipeBefore.id,
+        title: '番茄炒鸡蛋',
+        summary: '更新后的简介',
+        category: '家常菜',
+        ingredients: [
+          _ingredientInput(before.ingredients[1], name: '土鸡蛋'),
+          const UpdateRecipeIngredientInput(
+            id: null,
+            name: '白胡椒',
+            amountText: '少许',
+            amountValue: null,
+            unit: null,
+            preparation: null,
+            isOptional: false,
+          ),
+        ],
+        steps: [
+          _stepInput(before.steps[2], instruction: '混合后快速翻炒'),
+          const UpdateRecipeStepInput(
+            id: null,
+            title: null,
+            instruction: '装盘',
+            durationMinutes: null,
+            heatLevel: null,
+          ),
+        ],
+        templateSelection: _templateSelection,
+      ),
+    );
+
+    final after = await repository.getRecipeDetail(recipeBefore.id);
+    expect(after!.recipe.title, '番茄炒鸡蛋');
+    expect(after.recipe.status, RecipeStatus.ready);
+    expect(after.recipe.isFavorite, recipeBefore.isFavorite);
+    expect(after.recipe.cookCount, recipeBefore.cookCount);
+    expect(after.recipe.createdAt, recipeBefore.createdAt);
+    expect(after.tags, containsAll(before.tags));
+    expect(after.ingredients.map((ingredient) => ingredient.name), [
+      '土鸡蛋',
+      '白胡椒',
+    ]);
+    expect(after.ingredients.first.id, before.ingredients[1].id);
+    expect(after.ingredients.first.preparation, '打散');
+    expect(after.ingredients.first.unit, '个');
+    expect(after.ingredients.last.id, isNotEmpty);
+    expect(after.steps.map((step) => step.instruction), ['混合后快速翻炒', '装盘']);
+    expect(after.steps.first.id, before.steps[2].id);
+    expect(after.steps.first.heatLevel, '中火');
+
+    final summary = (await repository.watchRecipes(const RecipeQuery()).first)
+        .singleWhere((item) => item.recipe.id == recipeBefore.id);
+    expect(summary.primaryIngredients.map((item) => item.name), ['土鸡蛋', '白胡椒']);
+  });
+
+  test('更新后缺少步骤会重新标记为待完善', () async {
+    final before = await repository.getRecipeDetail('sample-tomato-eggs');
+
+    await repository.updateRecipe(
+      UpdateRecipeInput(
+        recipeId: before!.recipe.id,
+        title: before.recipe.title,
+        summary: before.recipe.summary,
+        category: before.recipe.category,
+        ingredients: before.ingredients.map(_ingredientInput).toList(),
+        steps: const [],
+        templateSelection: before.recipe.templateSelection,
+      ),
+    );
+
+    final after = await repository.getRecipeDetail(before.recipe.id);
+    expect(after!.recipe.status, RecipeStatus.incomplete);
+    expect(after.steps, isEmpty);
+  });
+
+  test('更新事务中子表写入失败会回滚主表和已有子项', () async {
+    final before = await repository.getRecipeDetail('sample-tomato-eggs');
+    await database.customStatement('''
+      CREATE TRIGGER reject_failed_step
+      BEFORE INSERT ON recipe_steps
+      WHEN NEW.instruction = '触发失败'
+      BEGIN
+        SELECT RAISE(ABORT, 'forced failure');
+      END
+    ''');
+
+    final update = UpdateRecipeInput(
+      recipeId: before!.recipe.id,
+      title: '不应保留的新标题',
+      summary: before.recipe.summary,
+      category: before.recipe.category,
+      ingredients: before.ingredients.map(_ingredientInput).toList(),
+      steps: const [
+        UpdateRecipeStepInput(
+          id: null,
+          title: null,
+          instruction: '触发失败',
+          durationMinutes: null,
+          heatLevel: null,
+        ),
+      ],
+      templateSelection: before.recipe.templateSelection,
+    );
+
+    await expectLater(repository.updateRecipe(update), throwsA(anything));
+
+    final after = await repository.getRecipeDetail(before.recipe.id);
+    expect(after!.recipe.title, before.recipe.title);
+    expect(
+      after.steps.map((step) => step.id),
+      before.steps.map((step) => step.id),
+    );
+  });
+}
+
+UpdateRecipeIngredientInput _ingredientInput(
+  IngredientEntity ingredient, {
+  String? name,
+}) {
+  return UpdateRecipeIngredientInput(
+    id: ingredient.id,
+    name: name ?? ingredient.name,
+    amountText: ingredient.amountText,
+    amountValue: ingredient.amountValue,
+    unit: ingredient.unit,
+    preparation: ingredient.preparation,
+    isOptional: ingredient.isOptional,
+  );
+}
+
+UpdateRecipeStepInput _stepInput(RecipeStepEntity step, {String? instruction}) {
+  return UpdateRecipeStepInput(
+    id: step.id,
+    title: step.title,
+    instruction: instruction ?? step.instruction,
+    durationMinutes: step.durationMinutes,
+    heatLevel: step.heatLevel,
+  );
 }
 
 const _templateSelection = RecipeTemplateSelectionValueObject(

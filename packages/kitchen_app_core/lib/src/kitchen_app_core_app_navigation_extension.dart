@@ -21,6 +21,13 @@ extension AppNavigationExtension on BuildContext {
     );
   }
 
+  Future<T?> pushEditRecipe<T>(String recipeId) {
+    return pushNamed<T>(
+      AppRouteNames.editRecipe,
+      pathParameters: {'id': recipeId},
+    );
+  }
+
   void replaceWithRecipeDetail(String recipeId) {
     pushReplacementNamed(
       AppRouteNames.recipeDetail,

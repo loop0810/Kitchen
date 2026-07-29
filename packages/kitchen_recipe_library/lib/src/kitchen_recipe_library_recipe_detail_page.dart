@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_design_system/kitchen_design_system.dart';
+import 'package:kitchen_app_core/kitchen_app_core.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 
 import 'kitchen_recipe_library_dependencies.dart';
@@ -42,6 +43,17 @@ class _RecipeDetailContent extends ConsumerWidget {
             pinned: true,
             title: Text(recipe.title),
             actions: [
+              IconButton(
+                tooltip: '编辑菜谱',
+                onPressed: () async {
+                  final updated = await context.pushEditRecipe<bool>(recipe.id);
+                  if (updated == true) {
+                    // 编辑页返回成功标记后重新读取详情；列表由 Drift Stream 自动刷新。
+                    ref.invalidate(recipeDetailProvider(recipe.id));
+                  }
+                },
+                icon: const Icon(Icons.edit_outlined),
+              ),
               IconButton(
                 tooltip: recipe.isFavorite ? '取消收藏' : '收藏',
                 onPressed: () async {
@@ -192,40 +204,10 @@ class _RecipeDetailContent extends ConsumerWidget {
   }
 
   List<Widget> _ingredientSections() {
-    final widgets = <Widget>[];
-    // 旧数据可能没有食材分组，详情页仍要能按原顺序正常展示。
-    if (detail.groups.isEmpty) {
-      return detail.ingredients
-          .map((ingredient) => _IngredientTile(ingredient: ingredient))
-          .toList();
-    }
-    for (final group in detail.groups) {
-      final items = detail.ingredients
-          .where((ingredient) => ingredient.groupId == group.id)
-          .toList();
-      if (items.isEmpty) continue;
-      if (detail.groups.length > 1) {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.s8,
-              bottom: AppSpacing.s4,
-            ),
-            child: Text(
-              group.name,
-              style: const TextStyle(
-                color: AppColor.mutedInk,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        );
-      }
-      widgets.addAll(
-        items.map((ingredient) => _IngredientTile(ingredient: ingredient)),
-      );
-    }
-    return widgets;
+    // 食材只有一套用户维护的全局顺序，详情不再插入任何隐式分组标题。
+    return detail.ingredients
+        .map((ingredient) => _IngredientTile(ingredient: ingredient))
+        .toList(growable: false);
   }
 }
 

@@ -4,18 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:kitchen_recipe_editor/kitchen_recipe_editor.dart';
+import 'package:kitchen_recipe_template/kitchen_recipe_template.dart';
 
 void main() {
   testWidgets('缺少菜名时阻止保存', (tester) async {
     final repository = _EditorRepository();
     await tester.pumpWidget(_testApp(repository));
 
-    await tester.scrollUntilVisible(
-      find.text('保存菜谱'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('保存菜谱'));
+    await tester.tap(find.text('保存'));
     await tester.pump();
 
     expect(
@@ -71,6 +67,56 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('缩略图最多展示前 4 项食材，完整食材会保留在详情中'), findsOneWidget);
+  });
+
+  testWidgets('表单已修改后继续编辑食材仍会实时刷新手账预览', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_testApp(_EditorRepository()));
+
+    final ingredientsField = find.byType(TextFormField).at(2);
+    await tester.enterText(ingredientsField, '番茄  2 个');
+    await tester.pump();
+    expect(
+      tester
+          .widget<RecipeTemplateRendererWidget>(
+            find.byType(RecipeTemplateRendererWidget),
+          )
+          .data
+          .primaryIngredients
+          .single
+          .name,
+      '番茄',
+    );
+
+    await tester.enterText(ingredientsField, '鸡蛋  3 个');
+    await tester.pump();
+    expect(
+      tester
+          .widget<RecipeTemplateRendererWidget>(
+            find.byType(RecipeTemplateRendererWidget),
+          )
+          .data
+          .primaryIngredients
+          .single
+          .name,
+      '鸡蛋',
+    );
+
+    await tester.enterText(ingredientsField, '  3 个');
+    await tester.pump();
+    expect(
+      tester
+          .widget<RecipeTemplateRendererWidget>(
+            find.byType(RecipeTemplateRendererWidget),
+          )
+          .data
+          .primaryIngredients,
+      isEmpty,
+    );
+    expect(find.text('食材待补充'), findsOneWidget);
   });
 
   testWidgets('保存成功后进入新菜谱详情', (tester) async {
@@ -145,7 +191,11 @@ Widget _testApp(_EditorRepository repository) {
   return ProviderScope(
     overrides: [
       recipeEditorDependenciesProvider.overrideWithValue(
-        RecipeEditorDependencies(createRecipe: CreateRecipeUseCase(repository)),
+        RecipeEditorDependencies(
+          createRecipe: CreateRecipeUseCase(repository),
+          getRecipeDetail: GetRecipeDetailUseCase(repository),
+          updateRecipe: UpdateRecipeUseCase(repository),
+        ),
       ),
     ],
     child: MaterialApp.router(routerConfig: router),
@@ -189,7 +239,11 @@ Widget _navigationTestApp(_EditorRepository repository) {
   return ProviderScope(
     overrides: [
       recipeEditorDependenciesProvider.overrideWithValue(
-        RecipeEditorDependencies(createRecipe: CreateRecipeUseCase(repository)),
+        RecipeEditorDependencies(
+          createRecipe: CreateRecipeUseCase(repository),
+          getRecipeDetail: GetRecipeDetailUseCase(repository),
+          updateRecipe: UpdateRecipeUseCase(repository),
+        ),
       ),
     ],
     child: MaterialApp.router(
@@ -220,6 +274,9 @@ class _EditorRepository implements RecipeRepository {
     required String recipeId,
     required bool isFavorite,
   }) async {}
+
+  @override
+  Future<void> updateRecipe(UpdateRecipeInput input) async {}
 
   @override
   Stream<List<RecipeJournalSummaryEntity>> watchRecipes(RecipeQuery query) {

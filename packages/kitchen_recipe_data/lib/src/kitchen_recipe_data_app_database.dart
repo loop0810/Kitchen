@@ -71,25 +71,6 @@ class Recipes extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// 食材分组（如“主料”“调料”），通过 [position] 保存用户定义的展示顺序。
-class IngredientGroups extends Table {
-  /// 食材分组主键。
-  TextColumn get id => text()();
-
-  /// 所属菜谱 ID；删除菜谱时级联删除分组。
-  TextColumn get recipeId =>
-      text().references(Recipes, #id, onDelete: KeyAction.cascade)();
-
-  /// 分组名称，例如“主料”或“调料”。
-  TextColumn get name => text()();
-
-  /// 分组在菜谱中的零基排序位置。
-  IntColumn get position => integer()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
 /// 单条食材同时保留原始用量文本和可选数值。
 ///
 /// `amountText` 用于忠实展示“少许”等自然语言；`amountValue + unit` 为未来份量换算预留。
@@ -100,14 +81,6 @@ class Ingredients extends Table {
   /// 所属菜谱 ID；删除菜谱时级联删除食材。
   TextColumn get recipeId =>
       text().references(Recipes, #id, onDelete: KeyAction.cascade)();
-
-  /// 可选的食材分组 ID。
-  TextColumn get groupId => text().nullable().references(
-    IngredientGroups,
-    #id,
-    // 删除分组不等于删除食材，失去分组的食材仍保留在菜谱中。
-    onDelete: KeyAction.setNull,
-  )();
 
   /// 食材名称。
   TextColumn get name => text()();
@@ -183,7 +156,6 @@ class RecipeTags extends Table {
 class RecipeDetailData {
   const RecipeDetailData({
     required this.recipe,
-    required this.groups,
     required this.ingredients,
     required this.steps,
     required this.tags,
@@ -191,9 +163,6 @@ class RecipeDetailData {
 
   /// Drift 查询得到的菜谱主表行。
   final Recipe recipe;
-
-  /// 该菜谱的全部食材分组行。
-  final List<IngredientGroup> groups;
 
   /// 该菜谱的全部食材行。
   final List<Ingredient> ingredients;
@@ -206,32 +175,23 @@ class RecipeDetailData {
 }
 
 class RecipeSummaryData {
-  const RecipeSummaryData({
-    required this.recipe,
-    required this.groups,
-    required this.ingredients,
-  });
+  const RecipeSummaryData({required this.recipe, required this.ingredients});
 
   /// Drift 查询得到的菜谱主表行。
   final Recipe recipe;
-
-  /// 生成手账摘要所需的食材分组行。
-  final List<IngredientGroup> groups;
 
   /// 生成手账摘要所需的食材行。
   final List<Ingredient> ingredients;
 }
 
-@DriftDatabase(
-  tables: [Recipes, IngredientGroups, Ingredients, RecipeSteps, RecipeTags],
-)
+@DriftDatabase(tables: [Recipes, Ingredients, RecipeSteps, RecipeTags])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -246,6 +206,12 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await migrator.addColumn(recipes, recipes.templateId);
         await migrator.addColumn(recipes, recipes.templateVersion);
+      }
+      if (from < 3) {
+        // v3 取消食材分组。先移除食材表外键列，再删除分组表；迁移只删除
+        // 已废弃的结构，食材本身及其全局 position 顺序保持不变。
+        await migrator.dropColumn(ingredients, 'group_id');
+        await migrator.deleteTable('ingredient_groups');
       }
     },
     beforeOpen: (details) async {
@@ -301,14 +267,10 @@ class AppDatabase extends _$AppDatabase {
     String query = '',
     String statusFilter = 'all',
   }) {
-    // 列表卡片需要主料摘要，所以一次监听主表、食材和分组。
+    // 列表卡片需要食材摘要，所以一次监听主表和食材。
     // leftOuterJoin 保证没有食材的“待完善”菜谱仍会出现在结果中。
     final statement = select(recipes).join([
       leftOuterJoin(ingredients, ingredients.recipeId.equalsExp(recipes.id)),
-      leftOuterJoin(
-        ingredientGroups,
-        ingredientGroups.id.equalsExp(ingredients.groupId),
-      ),
     ]);
     final normalized = query.trim();
     if (normalized.isNotEmpty) {
@@ -346,7 +308,7 @@ class AppDatabase extends _$AppDatabase {
 
     return statement.watch().map((rows) {
       // 一对多 JOIN 会为每条食材返回一行。这里按 recipe.id 折叠回“一道菜一个摘要”，
-      // 防止列表重复卡片，同时收集该菜的食材和去重后的分组。
+      // 防止列表重复卡片，同时按 position 收集该菜的食材。
       final summaries = <String, _MutableRecipeSummary>{};
       for (final row in rows) {
         final recipe = row.readTable(recipes);
@@ -358,16 +320,11 @@ class AppDatabase extends _$AppDatabase {
         if (ingredient != null) {
           summary.ingredients.add(ingredient);
         }
-        final group = row.readTableOrNull(ingredientGroups);
-        if (group != null) {
-          summary.groups[group.id] = group;
-        }
       }
       return summaries.values
           .map(
             (summary) => RecipeSummaryData(
               recipe: summary.recipe,
-              groups: summary.groups.values.toList(growable: false),
               ingredients: summary.ingredients,
             ),
           )
@@ -384,11 +341,6 @@ class AppDatabase extends _$AppDatabase {
 
     // 详情读取的是多个规范化子表，Data 层把它们组装成一个内部数据快照，
     // 再由 Mapper 转成不含 Drift 类型的领域实体。
-    final groupRows =
-        await (select(ingredientGroups)
-              ..where((row) => row.recipeId.equals(id))
-              ..orderBy([(row) => OrderingTerm.asc(row.position)]))
-            .get();
     final ingredientRows =
         await (select(ingredients)
               ..where((row) => row.recipeId.equals(id))
@@ -405,7 +357,6 @@ class AppDatabase extends _$AppDatabase {
 
     return RecipeDetailData(
       recipe: recipe,
-      groups: groupRows,
       ingredients: ingredientRows,
       steps: stepRows,
       tags: tagRows.map((row) => row.tag).toList(),
@@ -472,26 +423,10 @@ class AppDatabase extends _$AppDatabase {
         ),
       ]);
 
-      batch.insertAll(ingredientGroups, const [
-        IngredientGroupsCompanion(
-          id: Value('g-tomato-main'),
-          recipeId: Value('sample-tomato-eggs'),
-          name: Value('主料'),
-          position: Value(0),
-        ),
-        IngredientGroupsCompanion(
-          id: Value('g-tomato-seasoning'),
-          recipeId: Value('sample-tomato-eggs'),
-          name: Value('调料'),
-          position: Value(1),
-        ),
-      ]);
-
       batch.insertAll(ingredients, const [
         IngredientsCompanion(
           id: Value('i-tomato'),
           recipeId: Value('sample-tomato-eggs'),
-          groupId: Value('g-tomato-main'),
           name: Value('番茄'),
           amountText: Value('2 个'),
           amountValue: Value(2),
@@ -502,7 +437,6 @@ class AppDatabase extends _$AppDatabase {
         IngredientsCompanion(
           id: Value('i-eggs'),
           recipeId: Value('sample-tomato-eggs'),
-          groupId: Value('g-tomato-main'),
           name: Value('鸡蛋'),
           amountText: Value('3 个'),
           amountValue: Value(3),
@@ -513,7 +447,6 @@ class AppDatabase extends _$AppDatabase {
         IngredientsCompanion(
           id: Value('i-salt'),
           recipeId: Value('sample-tomato-eggs'),
-          groupId: Value('g-tomato-seasoning'),
           name: Value('盐'),
           amountText: Value('适量'),
           position: Value(2),
@@ -521,7 +454,6 @@ class AppDatabase extends _$AppDatabase {
         IngredientsCompanion(
           id: Value('i-oil'),
           recipeId: Value('sample-tomato-eggs'),
-          groupId: Value('g-tomato-seasoning'),
           name: Value('食用油'),
           amountText: Value('15 ml'),
           amountValue: Value(15),
@@ -581,9 +513,6 @@ class _MutableRecipeSummary {
 
   /// 当前正在聚合的菜谱主表行。
   final Recipe recipe;
-
-  /// 以分组 ID 去重收集的食材分组行。
-  final Map<String, IngredientGroup> groups = {};
 
   /// 按 JOIN 查询顺序收集的食材行。
   final List<Ingredient> ingredients = [];

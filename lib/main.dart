@@ -61,7 +61,11 @@ List<Override> buildRecipeFeatureOverrides(RecipeRepository repository) {
       ),
     ),
     recipeEditorDependenciesProvider.overrideWithValue(
-      RecipeEditorDependencies(createRecipe: CreateRecipeUseCase(repository)),
+      RecipeEditorDependencies(
+        createRecipe: CreateRecipeUseCase(repository),
+        getRecipeDetail: GetRecipeDetailUseCase(repository),
+        updateRecipe: UpdateRecipeUseCase(repository),
+      ),
     ),
   ];
 }
