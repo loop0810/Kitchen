@@ -15,6 +15,8 @@
 | `kitchen_design_system` | `kitchen_design_` |
 | `kitchen_home` | `kitchen_home_` |
 | `kitchen_import` | `kitchen_import_` |
+| `kitchen_import_domain` | `kitchen_import_domain_` |
+| `kitchen_import_data` | `kitchen_import_data_` |
 | `kitchen_profile` | `kitchen_profile_` |
 | `kitchen_recipe_domain` | `kitchen_recipe_domain_` |
 | `kitchen_recipe_data` | `kitchen_recipe_data_` |

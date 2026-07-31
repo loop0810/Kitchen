@@ -19,7 +19,7 @@ android {
         applicationId = "com.example.kitchen_notes"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -32,6 +32,11 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    // 使用随应用打包的中文模型，首次识别不依赖 Google Play 服务或网络下载。
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
 }
 
 kotlin {

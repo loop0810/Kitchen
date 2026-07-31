@@ -8,10 +8,21 @@ import 'package:kitchen_recipe_template/kitchen_recipe_template.dart';
 import 'kitchen_recipe_editor_dependencies.dart';
 
 class RecipeEditorFormWidget extends ConsumerStatefulWidget {
-  const RecipeEditorFormWidget({super.key, this.initialDetail});
+  const RecipeEditorFormWidget({
+    super.key,
+    this.initialDetail,
+    this.initialInput,
+    this.onCreated,
+  });
 
   /// 编辑模式下的完整初始快照；为空时表示创建模式。
   final RecipeDetailEntity? initialDetail;
+
+  /// 导入确认模式下的结构化初始值；普通创建时为空。
+  final CreateRecipeInput? initialInput;
+
+  /// 创建成功后的跨 Feature 协调回调；普通创建时为空。
+  final Future<void> Function(String recipeId)? onCreated;
 
   @override
   ConsumerState<RecipeEditorFormWidget> createState() =>
@@ -53,17 +64,24 @@ class _RecipeEditorFormWidgetState
   void initState() {
     super.initState();
     final detail = widget.initialDetail;
-    _titleController = TextEditingController(text: detail?.recipe.title ?? '');
+    final initialInput = widget.initialInput;
+    _titleController = TextEditingController(
+      text: detail?.recipe.title ?? initialInput?.title ?? '',
+    );
     _summaryController = TextEditingController(
-      text: detail?.recipe.summary ?? '',
+      text: detail?.recipe.summary ?? initialInput?.summary ?? '',
     );
     _ingredientItems =
         detail?.ingredients
             .map(_IngredientEditItem.fromEntity)
             .toList(growable: true) ??
+        initialInput?.ingredients
+            .map(_IngredientEditItem.newItem)
+            .toList(growable: true) ??
         [];
     _stepItems =
         detail?.steps.map(_StepEditItem.fromEntity).toList(growable: true) ??
+        initialInput?.steps.map(_StepEditItem.newItem).toList(growable: true) ??
         [];
     _ingredientsController = TextEditingController(
       text: _ingredientItems.map((item) => item.line).join('\n'),
@@ -71,9 +89,11 @@ class _RecipeEditorFormWidgetState
     _stepsController = TextEditingController(
       text: _stepItems.map((item) => item.line).join('\n'),
     );
-    _category = detail?.recipe.category ?? '家常菜';
+    _category = detail?.recipe.category ?? initialInput?.category ?? '家常菜';
     _templateSelection =
-        detail?.recipe.templateSelection ?? BuiltInTemplates.defaultSelection;
+        detail?.recipe.templateSelection ??
+        initialInput?.templateSelection ??
+        BuiltInTemplates.defaultSelection;
   }
 
   @override
@@ -160,6 +180,7 @@ class _RecipeEditorFormWidgetState
         }
       } else {
         final id = await dependencies.createRecipe(createInput);
+        await widget.onCreated?.call(id);
         // await 期间用户可能已经退出页面；mounted 防止继续使用已销毁的 context。
         if (mounted) {
           _allowPop = true;
@@ -386,6 +407,13 @@ class _RecipeEditorFormWidgetState
       ingredients: _ingredientLines,
       steps: _linesOf(_stepsController),
       templateSelection: _templateSelection,
+      servings: widget.initialInput?.servings,
+      prepMinutes: widget.initialInput?.prepMinutes,
+      cookMinutes: widget.initialInput?.cookMinutes,
+      difficulty: widget.initialInput?.difficulty ?? '',
+      tags: widget.initialInput?.tags ?? const [],
+      sourceSnapshot: widget.initialInput?.sourceSnapshot,
+      importTaskId: widget.initialInput?.importTaskId,
     );
   }
 

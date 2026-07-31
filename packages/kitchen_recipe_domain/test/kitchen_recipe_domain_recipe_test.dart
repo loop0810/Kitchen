@@ -162,6 +162,14 @@ void main() {
 
     expect(parser('番茄：2 个').name, '番茄');
     expect(parser('番茄：2 个').amountText, '2 个');
+    expect(parser('鸡腿1个').name, '鸡腿');
+    expect(parser('鸡腿1个').amountText, '1个');
+    expect(parser('盐少许').name, '盐');
+    expect(parser('盐少许').amountText, '少许');
+    expect(parser('2斤鸭掌').name, '鸭掌');
+    expect(parser('2斤鸭掌').amountText, '2斤');
+    expect(parser('60克生抽').name, '生抽');
+    expect(parser('60克生抽').amountText, '60克');
     expect(parser('盐').amountText, '适量');
     expect(parser('  2 个').name, isEmpty);
     expect(parser('  2 个').amountText, '2 个');

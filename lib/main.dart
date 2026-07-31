@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_recipe_data/kitchen_recipe_data.dart';
+import 'package:kitchen_import/kitchen_import.dart';
+import 'package:kitchen_import_data/kitchen_import_data.dart';
+import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:kitchen_recipe_editor/kitchen_recipe_editor.dart';
 import 'package:kitchen_recipe_library/kitchen_recipe_library.dart';
@@ -22,28 +27,92 @@ class KitchenNotesBootstrap extends StatefulWidget {
   State<KitchenNotesBootstrap> createState() => _KitchenNotesBootstrapState();
 }
 
-class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap> {
+class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
+    with WidgetsBindingObserver {
   late final RecipeDataModule _recipeDataModule;
+  late final ImportDataModule _importDataModule;
+  late final ImportPipeline _importPipeline;
+  var _isConsumingAndroidShares = false;
 
   @override
   void initState() {
     super.initState();
     _recipeDataModule = RecipeDataModule();
+    _importDataModule = ImportDataModule();
+    _importPipeline = ImportPipeline(
+      repository: _importDataModule.importTaskRepository,
+      localStructurer: const LocalRecipeStructurerService(),
+      publicContentExtractor: _importDataModule.publicContentExtractor,
+      ocrAdapter: _importDataModule.ocrAdapter,
+    );
+    WidgetsBinding.instance.addObserver(this);
+    _importDataModule.androidShareAdapter.setOnShareAvailable(
+      _consumePendingAndroidShares,
+    );
+    // App 冷启动后恢复被系统中断的导入阶段；任务原文和中间结果已经在独立
+    // Drift 数据库中，因此恢复不会依赖页面是否打开。
+    unawaited(_importPipeline.resumePending());
+    unawaited(_consumePendingAndroidShares());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _importDataModule.androidShareAdapter.setOnShareAvailable(null);
     // App 生命周期结束时关闭 Drift，释放后台 isolate 和 SQLite 文件句柄。
     _recipeDataModule.close();
+    _importDataModule.close();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_consumePendingAndroidShares());
+    }
+  }
+
+  Future<void> _consumePendingAndroidShares() async {
+    if (_isConsumingAndroidShares) return;
+    _isConsumingAndroidShares = true;
+    try {
+      final shares = await _importDataModule.androidShareAdapter
+          .listPendingShares();
+      for (final share in shares) {
+        try {
+          final controlledPaths = share.localPaths.isEmpty
+              ? const <String>[]
+              : await _importDataModule.persistPickedImages(share.localPaths);
+          final taskId = await _importDataModule.importTaskRepository
+              .createSharedTask(
+                originalText: share.combinedText,
+                controlledLocalPaths: controlledPaths,
+              );
+          // ImportTask 已持久化后才删除原生清单，进程在此前终止时仍可重新消费。
+          await _importDataModule.androidShareAdapter.acknowledge(share.id);
+          unawaited(_importPipeline.process(taskId));
+        } catch (_) {
+          // 保留原生暂存清单，应用下次启动或恢复前台时再次尝试。
+        }
+      }
+    } finally {
+      _isConsumingAndroidShares = false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
-      overrides: buildRecipeFeatureOverrides(
-        _recipeDataModule.recipeRepository,
-      ),
+      overrides: [
+        ...buildRecipeFeatureOverrides(_recipeDataModule.recipeRepository),
+        importDependenciesProvider.overrideWithValue(
+          ImportDependencies(
+            repository: _importDataModule.importTaskRepository,
+            pipeline: _importPipeline,
+            persistPickedImages: _importDataModule.persistPickedImages,
+          ),
+        ),
+      ],
       child: const KitchenNotesApp(),
     );
   }

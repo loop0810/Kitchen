@@ -1,5 +1,7 @@
 allprojects {
     repositories {
+        // 保留 google() 作为兜底，避免镜像同步延迟阻断新版本依赖。
+        maven("https://maven.aliyun.com/repository/google")
         google()
         mavenCentral()
     }

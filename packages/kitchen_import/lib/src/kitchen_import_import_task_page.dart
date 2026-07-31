@@ -1,0 +1,156 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kitchen_app_core/kitchen_app_core.dart';
+import 'package:kitchen_design_system/kitchen_design_system.dart';
+import 'package:kitchen_import_domain/kitchen_import_domain.dart';
+
+import 'kitchen_import_dependencies.dart';
+
+class ImportTaskPage extends ConsumerWidget {
+  const ImportTaskPage({super.key, required this.taskId});
+
+  final String taskId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final task = ref.watch(importTaskProvider(taskId));
+    return Scaffold(
+      appBar: AppBar(title: const Text('导入详情')),
+      body: task.when(
+        data: (value) {
+          if (value == null) return const Center(child: Text('任务不存在或已删除'));
+          return _TaskBody(task: value);
+        },
+        error: (_, _) => const Center(child: Text('任务加载失败')),
+        loading: () => const Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+}
+
+class _TaskBody extends ConsumerWidget {
+  const _TaskBody({required this.task});
+
+  final ImportTaskEntity task;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dependencies = ref.read(importDependenciesProvider);
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      children: [
+        Text(
+          _statusText(task.status),
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: AppSpacing.s8),
+        Text(
+          task.errorMessage ?? _statusDescription(task.status),
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        if (task.originalText.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s20),
+          Text('原始内容', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.s8),
+          SelectableText(task.originalText, maxLines: 10),
+        ],
+        if (task.media.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s20),
+          Text(
+            '已保存 ${task.media.length} 张图片',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ],
+        const SizedBox(height: AppSpacing.s24),
+        if (task.status == ImportTaskStatus.awaitingReview)
+          FilledButton.icon(
+            onPressed: () => context.pushReviewImportDraft(task.id),
+            icon: const Icon(Icons.fact_check_outlined),
+            label: const Text('继续确认'),
+          ),
+        if (task.status == ImportTaskStatus.awaitingReview)
+          OutlinedButton.icon(
+            onPressed: () async {
+              await dependencies.pipeline.retry(task.id);
+              ref.invalidate(importTaskProvider(task.id));
+            },
+            icon: const Icon(Icons.auto_fix_high_outlined),
+            label: const Text('重新整理'),
+          ),
+        if (task.status == ImportTaskStatus.failed)
+          FilledButton.icon(
+            onPressed: () async {
+              await dependencies.pipeline.retry(task.id);
+              ref.invalidate(importTaskProvider(task.id));
+            },
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('重试'),
+          ),
+        if ({
+          ImportTaskStatus.queued,
+          ImportTaskStatus.extracting,
+          ImportTaskStatus.recognizingImages,
+          ImportTaskStatus.structuring,
+        }.contains(task.status))
+          OutlinedButton(
+            onPressed: () async {
+              await dependencies.repository.cancel(task.id);
+              ref.invalidate(importTaskProvider(task.id));
+            },
+            child: const Text('取消任务'),
+          ),
+        if (task.status == ImportTaskStatus.cancelled ||
+            task.status == ImportTaskStatus.failed)
+          TextButton(
+            onPressed: () => _delete(context, ref),
+            child: const Text('删除任务'),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除导入任务？'),
+        content: const Text('原始内容和处理中间结果也会一并删除。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('保留'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await ref.read(importDependenciesProvider).repository.delete(task.id);
+    if (context.mounted) Navigator.pop(context);
+  }
+}
+
+String _statusText(ImportTaskStatus status) => switch (status) {
+  ImportTaskStatus.queued => '等待处理',
+  ImportTaskStatus.extracting => '正在提取网页内容',
+  ImportTaskStatus.recognizingImages => '正在识别图片',
+  ImportTaskStatus.structuring => '正在整理菜谱',
+  ImportTaskStatus.awaitingReview => '草稿等待确认',
+  ImportTaskStatus.failed => '处理失败',
+  ImportTaskStatus.saved => '已保存到菜谱库',
+  ImportTaskStatus.cancelled => '任务已取消',
+};
+
+String _statusDescription(ImportTaskStatus status) => switch (status) {
+  ImportTaskStatus.queued => '任务已安全保存在本机，即将开始整理。',
+  ImportTaskStatus.extracting => '正在读取公开网页，原始链接不会丢失。',
+  ImportTaskStatus.recognizingImages => '正在按图片顺序识别文字。',
+  ImportTaskStatus.structuring => '正在用本地规则生成可编辑草稿。',
+  ImportTaskStatus.awaitingReview => '请检查草稿内容，确认后再保存正式菜谱。',
+  ImportTaskStatus.failed => '原始输入仍保存在本机。',
+  ImportTaskStatus.saved => '同一任务再次确认不会重复创建菜谱。',
+  ImportTaskStatus.cancelled => '可以删除本任务，或保留原始内容。',
+};

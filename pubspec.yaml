@@ -26,6 +26,8 @@ workspace:
   - packages/kitchen_design_system
   - packages/kitchen_home
   - packages/kitchen_import
+  - packages/kitchen_import_data
+  - packages/kitchen_import_domain
   - packages/kitchen_profile
   - packages/kitchen_recipe_data
   - packages/kitchen_recipe_domain
@@ -52,12 +54,17 @@ dependencies:
   kitchen_design_system: ^0.1.0
   kitchen_home: ^0.1.0
   kitchen_import: ^0.1.0
+  kitchen_import_data: ^0.1.0
+  kitchen_import_domain: ^0.1.0
   kitchen_profile: ^0.1.0
   kitchen_recipe_data: ^0.1.0
   kitchen_recipe_domain: ^0.1.0
   kitchen_recipe_editor: ^0.1.0
   kitchen_recipe_library: ^0.1.0
   kitchen_recipe_template: ^0.1.0
+  # path_provider_foundation 间接使用该运行库。9.4.1 的旧 Native Asset 曾在
+  # 启动时无法解析 Foundation 的 NSArray，因此显式保持已修复的新版本下限。
+  objective_c: ^9.5.0
 
 dev_dependencies:
   flutter_test:
@@ -73,7 +80,8 @@ dev_dependencies:
 hooks:
   user_defines:
     sqlite3:
-      source: system
+      # 移动平台不保证应用可直接加载系统 SQLite，因此随应用打包一致版本。
+      source: sqlite3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

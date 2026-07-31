@@ -217,6 +217,51 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _importTaskIdMeta = const VerificationMeta(
+    'importTaskId',
+  );
+  @override
+  late final GeneratedColumn<String> importTaskId = GeneratedColumn<String>(
+    'import_task_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _sourceOriginalTextMeta =
+      const VerificationMeta('sourceOriginalText');
+  @override
+  late final GeneratedColumn<String> sourceOriginalText =
+      GeneratedColumn<String>(
+        'source_original_text',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _sourcePublicUrlMeta = const VerificationMeta(
+    'sourcePublicUrl',
+  );
+  @override
+  late final GeneratedColumn<String> sourcePublicUrl = GeneratedColumn<String>(
+    'source_public_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceTitleMeta = const VerificationMeta(
+    'sourceTitle',
+  );
+  @override
+  late final GeneratedColumn<String> sourceTitle = GeneratedColumn<String>(
+    'source_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -237,6 +282,10 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     coverColor,
     createdAt,
     updatedAt,
+    importTaskId,
+    sourceOriginalText,
+    sourcePublicUrl,
+    sourceTitle,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -380,6 +429,42 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('import_task_id')) {
+      context.handle(
+        _importTaskIdMeta,
+        importTaskId.isAcceptableOrUnknown(
+          data['import_task_id']!,
+          _importTaskIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_original_text')) {
+      context.handle(
+        _sourceOriginalTextMeta,
+        sourceOriginalText.isAcceptableOrUnknown(
+          data['source_original_text']!,
+          _sourceOriginalTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_public_url')) {
+      context.handle(
+        _sourcePublicUrlMeta,
+        sourcePublicUrl.isAcceptableOrUnknown(
+          data['source_public_url']!,
+          _sourcePublicUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_title')) {
+      context.handle(
+        _sourceTitleMeta,
+        sourceTitle.isAcceptableOrUnknown(
+          data['source_title']!,
+          _sourceTitleMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -461,6 +546,22 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      importTaskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}import_task_id'],
+      ),
+      sourceOriginalText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_original_text'],
+      ),
+      sourcePublicUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_public_url'],
+      ),
+      sourceTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_title'],
+      ),
     );
   }
 
@@ -524,6 +625,18 @@ class Recipe extends DataClass implements Insertable<Recipe> {
 
   /// 菜谱内容或状态最近更新时间，用于默认排序。
   final DateTime updatedAt;
+
+  /// 生成本菜谱的导入任务 ID；手动创建时为空，非空值全库唯一。
+  final String? importTaskId;
+
+  /// 导入时保存的原始来源文字；手动创建或没有来源时为空。
+  final String? sourceOriginalText;
+
+  /// 导入来源的公开 HTTPS 地址；没有链接时为空。
+  final String? sourcePublicUrl;
+
+  /// 导入来源标题；未提取成功时为空。
+  final String? sourceTitle;
   const Recipe({
     required this.id,
     required this.title,
@@ -543,6 +656,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     required this.coverColor,
     required this.createdAt,
     required this.updatedAt,
+    this.importTaskId,
+    this.sourceOriginalText,
+    this.sourcePublicUrl,
+    this.sourceTitle,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -573,6 +690,18 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     map['cover_color'] = Variable<int>(coverColor);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || importTaskId != null) {
+      map['import_task_id'] = Variable<String>(importTaskId);
+    }
+    if (!nullToAbsent || sourceOriginalText != null) {
+      map['source_original_text'] = Variable<String>(sourceOriginalText);
+    }
+    if (!nullToAbsent || sourcePublicUrl != null) {
+      map['source_public_url'] = Variable<String>(sourcePublicUrl);
+    }
+    if (!nullToAbsent || sourceTitle != null) {
+      map['source_title'] = Variable<String>(sourceTitle);
+    }
     return map;
   }
 
@@ -604,6 +733,18 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       coverColor: Value(coverColor),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      importTaskId: importTaskId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(importTaskId),
+      sourceOriginalText: sourceOriginalText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceOriginalText),
+      sourcePublicUrl: sourcePublicUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourcePublicUrl),
+      sourceTitle: sourceTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceTitle),
     );
   }
 
@@ -631,6 +772,12 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       coverColor: serializer.fromJson<int>(json['coverColor']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      importTaskId: serializer.fromJson<String?>(json['importTaskId']),
+      sourceOriginalText: serializer.fromJson<String?>(
+        json['sourceOriginalText'],
+      ),
+      sourcePublicUrl: serializer.fromJson<String?>(json['sourcePublicUrl']),
+      sourceTitle: serializer.fromJson<String?>(json['sourceTitle']),
     );
   }
   @override
@@ -655,6 +802,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       'coverColor': serializer.toJson<int>(coverColor),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'importTaskId': serializer.toJson<String?>(importTaskId),
+      'sourceOriginalText': serializer.toJson<String?>(sourceOriginalText),
+      'sourcePublicUrl': serializer.toJson<String?>(sourcePublicUrl),
+      'sourceTitle': serializer.toJson<String?>(sourceTitle),
     };
   }
 
@@ -677,6 +828,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     int? coverColor,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<String?> importTaskId = const Value.absent(),
+    Value<String?> sourceOriginalText = const Value.absent(),
+    Value<String?> sourcePublicUrl = const Value.absent(),
+    Value<String?> sourceTitle = const Value.absent(),
   }) => Recipe(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -696,6 +851,14 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     coverColor: coverColor ?? this.coverColor,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    importTaskId: importTaskId.present ? importTaskId.value : this.importTaskId,
+    sourceOriginalText: sourceOriginalText.present
+        ? sourceOriginalText.value
+        : this.sourceOriginalText,
+    sourcePublicUrl: sourcePublicUrl.present
+        ? sourcePublicUrl.value
+        : this.sourcePublicUrl,
+    sourceTitle: sourceTitle.present ? sourceTitle.value : this.sourceTitle,
   );
   Recipe copyWithCompanion(RecipesCompanion data) {
     return Recipe(
@@ -735,6 +898,18 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           : this.coverColor,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      importTaskId: data.importTaskId.present
+          ? data.importTaskId.value
+          : this.importTaskId,
+      sourceOriginalText: data.sourceOriginalText.present
+          ? data.sourceOriginalText.value
+          : this.sourceOriginalText,
+      sourcePublicUrl: data.sourcePublicUrl.present
+          ? data.sourcePublicUrl.value
+          : this.sourcePublicUrl,
+      sourceTitle: data.sourceTitle.present
+          ? data.sourceTitle.value
+          : this.sourceTitle,
     );
   }
 
@@ -758,13 +933,17 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           ..write('status: $status, ')
           ..write('coverColor: $coverColor, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('importTaskId: $importTaskId, ')
+          ..write('sourceOriginalText: $sourceOriginalText, ')
+          ..write('sourcePublicUrl: $sourcePublicUrl, ')
+          ..write('sourceTitle: $sourceTitle')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     title,
     summary,
@@ -783,7 +962,11 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     coverColor,
     createdAt,
     updatedAt,
-  );
+    importTaskId,
+    sourceOriginalText,
+    sourcePublicUrl,
+    sourceTitle,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -805,7 +988,11 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           other.status == this.status &&
           other.coverColor == this.coverColor &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.importTaskId == this.importTaskId &&
+          other.sourceOriginalText == this.sourceOriginalText &&
+          other.sourcePublicUrl == this.sourcePublicUrl &&
+          other.sourceTitle == this.sourceTitle);
 }
 
 class RecipesCompanion extends UpdateCompanion<Recipe> {
@@ -827,6 +1014,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
   final Value<int> coverColor;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<String?> importTaskId;
+  final Value<String?> sourceOriginalText;
+  final Value<String?> sourcePublicUrl;
+  final Value<String?> sourceTitle;
   final Value<int> rowid;
   const RecipesCompanion({
     this.id = const Value.absent(),
@@ -847,6 +1038,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.coverColor = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.importTaskId = const Value.absent(),
+    this.sourceOriginalText = const Value.absent(),
+    this.sourcePublicUrl = const Value.absent(),
+    this.sourceTitle = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RecipesCompanion.insert({
@@ -868,6 +1063,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     required int coverColor,
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.importTaskId = const Value.absent(),
+    this.sourceOriginalText = const Value.absent(),
+    this.sourcePublicUrl = const Value.absent(),
+    this.sourceTitle = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
@@ -893,6 +1092,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Expression<int>? coverColor,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<String>? importTaskId,
+    Expression<String>? sourceOriginalText,
+    Expression<String>? sourcePublicUrl,
+    Expression<String>? sourceTitle,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -914,6 +1117,11 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       if (coverColor != null) 'cover_color': coverColor,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (importTaskId != null) 'import_task_id': importTaskId,
+      if (sourceOriginalText != null)
+        'source_original_text': sourceOriginalText,
+      if (sourcePublicUrl != null) 'source_public_url': sourcePublicUrl,
+      if (sourceTitle != null) 'source_title': sourceTitle,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -937,6 +1145,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Value<int>? coverColor,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<String?>? importTaskId,
+    Value<String?>? sourceOriginalText,
+    Value<String?>? sourcePublicUrl,
+    Value<String?>? sourceTitle,
     Value<int>? rowid,
   }) {
     return RecipesCompanion(
@@ -958,6 +1170,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       coverColor: coverColor ?? this.coverColor,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      importTaskId: importTaskId ?? this.importTaskId,
+      sourceOriginalText: sourceOriginalText ?? this.sourceOriginalText,
+      sourcePublicUrl: sourcePublicUrl ?? this.sourcePublicUrl,
+      sourceTitle: sourceTitle ?? this.sourceTitle,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1019,6 +1235,18 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (importTaskId.present) {
+      map['import_task_id'] = Variable<String>(importTaskId.value);
+    }
+    if (sourceOriginalText.present) {
+      map['source_original_text'] = Variable<String>(sourceOriginalText.value);
+    }
+    if (sourcePublicUrl.present) {
+      map['source_public_url'] = Variable<String>(sourcePublicUrl.value);
+    }
+    if (sourceTitle.present) {
+      map['source_title'] = Variable<String>(sourceTitle.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1046,6 +1274,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
           ..write('coverColor: $coverColor, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('importTaskId: $importTaskId, ')
+          ..write('sourceOriginalText: $sourceOriginalText, ')
+          ..write('sourcePublicUrl: $sourcePublicUrl, ')
+          ..write('sourceTitle: $sourceTitle, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2458,6 +2690,10 @@ typedef $$RecipesTableCreateCompanionBuilder =
       required int coverColor,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<String?> importTaskId,
+      Value<String?> sourceOriginalText,
+      Value<String?> sourcePublicUrl,
+      Value<String?> sourceTitle,
       Value<int> rowid,
     });
 typedef $$RecipesTableUpdateCompanionBuilder =
@@ -2480,6 +2716,10 @@ typedef $$RecipesTableUpdateCompanionBuilder =
       Value<int> coverColor,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<String?> importTaskId,
+      Value<String?> sourceOriginalText,
+      Value<String?> sourcePublicUrl,
+      Value<String?> sourceTitle,
       Value<int> rowid,
     });
 
@@ -2638,6 +2878,26 @@ class $$RecipesTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get importTaskId => $composableBuilder(
+    column: $table.importTaskId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceOriginalText => $composableBuilder(
+    column: $table.sourceOriginalText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourcePublicUrl => $composableBuilder(
+    column: $table.sourcePublicUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceTitle => $composableBuilder(
+    column: $table.sourceTitle,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2815,6 +3075,26 @@ class $$RecipesTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get importTaskId => $composableBuilder(
+    column: $table.importTaskId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceOriginalText => $composableBuilder(
+    column: $table.sourceOriginalText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourcePublicUrl => $composableBuilder(
+    column: $table.sourcePublicUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceTitle => $composableBuilder(
+    column: $table.sourceTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RecipesTableAnnotationComposer
@@ -2897,6 +3177,26 @@ class $$RecipesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get importTaskId => $composableBuilder(
+    column: $table.importTaskId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceOriginalText => $composableBuilder(
+    column: $table.sourceOriginalText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourcePublicUrl => $composableBuilder(
+    column: $table.sourcePublicUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceTitle => $composableBuilder(
+    column: $table.sourceTitle,
+    builder: (column) => column,
+  );
 
   Expression<T> ingredientsRefs<T extends Object>(
     Expression<T> Function($$IngredientsTableAnnotationComposer a) f,
@@ -3024,6 +3324,10 @@ class $$RecipesTableTableManager
                 Value<int> coverColor = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<String?> importTaskId = const Value.absent(),
+                Value<String?> sourceOriginalText = const Value.absent(),
+                Value<String?> sourcePublicUrl = const Value.absent(),
+                Value<String?> sourceTitle = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RecipesCompanion(
                 id: id,
@@ -3044,6 +3348,10 @@ class $$RecipesTableTableManager
                 coverColor: coverColor,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                importTaskId: importTaskId,
+                sourceOriginalText: sourceOriginalText,
+                sourcePublicUrl: sourcePublicUrl,
+                sourceTitle: sourceTitle,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3066,6 +3374,10 @@ class $$RecipesTableTableManager
                 required int coverColor,
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<String?> importTaskId = const Value.absent(),
+                Value<String?> sourceOriginalText = const Value.absent(),
+                Value<String?> sourcePublicUrl = const Value.absent(),
+                Value<String?> sourceTitle = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RecipesCompanion.insert(
                 id: id,
@@ -3086,6 +3398,10 @@ class $$RecipesTableTableManager
                 coverColor: coverColor,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                importTaskId: importTaskId,
+                sourceOriginalText: sourceOriginalText,
+                sourcePublicUrl: sourcePublicUrl,
+                sourceTitle: sourceTitle,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -69,24 +69,13 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: AppSpacing.s20),
-            Row(
-              children: [
-                Expanded(
-                  child: _QuickAction(
-                    icon: Icons.auto_awesome_rounded,
-                    label: '快速导入',
-                    onTap: context.goToImportInbox,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.s12),
-                Expanded(
-                  child: _QuickAction(
-                    icon: Icons.edit_note_rounded,
-                    label: '手动创建',
-                    onTap: context.pushCreateRecipe,
-                  ),
-                ),
-              ],
+            SizedBox(
+              width: double.infinity,
+              child: _QuickAction(
+                icon: Icons.add_rounded,
+                label: '创建食谱',
+                onTap: context.showRecipeCreationOptions,
+              ),
             ),
             const Spacer(flex: 4),
           ],

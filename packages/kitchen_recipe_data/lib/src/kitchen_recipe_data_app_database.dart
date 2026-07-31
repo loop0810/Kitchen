@@ -67,6 +67,18 @@ class Recipes extends Table {
   /// 菜谱内容或状态最近更新时间，用于默认排序。
   DateTimeColumn get updatedAt => dateTime()();
 
+  /// 生成本菜谱的导入任务 ID；手动创建时为空，非空值全库唯一。
+  TextColumn get importTaskId => text().nullable().unique()();
+
+  /// 导入时保存的原始来源文字；手动创建或没有来源时为空。
+  TextColumn get sourceOriginalText => text().nullable()();
+
+  /// 导入来源的公开 HTTPS 地址；没有链接时为空。
+  TextColumn get sourcePublicUrl => text().nullable()();
+
+  /// 导入来源标题；未提取成功时为空。
+  TextColumn get sourceTitle => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -191,7 +203,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -212,6 +224,22 @@ class AppDatabase extends _$AppDatabase {
         // 已废弃的结构，食材本身及其全局 position 顺序保持不变。
         await migrator.dropColumn(ingredients, 'group_id');
         await migrator.deleteTable('ingredient_groups');
+      }
+      if (from < 4) {
+        // v4 为导入确认增加来源快照和幂等键。导入任务 ID 的唯一索引由
+        // Drift 随列约束创建，防止崩溃恢复后重复生成正式菜谱。
+        // SQLite 不允许通过 ALTER TABLE 直接新增 UNIQUE 列，因此先新增普通
+        // nullable 列，再单独建立唯一索引；新建数据库仍由表声明生成同等约束。
+        await customStatement(
+          'ALTER TABLE recipes ADD COLUMN import_task_id TEXT NULL',
+        );
+        await customStatement(
+          'CREATE UNIQUE INDEX recipes_import_task_id_unique '
+          'ON recipes (import_task_id)',
+        );
+        await migrator.addColumn(recipes, recipes.sourceOriginalText);
+        await migrator.addColumn(recipes, recipes.sourcePublicUrl);
+        await migrator.addColumn(recipes, recipes.sourceTitle);
       }
     },
     beforeOpen: (details) async {
@@ -361,6 +389,15 @@ class AppDatabase extends _$AppDatabase {
       steps: stepRows,
       tags: tagRows.map((row) => row.tag).toList(),
     );
+  }
+
+  Future<String?> recipeIdForImportTask(String importTaskId) async {
+    final row =
+        await (selectOnly(recipes)
+              ..addColumns([recipes.id])
+              ..where(recipes.importTaskId.equals(importTaskId)))
+            .getSingleOrNull();
+    return row?.read(recipes.id);
   }
 
   Future<void> setFavorite(String id, {required bool value}) {

@@ -7,6 +7,9 @@
 - 本地 SQLite 菜谱存储
 - 菜谱库、状态筛选与本地搜索
 - 手动创建菜谱
+- 统一创建入口与持久化导入任务
+- 文章 / 公开 HTTPS 链接本地整理
+- 相册多选与 iOS / Android 离线 OCR
 - 食材分组、步骤与菜谱详情
 - 导入箱、云端 AI 和激励广告的扩展入口
 
@@ -55,6 +58,8 @@ packages/
 ├── kitchen_recipe_editor/ 手动创建菜谱
 ├── kitchen_home/          首页
 ├── kitchen_import/        导入箱
+├── kitchen_import_domain/ 导入状态机、草稿与处理端口（纯 Dart）
+├── kitchen_import_data/   独立 Drift 导入库、网页提取、媒体存储与 OCR 适配
 └── kitchen_profile/       我的页面与全局视觉风格状态
 ```
 
@@ -70,6 +75,8 @@ kitchen_recipe_data → kitchen_recipe_domain
 
 Feature 不直接依赖 Data、根 App 或其他 Feature。菜谱库和编辑器公开依赖端口，
 根 App 将同一个 Repository 实例包装为 UseCase 后通过 Riverpod override 注入。
+导入 Feature 同样只依赖 Import Domain；根 App 负责将导入草稿映射到菜谱编辑器，
+并在保存成功后协调两套状态。
 
 ## 运行
 

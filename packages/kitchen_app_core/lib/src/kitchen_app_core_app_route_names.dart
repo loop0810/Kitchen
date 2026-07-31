@@ -7,6 +7,10 @@ abstract final class AppRouteNames {
   static const createRecipe = 'createRecipe';
   static const editRecipe = 'editRecipe';
   static const recipeDetail = 'recipeDetail';
+  static const pasteImport = 'pasteImport';
+  static const imageImport = 'imageImport';
+  static const importTask = 'importTask';
+  static const reviewImportDraft = 'reviewImportDraft';
 
   static String searchLocation(String query) {
     return Uri(path: '/search', queryParameters: {'q': query}).toString();

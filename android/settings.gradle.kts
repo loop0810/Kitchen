@@ -11,6 +11,8 @@ pluginManagement {
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {
+        // 国内网络访问 Google Maven 可能发生 TLS 中断，镜像优先、官方源兜底。
+        maven("https://maven.aliyun.com/repository/google")
         google()
         mavenCentral()
         gradlePluginPortal()

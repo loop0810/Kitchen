@@ -42,6 +42,11 @@ class RecipeRepositoryImpl implements RecipeRepository {
 
   @override
   Future<String> createRecipe(CreateRecipeInput input) async {
+    final importTaskId = input.importTaskId;
+    if (importTaskId != null) {
+      final existingId = await _database.recipeIdForImportTask(importTaskId);
+      if (existingId != null) return existingId;
+    }
     final recipeId = _uuid.v4();
     final now = DateTime.now();
     final incomplete = input.ingredients.isEmpty || input.steps.isEmpty;
@@ -57,12 +62,26 @@ class RecipeRepositoryImpl implements RecipeRepository {
               title: input.title.trim(),
               summary: Value(input.summary.trim()),
               category: Value(input.category),
+              servings: Value(input.servings),
+              prepMinutes: Value(input.prepMinutes),
+              cookMinutes: Value(input.cookMinutes),
+              difficulty: Value(
+                input.difficulty.trim().isEmpty
+                    ? '简单'
+                    : input.difficulty.trim(),
+              ),
               templateId: Value(input.templateSelection.templateId),
               templateVersion: Value(input.templateSelection.templateVersion),
               status: Value(incomplete ? 'incomplete' : 'ready'),
               coverColor: _coverColorFor(input.title),
               createdAt: now,
               updatedAt: now,
+              importTaskId: Value(input.importTaskId),
+              sourceOriginalText: Value(input.sourceSnapshot?.originalText),
+              sourcePublicUrl: Value(
+                input.sourceSnapshot?.publicUrl?.toString(),
+              ),
+              sourceTitle: Value(input.sourceSnapshot?.sourceTitle),
             ),
           );
 
@@ -95,6 +114,18 @@ class RecipeRepositoryImpl implements RecipeRepository {
                 position: index,
                 instruction: instruction,
               ),
+            );
+      }
+
+      for (final tag
+          in input.tags
+              .map((value) => value.trim())
+              .where((value) => value.isNotEmpty)) {
+        await _database
+            .into(_database.recipeTags)
+            .insert(
+              RecipeTagsCompanion.insert(recipeId: recipeId, tag: tag),
+              mode: InsertMode.insertOrIgnore,
             );
       }
     });

@@ -38,7 +38,7 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
         actions: [
           IconButton(
             tooltip: '创建菜谱',
-            onPressed: context.pushCreateRecipe,
+            onPressed: context.showRecipeCreationOptions,
             icon: const Icon(Icons.add_rounded),
           ),
           const SizedBox(width: AppSpacing.s8),
@@ -103,7 +103,7 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
                   return _EmptyLibrary(
                     hasFilter:
                         _query.isNotEmpty || _filter != RecipeStatusFilter.all,
-                    onCreate: context.pushCreateRecipe,
+                    onCreate: context.showRecipeCreationOptions,
                   );
                 }
                 return GridView.builder(

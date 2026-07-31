@@ -141,6 +141,28 @@ void main() {
     expect(detail!.recipe.status, RecipeStatus.incomplete);
   });
 
+  test('同一导入任务重复确认只返回同一道菜谱', () async {
+    final input = CreateRecipeInput(
+      title: '导入菜谱',
+      summary: '',
+      category: '家常菜',
+      ingredients: ['鸡蛋 2 个'],
+      steps: ['炒熟'],
+      templateSelection: _templateSelection,
+      importTaskId: 'import-task-1',
+      sourceSnapshot: RecipeSourceSnapshot(
+        originalText: '导入原文',
+        publicUrl: Uri.parse('https://example.com/recipe'),
+      ),
+    );
+
+    final firstId = await repository.createRecipe(input);
+    final secondId = await repository.createRecipe(input);
+
+    expect(secondId, firstId);
+    expect(await database.recipeIdForImportTask('import-task-1'), firstId);
+  });
+
   test('更新菜谱同步删除、新增和排序并保留未编辑元数据', () async {
     final before = await repository.getRecipeDetail('sample-tomato-eggs');
     final recipeBefore = before!.recipe;
