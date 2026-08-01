@@ -1,4 +1,5 @@
 import 'kitchen_import_domain_import_task_entity.dart';
+import 'kitchen_import_domain_ocr_document_entity.dart';
 import 'kitchen_import_domain_recipe_draft_entity.dart';
 
 abstract interface class ImportTaskRepository {
@@ -22,7 +23,7 @@ abstract interface class ImportTaskRepository {
   Future<void> saveMediaOcr({
     required String taskId,
     required String mediaId,
-    required String text,
+    required OcrPageEntity page,
   });
 
   Future<void> saveDraft(String taskId, RecipeDraftEntity draft);

@@ -16,7 +16,9 @@ void main() {
     final processing = pipeline.process('task-1');
     await ocr.started.future;
     await repository.delete('task-1');
-    ocr.result.complete('番茄炒蛋');
+    ocr.result.complete(
+      OcrPageEntity.fromPlainText(pageIndex: 0, text: '番茄炒蛋'),
+    );
 
     await expectLater(processing, completes);
     expect(await repository.getTask('task-1'), isNull);
@@ -85,6 +87,32 @@ void main() {
     expect(repository.task.ocrText, contains('葱油拌面'));
     expect(repository.task.draft!.ingredients.value, ['面条 100克']);
   });
+
+  test('旧任务只有纯文本 OCR 时会重新识别以补齐坐标', () async {
+    final repository = _MemoryImportTaskRepository(
+      media: const [
+        ImportMediaReference(
+          id: 'page-1',
+          localPath: '1.jpg',
+          position: 0,
+          ocrText: '旧识别文字',
+          ocrCompleted: true,
+        ),
+      ],
+    );
+    final ocr = _CountingOcrAdapter();
+    final pipeline = ImportPipeline(
+      repository: repository,
+      localStructurer: const LocalRecipeStructurerService(),
+      ocrAdapter: ocr,
+    );
+
+    await pipeline.process('task-1');
+
+    expect(ocr.recognitionCount, 1);
+    expect(repository.task.media.single.ocrPage, isNotNull);
+    expect(repository.task.ocrText, contains('番茄炒蛋'));
+  });
 }
 
 class _MappedOcrAdapter implements OcrAdapter {
@@ -93,8 +121,11 @@ class _MappedOcrAdapter implements OcrAdapter {
   final Map<String, String> values;
 
   @override
-  Future<String> recognize(ImportMediaReference media) async {
-    return values[media.id] ?? '';
+  Future<OcrPageEntity> recognize(ImportMediaReference media) async {
+    return OcrPageEntity.fromPlainText(
+      pageIndex: media.position,
+      text: values[media.id] ?? '',
+    );
   }
 }
 
@@ -124,7 +155,7 @@ class _MemoryImportTaskRepository implements ImportTaskRepository {
   Future<void> saveMediaOcr({
     required String taskId,
     required String mediaId,
-    required String text,
+    required OcrPageEntity page,
   }) async {
     task = _copy(
       media: task.media
@@ -134,7 +165,8 @@ class _MemoryImportTaskRepository implements ImportTaskRepository {
                     id: item.id,
                     localPath: item.localPath,
                     position: item.position,
-                    ocrText: text,
+                    ocrText: page.plainText,
+                    ocrPage: page,
                     ocrCompleted: true,
                   )
                 : item,
@@ -196,12 +228,25 @@ class _MemoryImportTaskRepository implements ImportTaskRepository {
 
 class _SuspendedOcrAdapter implements OcrAdapter {
   final Completer<void> started = Completer<void>();
-  final Completer<String> result = Completer<String>();
+  final Completer<OcrPageEntity> result = Completer<OcrPageEntity>();
 
   @override
-  Future<String> recognize(ImportMediaReference media) {
+  Future<OcrPageEntity> recognize(ImportMediaReference media) {
     started.complete();
     return result.future;
+  }
+}
+
+class _CountingOcrAdapter implements OcrAdapter {
+  int recognitionCount = 0;
+
+  @override
+  Future<OcrPageEntity> recognize(ImportMediaReference media) async {
+    recognitionCount += 1;
+    return OcrPageEntity.fromPlainText(
+      pageIndex: media.position,
+      text: '番茄炒蛋\n食材\n番茄 2个\n步骤\n番茄切块',
+    );
   }
 }
 
@@ -234,7 +279,7 @@ class _DeletingImportTaskRepository implements ImportTaskRepository {
   Future<void> saveMediaOcr({
     required String taskId,
     required String mediaId,
-    required String text,
+    required OcrPageEntity page,
   }) async {
     if (_task == null) throw StateError('deleted');
   }

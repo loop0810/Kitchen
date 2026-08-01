@@ -86,6 +86,45 @@ class _TaskBody extends ConsumerWidget {
             child: SelectableText(task.ocrText!, maxLines: 18),
           ),
         ],
+        if (task.draft?.warnings.isNotEmpty == true) ...[
+          const SizedBox(height: AppSpacing.s20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.s16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.fact_check_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: AppSpacing.s8),
+                      Expanded(
+                        child: Text(
+                          '本地解析需要确认',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                  for (final warning in task.draft!.warnings)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.s4),
+                      child: Text('• $warning'),
+                    ),
+                  const SizedBox(height: AppSpacing.s8),
+                  Text(
+                    '应用只会自动填写有明确本地证据的内容；AI 辅助未来将作为可选付费功能。',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.s24),
         if (task.status == ImportTaskStatus.awaitingReview)
           FilledButton.icon(

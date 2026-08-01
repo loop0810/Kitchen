@@ -171,7 +171,7 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
   Future<void> saveMediaOcr({
     required String taskId,
     required String mediaId,
-    required String text,
+    required OcrPageEntity page,
   }) async {
     final task = await getTask(taskId);
     if (task == null) throw StateError('Import task $taskId does not exist.');
@@ -184,7 +184,8 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
                   position: item.position,
                   rotationQuarterTurns: item.rotationQuarterTurns,
                   ignored: item.ignored,
-                  ocrText: text,
+                  ocrText: page.plainText,
+                  ocrPage: page,
                   ocrCompleted: true,
                 )
               : item,

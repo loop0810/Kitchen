@@ -1,26 +1,21 @@
 import 'kitchen_import_domain_import_task_entity.dart';
 import 'kitchen_import_domain_import_task_repository.dart';
+import 'kitchen_import_domain_ocr_document_entity.dart';
 import 'kitchen_import_domain_recipe_draft_entity.dart';
 
 abstract interface class OcrAdapter {
-  Future<String> recognize(ImportMediaReference media);
+  Future<OcrPageEntity> recognize(ImportMediaReference media);
 }
 
 abstract interface class PublicContentExtractor {
   Future<String> extract(Uri url);
 }
 
-abstract interface class RecipeStructuringAdapter {
-  Future<RecipeDraftEntity?> structure({
-    required String idempotencyRequestId,
-    required String text,
-  });
-}
-
 abstract interface class RecipeStructurer {
   RecipeDraftEntity structure({
     required String text,
     required SourceSnapshot source,
+    OcrDocumentEntity? ocrDocument,
   });
 }
 
@@ -30,14 +25,12 @@ class ImportPipeline {
     required RecipeStructurer localStructurer,
     PublicContentExtractor? publicContentExtractor,
     OcrAdapter? ocrAdapter,
-    RecipeStructuringAdapter? cloudStructuringAdapter,
   }) {
     return ImportPipeline._(
       repository,
       localStructurer,
       publicContentExtractor,
       ocrAdapter,
-      cloudStructuringAdapter,
     );
   }
 
@@ -46,20 +39,19 @@ class ImportPipeline {
     this._localStructurer,
     this._publicContentExtractor,
     this._ocrAdapter,
-    this._cloudStructuringAdapter,
   );
 
   final ImportTaskRepository _repository;
   final RecipeStructurer _localStructurer;
   final PublicContentExtractor? _publicContentExtractor;
   final OcrAdapter? _ocrAdapter;
-  final RecipeStructuringAdapter? _cloudStructuringAdapter;
 
   Future<void> process(String taskId) async {
     final task = await _repository.getTask(taskId);
     if (task == null || task.status == ImportTaskStatus.cancelled) return;
     try {
       var text = task.originalText;
+      OcrDocumentEntity? ocrDocument;
       if (task.media.isNotEmpty) {
         final adapter = _ocrAdapter;
         if (adapter == null) {
@@ -72,7 +64,7 @@ class ImportPipeline {
           taskId,
           ImportTaskStatus.recognizingImages,
         );
-        final pages = <String>[];
+        final pages = <OcrPageEntity>[];
         final orderedMedia =
             task.media.where((item) => !item.ignored).toList(growable: false)
               ..sort((left, right) => left.position.compareTo(right.position));
@@ -84,21 +76,22 @@ class ImportPipeline {
         }
         for (final media in orderedMedia) {
           if (await _isCancelled(taskId)) return;
-          if (media.ocrCompleted) {
-            pages.add(media.ocrText ?? '');
+          if (media.ocrCompleted && media.ocrPage != null) {
+            pages.add(media.ocrPage!);
             continue;
           }
-          final pageText = await adapter.recognize(media);
+          final page = await adapter.recognize(media);
           await _repository.saveMediaOcr(
             taskId: taskId,
             mediaId: media.id,
-            text: pageText,
+            page: page,
           );
-          pages.add(pageText);
+          pages.add(page);
         }
         if (await _isCancelled(taskId)) return;
-        final ocrText = pages.join('\n\n');
-        if (ocrText.trim().isEmpty) {
+        ocrDocument = OcrDocumentEntity(pages: pages);
+        final ocrText = ocrDocument.plainText;
+        if (ocrDocument.isEmpty) {
           throw const ImportPipelineException(
             'imageUnreadable',
             '没有识别到清晰文字，请更换图片或手动创建菜谱。',
@@ -136,12 +129,13 @@ class ImportPipeline {
         originalText: task.originalText,
         publicUrl: task.detectedPublicUrl,
       );
-      final cloudDraft = await _cloudStructuringAdapter?.structure(
-        idempotencyRequestId: taskId,
+      // AI 属于未来由用户主动选择的付费增强能力；默认导入流程只执行本地
+      // OCR、布局分析和保守结构化，不会静默上传内容或触发付费能力。
+      final draft = _localStructurer.structure(
         text: text,
+        source: source,
+        ocrDocument: ocrDocument,
       );
-      final draft =
-          cloudDraft ?? _localStructurer.structure(text: text, source: source);
       if (await _isCancelled(taskId)) return;
       await _repository.saveDraft(taskId, draft);
     } on ImportPipelineException catch (error) {
@@ -188,6 +182,7 @@ class ImportPipeline {
         normalized,
       ].where((part) => part.isNotEmpty).join('\n\n'),
       source: source,
+      ocrDocument: null,
     );
     if (await _isCancelled(taskId)) return;
     await _repository.saveDraft(taskId, draft);

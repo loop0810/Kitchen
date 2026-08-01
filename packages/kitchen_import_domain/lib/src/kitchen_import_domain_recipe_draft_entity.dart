@@ -1,10 +1,33 @@
 enum DraftFieldOrigin { source, inferred, userEdited, userConfirmed }
 
+enum DraftConfidenceLevel { high, medium, low }
+
+enum RecipeDraftQuality { readyForReview, partial, uncertain }
+
+class DraftFieldEvidence {
+  const DraftFieldEvidence({
+    required this.pageIndex,
+    required this.lineId,
+    required this.excerpt,
+  });
+
+  /// 证据所在的零基图片页码。
+  final int pageIndex;
+
+  /// 证据对应的 OCR 文字行稳定 ID。
+  final String lineId;
+
+  /// 供用户理解来源的短文本摘录。
+  final String excerpt;
+}
+
 class DraftFieldValue<T> {
   const DraftFieldValue({
     required this.value,
     required this.origin,
     this.needsConfirmation = false,
+    this.confidence = DraftConfidenceLevel.medium,
+    this.evidence = const [],
   });
 
   /// 当前字段值；无法可靠推断时允许为空值或空集合。
@@ -15,6 +38,12 @@ class DraftFieldValue<T> {
 
   /// 是否需要在保存正式菜谱前提醒用户确认。
   final bool needsConfirmation;
+
+  /// 本地结构化对字段的离散可信等级，不使用伪精确百分比。
+  final DraftConfidenceLevel confidence;
+
+  /// 支撑当前字段值的 OCR 行；非图片输入或无可靠对应行时为空。
+  final List<DraftFieldEvidence> evidence;
 }
 
 class SourceSnapshot {
@@ -47,11 +76,19 @@ class RecipeDraftEntity {
     required this.ingredients,
     required this.steps,
     required this.sourceSnapshot,
+    this.quality = RecipeDraftQuality.partial,
+    this.warnings = const [],
     this.schemaVersion = 1,
   });
 
   /// 版本化草稿结构版本，用于数据库恢复和未来迁移。
   final int schemaVersion;
+
+  /// 结构校验后的整体草稿质量，只决定提示和降级，不替代用户确认。
+  final RecipeDraftQuality quality;
+
+  /// 面向用户的保守解析提示；为空不表示内容已被自动确认。
+  final List<String> warnings;
 
   /// 菜名及其来源标记。
   final DraftFieldValue<String> title;

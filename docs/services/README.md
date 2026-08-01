@@ -38,10 +38,10 @@ Feature
 | 本地数据服务 | 数据库、事务、迁移、Repository | 已开始 | `LOCAL_DATA_SERVICE.md` |
 | 媒体资源服务 | 图片、缩略图、模板资源和清理 | 近期 | `MEDIA_ASSET_SERVICE.md` |
 | 导入处理服务 | 分享接收、任务状态机和恢复 | MVP | `IMPORT_PIPELINE_SERVICE.md` |
-| AI 编排服务 | 规则、端侧、云端路由和草稿 | MVP | `AI_ORCHESTRATION_SERVICE.md` |
+| AI 编排服务 | 未来付费 AI 的授权、路由和草稿 | 后续 | `AI_ORCHESTRATION_SERVICE.md` |
 | 模板服务 | 模板注册、渲染、缓存和版本 | 当前核心 | `TEMPLATE_SERVICE.md` |
 | 搜索服务 | 本地索引与未来联合搜索 | 已开始 | `SEARCH_SERVICE.md` |
-| 权益与额度服务 | AI Credit、广告奖励和模板权益 | MVP / 后续 | `ENTITLEMENT_QUOTA_SERVICE.md` |
+| 权益与额度服务 | 未来 AI 付费权益和模板权益 | 后续 | `ENTITLEMENT_QUOTA_SERVICE.md` |
 | 烹饪运行时服务 | 会话、计时、通知和恢复 | MVP | `COOKING_RUNTIME_SERVICE.md` |
 | 备份与同步服务 | 导出、恢复、云备份和同步 | 后续 | `BACKUP_SYNC_SERVICE.md` |
 

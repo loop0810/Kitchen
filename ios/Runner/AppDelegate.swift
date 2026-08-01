@@ -20,7 +20,7 @@ import Vision
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
     channel.setMethodCallHandler { call, result in
-      guard call.method == "recognizeText" else {
+      guard call.method == "recognizeDocument" else {
         result(FlutterMethodNotImplemented)
         return
       }
@@ -49,9 +49,27 @@ import Vision
           return
         }
         let lines = (request.results as? [VNRecognizedTextObservation])?
-          .compactMap { $0.topCandidates(1).first?.string } ?? []
+          .enumerated()
+          .compactMap { index, observation -> [String: Any]? in
+            guard let candidate = observation.topCandidates(1).first else { return nil }
+            let box = observation.boundingBox
+            // Vision 使用左下角原点；Domain 统一为左上角原点和 0...1 坐标。
+            return [
+              "id": "line-\(index)",
+              "text": candidate.string,
+              "confidence": candidate.confidence,
+              "left": box.minX,
+              "top": 1 - box.maxY,
+              "right": box.maxX,
+              "bottom": 1 - box.minY,
+            ]
+          } ?? []
         DispatchQueue.main.async {
-          result(lines.joined(separator: "\n"))
+          result([
+            "width": Int(image.size.width * image.scale),
+            "height": Int(image.size.height * image.scale),
+            "lines": lines,
+          ])
         }
       }
       request.recognitionLevel = .accurate

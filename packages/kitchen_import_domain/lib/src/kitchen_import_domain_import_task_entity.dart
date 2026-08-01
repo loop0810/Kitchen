@@ -1,4 +1,5 @@
 import 'kitchen_import_domain_recipe_draft_entity.dart';
+import 'kitchen_import_domain_ocr_document_entity.dart';
 
 enum ImportTaskStatus {
   queued,
@@ -21,6 +22,7 @@ class ImportMediaReference {
     this.rotationQuarterTurns = 0,
     this.ignored = false,
     this.ocrText,
+    this.ocrPage,
     this.ocrCompleted = false,
   });
 
@@ -41,6 +43,9 @@ class ImportMediaReference {
 
   /// 本页 OCR 文字；尚未识别或识别失败时为空。
   final String? ocrText;
+
+  /// 本页包含坐标和置信度的 OCR 结构；旧任务或用户手动改写纯文本时为空。
+  final OcrPageEntity? ocrPage;
 
   /// 是否已完成本页 OCR，便于中断后只恢复未完成图片。
   final bool ocrCompleted;

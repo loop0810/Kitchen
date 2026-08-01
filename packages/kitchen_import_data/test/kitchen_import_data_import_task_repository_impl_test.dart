@@ -54,6 +54,39 @@ void main() {
     expect(restored.draft!.title.value, '番茄炒蛋');
   });
 
+  test('带坐标 OCR 页面随任务持久化并可恢复', () async {
+    final taskId = await repository.createImageTask(['controlled.jpg']);
+    const page = OcrPageEntity(
+      pageIndex: 0,
+      pixelWidth: 1000,
+      pixelHeight: 2000,
+      lines: [
+        OcrLineEntity(
+          id: 'line-0',
+          text: '番茄炒蛋',
+          confidence: 0.96,
+          boundingBox: OcrRectValueObject(
+            left: 0.1,
+            top: 0.2,
+            right: 0.8,
+            bottom: 0.3,
+          ),
+        ),
+      ],
+    );
+
+    await repository.saveMediaOcr(
+      taskId: taskId,
+      mediaId: (await repository.getTask(taskId))!.media.single.id,
+      page: page,
+    );
+
+    final restored = await repository.getTask(taskId);
+    expect(restored!.media.single.ocrText, '番茄炒蛋');
+    expect(restored.media.single.ocrPage!.lines.single.id, 'line-0');
+    expect(restored.media.single.ocrPage!.lines.single.confidence, 0.96);
+  });
+
   test('删除任务清理受控图片且不触碰目录外文件', () async {
     final directory = await Directory.systemTemp.createTemp(
       'kitchen_import_media_',

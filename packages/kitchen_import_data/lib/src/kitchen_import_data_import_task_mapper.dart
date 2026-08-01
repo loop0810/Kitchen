@@ -36,6 +36,9 @@ abstract final class ImportTaskMapper {
               'rotationQuarterTurns': item.rotationQuarterTurns,
               'ignored': item.ignored,
               'ocrText': item.ocrText,
+              'ocrPage': item.ocrPage == null
+                  ? null
+                  : encodeOcrPage(item.ocrPage!),
               'ocrCompleted': item.ocrCompleted,
             },
           )
@@ -55,10 +58,62 @@ abstract final class ImportTaskMapper {
             rotationQuarterTurns: map['rotationQuarterTurns'] as int? ?? 0,
             ignored: map['ignored'] as bool? ?? false,
             ocrText: map['ocrText'] as String?,
+            ocrPage: map['ocrPage'] == null
+                ? null
+                : decodeOcrPage(map['ocrPage'] as Map<String, dynamic>),
             ocrCompleted: map['ocrCompleted'] as bool? ?? false,
           );
         })
         .toList(growable: false);
+  }
+
+  static Map<String, dynamic> encodeOcrPage(OcrPageEntity page) {
+    return {
+      'pageIndex': page.pageIndex,
+      'pixelWidth': page.pixelWidth,
+      'pixelHeight': page.pixelHeight,
+      'lines': page.lines
+          .map(
+            (line) => {
+              'id': line.id,
+              'text': line.text,
+              'confidence': line.confidence,
+              'boundingBox': {
+                'left': line.boundingBox.left,
+                'top': line.boundingBox.top,
+                'right': line.boundingBox.right,
+                'bottom': line.boundingBox.bottom,
+              },
+            },
+          )
+          .toList(growable: false),
+    };
+  }
+
+  static OcrPageEntity decodeOcrPage(Map<String, dynamic> map) {
+    final lines = (map['lines'] as List<dynamic>)
+        .map((value) {
+          final line = value as Map<String, dynamic>;
+          final box = line['boundingBox'] as Map<String, dynamic>;
+          return OcrLineEntity(
+            id: line['id'] as String,
+            text: line['text'] as String,
+            confidence: (line['confidence'] as num?)?.toDouble(),
+            boundingBox: OcrRectValueObject(
+              left: (box['left'] as num).toDouble(),
+              top: (box['top'] as num).toDouble(),
+              right: (box['right'] as num).toDouble(),
+              bottom: (box['bottom'] as num).toDouble(),
+            ),
+          );
+        })
+        .toList(growable: false);
+    return OcrPageEntity(
+      pageIndex: map['pageIndex'] as int,
+      pixelWidth: map['pixelWidth'] as int? ?? 0,
+      pixelHeight: map['pixelHeight'] as int? ?? 0,
+      lines: lines,
+    );
   }
 
   static String encodeDraft(RecipeDraftEntity draft) {
@@ -66,9 +121,21 @@ abstract final class ImportTaskMapper {
       'value': value.value,
       'origin': value.origin.name,
       'needsConfirmation': value.needsConfirmation,
+      'confidence': value.confidence.name,
+      'evidence': value.evidence
+          .map(
+            (item) => {
+              'pageIndex': item.pageIndex,
+              'lineId': item.lineId,
+              'excerpt': item.excerpt,
+            },
+          )
+          .toList(growable: false),
     };
     return jsonEncode({
       'schemaVersion': draft.schemaVersion,
+      'quality': draft.quality.name,
+      'warnings': draft.warnings,
       'title': field(draft.title),
       'summary': field(draft.summary),
       'category': field(draft.category),
@@ -95,12 +162,29 @@ abstract final class ImportTaskMapper {
         value: decode(data['value']),
         origin: DraftFieldOrigin.values.byName(data['origin'] as String),
         needsConfirmation: data['needsConfirmation'] as bool? ?? false,
+        confidence: DraftConfidenceLevel.values.byName(
+          data['confidence'] as String? ?? DraftConfidenceLevel.medium.name,
+        ),
+        evidence: (data['evidence'] as List<dynamic>? ?? const [])
+            .map((value) {
+              final evidence = value as Map<String, dynamic>;
+              return DraftFieldEvidence(
+                pageIndex: evidence['pageIndex'] as int,
+                lineId: evidence['lineId'] as String,
+                excerpt: evidence['excerpt'] as String,
+              );
+            })
+            .toList(growable: false),
       );
     }
 
     final source = map['sourceSnapshot'] as Map<String, dynamic>;
     return RecipeDraftEntity(
       schemaVersion: map['schemaVersion'] as int? ?? 1,
+      quality: RecipeDraftQuality.values.byName(
+        map['quality'] as String? ?? RecipeDraftQuality.partial.name,
+      ),
+      warnings: (map['warnings'] as List<dynamic>? ?? const []).cast<String>(),
       title: field('title', (value) => value as String),
       summary: field('summary', (value) => value as String),
       category: field('category', (value) => value as String),

@@ -1,4 +1,6 @@
 import 'kitchen_import_domain_import_pipeline.dart';
+import 'kitchen_import_domain_ocr_document_entity.dart';
+import 'kitchen_import_domain_ocr_layout_analyzer_service.dart';
 import 'kitchen_import_domain_recipe_draft_entity.dart';
 
 class LocalRecipeStructurerService implements RecipeStructurer {
@@ -26,7 +28,7 @@ class LocalRecipeStructurerService implements RecipeStructurer {
     r'^(?:步骤\s*)?(?:[1-9]|1\d|20|[一二三四五六七八九十]+)[.、:：)]?$',
   );
   static final _instructionHint = RegExp(
-    r'(?:切|抓匀|腌|下锅|炒|盛出|放入?|倒入?|翻炒|淋|撒|出锅|煎|煮|炖|焖|烤|蒸|搅拌|揉|擀|刷|铺|卷|打散|洗净|烧开|调匀|拌匀|淋热油)',
+    r'(?:切|抓匀|腌|下锅|炒|盛出|放入?|倒入?|翻炒|淋|撒|出锅|煎|煮|炖|焖|烤|蒸|搅拌|拌|揉|擀|刷|铺|卷|打散|洗净|烧开|调匀|淋热油)',
   );
   static final _instructionStart = RegExp(
     r'^(?:将|把|先|再|然后|接着|最后|加|放|倒|淋|撒|煎|煮|炒|蒸|烤|油热)',
@@ -35,7 +37,7 @@ class LocalRecipeStructurerService implements RecipeStructurer {
     r'(?:炒熟|煮熟|煎熟|烤熟|蒸熟|盛出|出锅|备用|翻炒均匀|抓匀|腌\d*分钟)$',
   );
   static final _nonRecipeLine = RegExp(
-    r'^(?:[#＃]\s*)?$|^(?:\d+(?:\.\d+)?(?:万)?|[一二三四五六七八九十][：:]?|[<＞>]|[•·…\.]+|小红书|红书|烹饪模式|交作业|下厨房评分|好极了|挺好|一般)$|^[•·]\s*\d+.*$|^\d{1,2}:\d{2}.*$|^\d+(?:\.\d+)?\s*人做过$|^(?:小红书号|红书号)\s*[:：]?.*|^说点什么.*|^菜谱更新于.*|(?:随便|赶紧|快去|点赞|收藏|评论|关注).*(?:做|起来|吧)?$',
+    r'^(?:[#＃]\s*)?$|^(?:\d+(?:\.\d+)?(?:万)?|[一二三四五六七八九十][：:]?|[<＞>]|[•·…\.]+|烹饪模式|交作业|评分|好极了|挺好|一般)$|^[•·]\s*\d+.*$|^\d{1,2}:\d{2}.*$|^\d+(?:\.\d+)?\s*人做过$|^(?:账号|作者|用户)\s*[:：].*|^说点什么.*|^菜谱更新于.*|(?:随便|赶紧|快去|点赞|收藏|评论|关注).*(?:做|起来|吧)?$',
     caseSensitive: false,
   );
   static final _dishNameHint = RegExp(
@@ -52,8 +54,15 @@ class LocalRecipeStructurerService implements RecipeStructurer {
   RecipeDraftEntity structure({
     required String text,
     required SourceSnapshot source,
+    OcrDocumentEntity? ocrDocument,
   }) {
-    final lines = text
+    final layout = ocrDocument == null
+        ? null
+        : const OcrLayoutAnalyzerService().analyze(ocrDocument);
+    final effectiveText = layout?.normalizedText.trim().isNotEmpty == true
+        ? layout!.normalizedText
+        : text;
+    final lines = effectiveText
         // 微信等富文本来源可能使用 Unicode 行分隔符；在领域边界统一为逻辑行，
         // 避免分区标题与正文粘在同一行而导致整篇内容落入同一字段。
         .split(RegExp(r'(?:\r\n?|[\n\u2028\u2029])+'))
@@ -68,13 +77,27 @@ class LocalRecipeStructurerService implements RecipeStructurer {
     for (var index = 1; index < lines.length; index++) {
       if (lines[index] == '关注') contextualChromeLines.add(lines[index - 1]);
     }
-    final titleMatch = _title(lines, lineCounts);
+    final prominenceByText = <String, double>{};
+    for (final item in layout?.visibleLines ?? const []) {
+      final key = item.line.text.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+      final height = item.line.boundingBox.height;
+      if (height > (prominenceByText[key] ?? 0)) {
+        prominenceByText[key] = height;
+      }
+    }
+    final titleMatch = _title(
+      lines,
+      lineCounts,
+      prominenceByText: layout == null ? null : prominenceByText,
+    );
     final title = titleMatch.$1;
     final ingredients = <String>[];
     final steps = <String>[];
     final pendingIngredientNames = <String>[];
     final stepFragments = <String>[];
     var section = '';
+    var hasIngredientSection = false;
+    var hasStepSection = false;
     var readingColumnAmounts = false;
     var columnAmountIndex = 0;
 
@@ -123,12 +146,14 @@ class LocalRecipeStructurerService implements RecipeStructurer {
         finishIngredientBlock();
         finishStep();
         section = 'ingredients';
+        hasIngredientSection = true;
         continue;
       }
       if (_stepSection.hasMatch(line)) {
         finishIngredientBlock();
         finishStep();
         section = 'steps';
+        hasStepSection = true;
         continue;
       }
       if (_nonRecipeSection.hasMatch(line)) {
@@ -153,6 +178,7 @@ class LocalRecipeStructurerService implements RecipeStructurer {
         finishIngredientBlock();
         finishStep();
         section = 'steps';
+        hasStepSection = true;
         stepFragments.add(line.replaceFirst(_stepPrefix, ''));
         continue;
       }
@@ -167,8 +193,8 @@ class LocalRecipeStructurerService implements RecipeStructurer {
           addIngredient('$name ${_normalizeAmountWithNote(line)}');
         }
       } else if (section == 'ingredients') {
-        // 下厨房的用料表是左右两列，Vision 通常先返回全部名称，再返回“换算”
-        // 和全部用量。暂存名称，直到确认是双列布局或离开用料分区。
+        // 常见用料表可能采用左右两列，OCR 会先返回全部名称，再返回“换算”和
+        // 全部用量。暂存名称，直到确认是双列布局或离开用料分区。
         pendingIngredientNames.add(line);
       } else if (section == 'steps') {
         stepFragments.add(line);
@@ -178,11 +204,64 @@ class LocalRecipeStructurerService implements RecipeStructurer {
     }
     finishIngredientBlock();
     finishStep();
+    final warnings = <String>[
+      if (title.isEmpty) '未找到可靠菜名，请手动填写。',
+      if (ingredients.isEmpty) '未找到可靠食材清单，可从识别原文手动补充。',
+      if (ingredients.isNotEmpty && !hasIngredientSection)
+        '图片没有明确标注食材区，已提取的用量需要逐项确认。',
+      if (steps.isEmpty) '未找到可靠烹饪步骤，可从识别原文手动补充。',
+      if (steps.isNotEmpty && !hasStepSection) '图片没有明确标注步骤区，已识别的做法需要确认顺序。',
+    ];
+    final quality = title.isEmpty
+        ? RecipeDraftQuality.uncertain
+        : warnings.isEmpty
+        ? RecipeDraftQuality.readyForReview
+        : RecipeDraftQuality.partial;
+    final imageEvidence = layout == null
+        ? const <DraftFieldEvidence>[]
+        : layout.visibleLines
+              .map(
+                (item) => DraftFieldEvidence(
+                  pageIndex: item.pageIndex,
+                  lineId: item.line.id,
+                  excerpt: item.line.text,
+                ),
+              )
+              .toList(growable: false);
+    List<DraftFieldEvidence> evidenceFor(String value) {
+      final normalized = value.replaceAll(RegExp(r'\s+'), '');
+      if (normalized.isEmpty) return const [];
+      final exact = imageEvidence
+          .where(
+            (evidence) =>
+                evidence.excerpt.replaceAll(RegExp(r'\s+'), '') == normalized,
+          )
+          .take(4)
+          .toList(growable: false);
+      if (exact.isNotEmpty) return exact;
+      return imageEvidence
+          .where(
+            (evidence) =>
+                evidence.excerpt
+                    .replaceAll(RegExp(r'\s+'), '')
+                    .contains(normalized) ||
+                normalized.contains(
+                  evidence.excerpt.replaceAll(RegExp(r'\s+'), ''),
+                ),
+          )
+          .take(4)
+          .toList(growable: false);
+    }
+
     return RecipeDraftEntity(
       title: DraftFieldValue(
         value: title,
         origin: DraftFieldOrigin.source,
-        needsConfirmation: title.isEmpty,
+        needsConfirmation: ocrDocument != null || title.isEmpty,
+        confidence: title.isEmpty
+            ? DraftConfidenceLevel.low
+            : DraftConfidenceLevel.medium,
+        evidence: evidenceFor(title),
       ),
       summary: const DraftFieldValue(
         value: '',
@@ -222,24 +301,42 @@ class LocalRecipeStructurerService implements RecipeStructurer {
       ingredients: DraftFieldValue(
         value: ingredients,
         origin: DraftFieldOrigin.source,
-        needsConfirmation: ingredients.isEmpty,
+        needsConfirmation: ocrDocument != null || ingredients.isEmpty,
+        confidence: ingredients.isEmpty
+            ? DraftConfidenceLevel.low
+            : DraftConfidenceLevel.medium,
+        evidence: ingredients.expand(evidenceFor).toList(growable: false),
       ),
       steps: DraftFieldValue(
         value: steps,
         origin: DraftFieldOrigin.source,
-        needsConfirmation: steps.isEmpty,
+        needsConfirmation: ocrDocument != null || steps.isEmpty,
+        confidence: steps.isEmpty
+            ? DraftConfidenceLevel.low
+            : DraftConfidenceLevel.medium,
+        evidence: steps.expand(evidenceFor).toList(growable: false),
       ),
       sourceSnapshot: source,
+      quality: quality,
+      warnings: warnings,
     );
   }
 
-  (String, int) _title(List<String> lines, Map<String, int> lineCounts) {
+  (String, int) _title(
+    List<String> lines,
+    Map<String, int> lineCounts, {
+    required Map<String, double>? prominenceByText,
+  }) {
     // OCR 返回顺序主要受文本块坐标影响，短视频标题可能位于食材之后。这里对
     // 所有候选评分：显式标题和话题最高，首行、菜名后缀及烹饪方式作为弱信号；
     // 用量、动作句和平台噪声直接排除，避免再次依赖“第一行就是菜名”。
     var bestValue = '';
     var bestIndex = -1;
     var bestScore = -1;
+    final maximumHeight = prominenceByText?.values.fold<double>(
+      0,
+      (maximum, value) => value > maximum ? value : maximum,
+    );
     for (final (index, rawLine) in lines.indexed) {
       final explicitTitle = RegExp(
         r'^(?:菜名|标题)[:：]\s*(.+)$',
@@ -259,11 +356,23 @@ class LocalRecipeStructurerService implements RecipeStructurer {
       var score = 0;
       if (explicitTitle != null) score += 100;
       if (hasTopicPrefix) score += 80;
-      if (index == 0) score += 30;
+      if (prominenceByText == null && index == 0) score += 30;
       if (candidate.length <= 20) score += 10;
       if (_dishNameHint.hasMatch(candidate)) score += 20;
       if (_titleMethodHint.hasMatch(candidate)) score += 10;
       if (_titleLabelHint.hasMatch(candidate)) score += 50;
+      final height =
+          prominenceByText?[candidate
+              .replaceAll(RegExp(r'\s+'), '')
+              .toLowerCase()];
+      if (height != null && maximumHeight != null && maximumHeight > 0) {
+        final ratio = height / maximumHeight;
+        if (ratio >= 0.9) {
+          score += 25;
+        } else if (ratio >= 0.7) {
+          score += 10;
+        }
+      }
       if ((lineCounts[rawLine] ?? 0) >= 3) score -= 60;
       if (score > bestScore) {
         bestScore = score;

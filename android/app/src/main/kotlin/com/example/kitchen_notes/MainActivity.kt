@@ -61,7 +61,7 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             "kitchen_notes/import_ocr",
         ).setMethodCallHandler { call, result ->
-            if (call.method != "recognizeText") {
+            if (call.method != "recognizeDocument") {
                 result.notImplemented()
                 return@setMethodCallHandler
             }
@@ -84,7 +84,28 @@ class MainActivity : FlutterActivity() {
             )
             recognizer.process(image)
                 .addOnSuccessListener { recognized ->
-                    result.success(recognized.text)
+                    val width = image.width.coerceAtLeast(1)
+                    val height = image.height.coerceAtLeast(1)
+                    val lines = recognized.textBlocks
+                        .flatMap { block -> block.lines }
+                        .mapIndexedNotNull { index, line ->
+                            val box = line.boundingBox ?: return@mapIndexedNotNull null
+                            mapOf(
+                                "id" to "line-$index",
+                                "text" to line.text,
+                                "left" to box.left.toDouble() / width,
+                                "top" to box.top.toDouble() / height,
+                                "right" to box.right.toDouble() / width,
+                                "bottom" to box.bottom.toDouble() / height,
+                            )
+                        }
+                    result.success(
+                        mapOf(
+                            "width" to width,
+                            "height" to height,
+                            "lines" to lines,
+                        ),
+                    )
                     recognizer.close()
                 }
                 .addOnFailureListener {
