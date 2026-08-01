@@ -62,6 +62,30 @@ class _TaskBody extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
+        if (task.ocrText?.trim().isNotEmpty == true) ...[
+          const SizedBox(height: AppSpacing.s20),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '识别文字',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              if (task.status == ImportTaskStatus.awaitingReview)
+                TextButton.icon(
+                  onPressed: () => _editOcrText(context, ref),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('校对'),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Semantics(
+            label: '图片识别文字',
+            child: SelectableText(task.ocrText!, maxLines: 18),
+          ),
+        ],
         const SizedBox(height: AppSpacing.s24),
         if (task.status == ImportTaskStatus.awaitingReview)
           FilledButton.icon(
@@ -117,6 +141,54 @@ class _TaskBody extends ConsumerWidget {
       task: task,
     );
     if (deleted && context.mounted) Navigator.pop(context);
+  }
+
+  Future<void> _editOcrText(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController(text: task.ocrText);
+    final corrected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('校对识别文字'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 8,
+            maxLines: 16,
+            textInputAction: TextInputAction.newline,
+            decoration: const InputDecoration(
+              hintText: '按图片顺序检查菜名、食材和步骤',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('重新整理'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (corrected == null || !context.mounted) return;
+    try {
+      await ref
+          .read(importDependenciesProvider)
+          .pipeline
+          .restructureFromOcrText(task.id, corrected);
+      ref.invalidate(importTaskProvider(task.id));
+    } on ImportPipelineException catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    }
   }
 }
 

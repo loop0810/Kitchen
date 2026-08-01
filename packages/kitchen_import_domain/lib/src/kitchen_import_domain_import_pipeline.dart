@@ -73,7 +73,16 @@ class ImportPipeline {
           ImportTaskStatus.recognizingImages,
         );
         final pages = <String>[];
-        for (final media in task.media.where((item) => !item.ignored)) {
+        final orderedMedia =
+            task.media.where((item) => !item.ignored).toList(growable: false)
+              ..sort((left, right) => left.position.compareTo(right.position));
+        if (orderedMedia.isEmpty) {
+          throw const ImportPipelineException(
+            'imageUnreadable',
+            '没有可识别的图片，请重新选择图片或手动创建菜谱。',
+          );
+        }
+        for (final media in orderedMedia) {
           if (await _isCancelled(taskId)) return;
           if (media.ocrCompleted) {
             pages.add(media.ocrText ?? '');
@@ -89,6 +98,12 @@ class ImportPipeline {
         }
         if (await _isCancelled(taskId)) return;
         final ocrText = pages.join('\n\n');
+        if (ocrText.trim().isEmpty) {
+          throw const ImportPipelineException(
+            'imageUnreadable',
+            '没有识别到清晰文字，请更换图片或手动创建菜谱。',
+          );
+        }
         await _repository.saveOcrText(taskId, ocrText);
         text = [
           task.originalText.trim(),
@@ -143,6 +158,39 @@ class ImportPipeline {
   Future<void> retry(String taskId) async {
     await _repository.retry(taskId);
     await process(taskId);
+  }
+
+  /// 保存用户校对后的 OCR 文字，并仅重新执行结构化阶段。
+  ///
+  /// 原始图片及逐页 OCR 仍单独保留，所以校对不会破坏后续重新识别的能力。
+  Future<void> restructureFromOcrText(
+    String taskId,
+    String correctedText,
+  ) async {
+    final task = await _repository.getTask(taskId);
+    if (task == null || task.status == ImportTaskStatus.cancelled) return;
+    final normalized = correctedText.trim();
+    if (normalized.isEmpty) {
+      throw const ImportPipelineException(
+        'emptyOcrText',
+        '识别文字不能为空，可返回后重新选择图片。',
+      );
+    }
+    await _repository.saveOcrText(taskId, normalized);
+    await _repository.updateStatus(taskId, ImportTaskStatus.structuring);
+    final source = SourceSnapshot(
+      originalText: task.originalText,
+      publicUrl: task.detectedPublicUrl,
+    );
+    final draft = _localStructurer.structure(
+      text: [
+        task.originalText.trim(),
+        normalized,
+      ].where((part) => part.isNotEmpty).join('\n\n'),
+      source: source,
+    );
+    if (await _isCancelled(taskId)) return;
+    await _repository.saveDraft(taskId, draft);
   }
 
   Future<void> resumePending() async {

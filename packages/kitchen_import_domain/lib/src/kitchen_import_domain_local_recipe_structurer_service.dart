@@ -20,6 +20,13 @@ class LocalRecipeStructurerService implements RecipeStructurer {
     r'(?:\d+(?:\.\d+)?\s*(?:克|g|kg|毫升|ml|个|只|勺|片|杯)|适量|少许)',
     caseSensitive: false,
   );
+  static final _standaloneAmount = RegExp(
+    r'^(?:\d+(?:\.\d+)?\s*(?:千克|公斤|毫升|大勺|小勺|克|g|kg|ml|斤|两|个|只|勺|片|杯|根|颗|块|罐|瓶|瓣|条|枚|盒|袋|滴|撮|把|朵|段|张)|适量|少许)$',
+    caseSensitive: false,
+  );
+  static final _standaloneStepNumber = RegExp(
+    r'^(?:步骤\s*)?(?:\d+|[一二三四五六七八九十]+)[.、:：)]?$',
+  );
 
   @override
   RecipeDraftEntity structure({
@@ -57,7 +64,17 @@ class LocalRecipeStructurerService implements RecipeStructurer {
         steps.add(line.replaceFirst(_stepPrefix, ''));
         continue;
       }
-      if (section == 'ingredients' || _ingredientHint.hasMatch(line)) {
+      if (section == 'ingredients' &&
+          _standaloneAmount.hasMatch(line) &&
+          ingredients.isNotEmpty) {
+        // OCR 常把同一行的食材名和用量识别成上下两行；在领域解析边界合并，
+        // 避免把“2个”误当成一个独立食材。
+        ingredients[ingredients.length - 1] =
+            '${ingredients.last} ${line.replaceAll(RegExp(r'\s+'), '')}';
+      } else if (section == 'steps' && _standaloneStepNumber.hasMatch(line)) {
+        // 截图中的大号序号经常成为独立文本块，顺序已经由列表表达，无需入正文。
+        continue;
+      } else if (section == 'ingredients' || _ingredientHint.hasMatch(line)) {
         ingredients.addAll(_ingredientLines(line));
       } else if (section == 'steps') {
         steps.add(line);

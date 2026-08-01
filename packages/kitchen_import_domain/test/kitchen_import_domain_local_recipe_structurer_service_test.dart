@@ -2,6 +2,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
 void main() {
+  test('合并 OCR 拆成两行的食材用量并忽略独立步骤编号', () {
+    final draft = const LocalRecipeStructurerService().structure(
+      text: '''番茄炒蛋
+食材
+番茄
+2个
+鸡蛋
+3个
+步骤
+1
+番茄切块
+2
+鸡蛋打散后炒熟''',
+      source: const SourceSnapshot(originalText: ''),
+    );
+
+    expect(draft.ingredients.value, ['番茄 2个', '鸡蛋 3个']);
+    expect(draft.steps.value, ['番茄切块', '鸡蛋打散后炒熟']);
+  });
+
   test('标准文章解析出菜名、食材和步骤并保留来源', () {
     const text = '''
 番茄炒蛋
