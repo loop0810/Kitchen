@@ -6,11 +6,45 @@ class RecipeLibraryDependencies {
     required this.watchRecipes,
     required this.getRecipeDetail,
     required this.setFavorite,
+    this.watchCollections,
+    this.getCollectionDetail,
+    this.createCollection,
+    this.updateCollection,
+    this.deleteCollection,
+    this.getCollectionIdsForRecipe,
+    this.setCollectionsForRecipe,
+    this.appendRecipesToCollection,
+    this.removeRecipeFromCollection,
+    this.restoreRecipeToCollection,
+    this.reorderCollectionMembers,
+    this.moveToTrash,
+    this.restoreRecipe,
+    this.permanentlyDeleteRecipe,
+    this.purgeExpiredRecipes,
+    this.getSortPreference,
+    this.setSortPreference,
   });
 
   final WatchRecipesUseCase watchRecipes;
   final GetRecipeDetailUseCase getRecipeDetail;
   final SetRecipeFavoriteUseCase setFavorite;
+  final WatchRecipeCollectionsUseCase? watchCollections;
+  final GetRecipeCollectionDetailUseCase? getCollectionDetail;
+  final CreateRecipeCollectionUseCase? createCollection;
+  final UpdateRecipeCollectionUseCase? updateCollection;
+  final DeleteRecipeCollectionUseCase? deleteCollection;
+  final GetCollectionIdsForRecipeUseCase? getCollectionIdsForRecipe;
+  final SetCollectionsForRecipeUseCase? setCollectionsForRecipe;
+  final AppendRecipesToCollectionUseCase? appendRecipesToCollection;
+  final RemoveRecipeFromCollectionUseCase? removeRecipeFromCollection;
+  final RestoreRecipeToCollectionUseCase? restoreRecipeToCollection;
+  final ReorderCollectionMembersUseCase? reorderCollectionMembers;
+  final MoveRecipeToTrashUseCase? moveToTrash;
+  final RestoreRecipeUseCase? restoreRecipe;
+  final PermanentlyDeleteRecipeUseCase? permanentlyDeleteRecipe;
+  final PurgeExpiredRecipesUseCase? purgeExpiredRecipes;
+  final GetRecipeSortPreferenceUseCase? getSortPreference;
+  final SetRecipeSortPreferenceUseCase? setSortPreference;
 }
 
 // Feature 声明自己需要哪些 UseCase，具体实现由根 App 通过 override 注入。
@@ -32,4 +66,20 @@ final recipeDetailProvider = FutureProvider.autoDispose
       return ref
           .watch(recipeLibraryDependenciesProvider)
           .getRecipeDetail(recipeId);
+    });
+
+final recipeCollectionsProvider =
+    StreamProvider.autoDispose<List<RecipeCollectionEntity>>((ref) {
+      final useCase = ref
+          .watch(recipeLibraryDependenciesProvider)
+          .watchCollections;
+      return useCase == null ? Stream.value(const []) : useCase();
+    });
+
+final recipeCollectionDetailProvider = FutureProvider.autoDispose
+    .family<RecipeCollectionDetailEntity?, String>((ref, collectionId) {
+      final useCase = ref
+          .watch(recipeLibraryDependenciesProvider)
+          .getCollectionDetail;
+      return useCase == null ? Future.value() : useCase(collectionId);
     });

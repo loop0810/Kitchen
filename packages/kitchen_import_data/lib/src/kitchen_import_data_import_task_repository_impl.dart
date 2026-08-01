@@ -1,14 +1,23 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import 'kitchen_import_data_app_database.dart';
 import 'kitchen_import_data_import_task_mapper.dart';
 
 class ImportTaskRepositoryImpl implements ImportTaskRepository {
-  ImportTaskRepositoryImpl(this._database);
+  ImportTaskRepositoryImpl(
+    this._database, {
+    Future<Directory> Function()? mediaDirectoryProvider,
+  }) : _mediaDirectoryProvider =
+           mediaDirectoryProvider ?? _defaultMediaDirectory;
 
   final ImportAppDatabase _database;
+  final Future<Directory> Function() _mediaDirectoryProvider;
   final _uuid = const Uuid();
 
   static final _publicUrl = RegExp(
@@ -229,7 +238,15 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
   }
 
   @override
-  Future<void> delete(String taskId) => _database.deleteImportTask(taskId);
+  Future<void> delete(String taskId) async {
+    final task = await getTask(taskId);
+    // 数据库先成为权威状态；文件清理失败时保留给启动期孤立清理重试。
+    await _database.deleteImportTask(taskId);
+    if (task == null) return;
+    for (final media in task.media) {
+      await _deleteControlledMedia(media.localPath);
+    }
+  }
 
   @override
   Future<void> markSaved({required String taskId, required String recipeId}) {
@@ -248,5 +265,57 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
               ..where((row) => row.id.equals(taskId)))
             .write(changes.copyWith(updatedAt: Value(DateTime.now())));
     if (affected == 0) throw StateError('Import task $taskId does not exist.');
+  }
+
+  /// 清理由任务数据库不再引用的受控媒体文件。
+  Future<void> cleanupOrphanedMedia() async {
+    final root = await _mediaDirectoryProvider();
+    if (!await root.exists()) return;
+    final referenced = (await _database.select(_database.importTasks).get())
+        .map(ImportTaskMapper.toDomain)
+        .expand((task) => task.media)
+        .map((media) => p.normalize(media.localPath))
+        .toSet();
+    final staleBefore = DateTime.now().subtract(const Duration(days: 1));
+    await for (final entity in root.list(recursive: true, followLinks: false)) {
+      if (entity is File && !referenced.contains(p.normalize(entity.path))) {
+        // 系统分享会先复制文件再创建任务。宽限期避免启动清理与这段短暂的
+        // “尚未入库”窗口竞态，真正孤立文件会在后续启动被回收。
+        if ((await entity.stat()).modified.isAfter(staleBefore)) continue;
+        await _deleteControlledMedia(entity.path);
+      }
+    }
+  }
+
+  Future<void> _deleteControlledMedia(String candidatePath) async {
+    try {
+      final root = await _mediaDirectoryProvider();
+      final normalizedRoot = p.normalize(p.absolute(root.path));
+      final normalizedCandidate = p.normalize(p.absolute(candidatePath));
+      if (!p.isWithin(normalizedRoot, normalizedCandidate)) return;
+      final type = await FileSystemEntity.type(
+        normalizedCandidate,
+        followLinks: false,
+      );
+      if (type != FileSystemEntityType.file) return;
+      final resolvedRoot = await root.resolveSymbolicLinks();
+      final resolvedCandidate = await File(
+        normalizedCandidate,
+      ).resolveSymbolicLinks();
+      if (!p.isWithin(resolvedRoot, resolvedCandidate)) return;
+      await File(normalizedCandidate).delete();
+      final parent = File(normalizedCandidate).parent;
+      if (p.isWithin(normalizedRoot, parent.path) &&
+          await parent.list().isEmpty) {
+        await parent.delete();
+      }
+    } catch (_) {
+      // 删除记录已经成功；清理失败留给下一次机会式孤立文件清理。
+    }
+  }
+
+  static Future<Directory> _defaultMediaDirectory() async {
+    final support = await getApplicationSupportDirectory();
+    return Directory(p.join(support.path, 'import_media'));
   }
 }

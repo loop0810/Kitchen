@@ -27,7 +27,7 @@ Future<void> showRecipeCreationOptionsSheet(BuildContext context) async {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '创建食谱',
+                '创建菜谱',
                 style: Theme.of(sheetContext).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),

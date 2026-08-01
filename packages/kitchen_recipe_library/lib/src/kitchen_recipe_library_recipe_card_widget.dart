@@ -9,11 +9,13 @@ class RecipeCardWidget extends StatelessWidget {
     required this.recipe,
     required this.onTap,
     required this.onFavorite,
+    this.onLongPress,
   });
 
   final RecipeJournalSummaryEntity recipe;
   final VoidCallback onTap;
   final VoidCallback onFavorite;
+  final ValueChanged<Offset>? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -21,59 +23,76 @@ class RecipeCardWidget extends StatelessWidget {
     final resolution = BuiltInTemplates.defaultResolver(
       entity.templateSelection,
     );
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: RecipeTemplateRendererWidget(
-                definition: resolution.definition,
-                data: RecipeTemplateDataMapper.fromJournalSummary(recipe),
-                mode: TemplateRenderMode.thumbnail,
-              ),
-            ),
-            if (entity.status == RecipeStatus.incomplete)
-              Positioned(
-                left: AppSpacing.s8,
-                bottom: AppSpacing.s8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s8,
-                    vertical: AppSpacing.s4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColor.paper.withValues(alpha: 0.94),
-                    borderRadius: BorderRadius.circular(AppRadius.r10),
-                  ),
-                  child: const Text(
-                    '待完善',
-                    style: TextStyle(
-                      fontSize: AppText.caption,
-                      fontWeight: FontWeight.w600,
+    return Builder(
+      builder: (cardContext) => Semantics(
+        onLongPress: onLongPress == null
+            ? null
+            : () {
+                final box = cardContext.findRenderObject()! as RenderBox;
+                onLongPress!(box.localToGlobal(box.size.center(Offset.zero)));
+              },
+        child: GestureDetector(
+          onLongPressStart: onLongPress == null
+              ? null
+              : (details) => onLongPress!(details.globalPosition),
+          child: Card(
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: RecipeTemplateRendererWidget(
+                      definition: resolution.definition,
+                      data: RecipeTemplateDataMapper.fromJournalSummary(recipe),
+                      mode: TemplateRenderMode.thumbnail,
                     ),
                   ),
-                ),
-              ),
-            Positioned(
-              right: AppSpacing.s4,
-              top: AppSpacing.s4,
-              child: IconButton(
-                tooltip: entity.isFavorite ? '取消收藏' : '收藏',
-                onPressed: onFavorite,
-                icon: Icon(
-                  entity.isFavorite
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  color: entity.isFavorite ? AppColor.coral : AppColor.mutedInk,
-                ),
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColor.paper.withValues(alpha: 0.88),
-                ),
+                  if (entity.status == RecipeStatus.incomplete)
+                    Positioned(
+                      left: AppSpacing.s8,
+                      bottom: AppSpacing.s8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s8,
+                          vertical: AppSpacing.s4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColor.paper.withValues(alpha: 0.94),
+                          borderRadius: BorderRadius.circular(AppRadius.r10),
+                        ),
+                        child: const Text(
+                          '待完善',
+                          style: TextStyle(
+                            fontSize: AppText.caption,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    right: AppSpacing.s4,
+                    top: AppSpacing.s4,
+                    child: IconButton(
+                      tooltip: entity.isFavorite ? '取消收藏' : '收藏',
+                      onPressed: onFavorite,
+                      icon: Icon(
+                        entity.isFavorite
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: entity.isFavorite
+                            ? AppColor.coral
+                            : AppColor.mutedInk,
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColor.paper.withValues(alpha: 0.88),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

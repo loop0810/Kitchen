@@ -130,16 +130,12 @@ class ImportPipeline {
       if (await _isCancelled(taskId)) return;
       await _repository.saveDraft(taskId, draft);
     } on ImportPipelineException catch (error) {
-      await _repository.fail(
-        taskId: taskId,
-        code: error.code,
-        message: error.message,
-      );
+      await _failIfPresent(taskId, error.code, error.message);
     } catch (_) {
-      await _repository.fail(
-        taskId: taskId,
-        code: 'processingFailed',
-        message: '整理过程中遇到问题，原始内容已保留，可以重试。',
+      await _failIfPresent(
+        taskId,
+        'processingFailed',
+        '整理过程中遇到问题，原始内容已保留，可以重试。',
       );
     }
   }
@@ -166,6 +162,18 @@ class ImportPipeline {
   Future<bool> _isCancelled(String taskId) async {
     final current = await _repository.getTask(taskId);
     return current == null || current.status == ImportTaskStatus.cancelled;
+  }
+
+  Future<void> _failIfPresent(
+    String taskId,
+    String code,
+    String message,
+  ) async {
+    try {
+      await _repository.fail(taskId: taskId, code: code, message: message);
+    } on StateError {
+      // 用户可在 OCR、提取或结构化期间删除任务；此时没有状态需要回写。
+    }
   }
 }
 

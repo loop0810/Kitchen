@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
+  flutter_slidable: ^4.0.3
   image_picker: ^1.2.1
   kitchen_app_core: ^0.1.0
   kitchen_design_system: ^0.1.0

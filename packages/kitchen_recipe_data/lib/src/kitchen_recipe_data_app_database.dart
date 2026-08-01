@@ -58,6 +58,12 @@ class Recipes extends Table {
   /// 菜谱生命周期状态的稳定字符串值。
   TextColumn get status => text().withDefault(const Constant('ready'))();
 
+  /// 移入回收站的时间；未删除菜谱为空。
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  /// 删除前生命周期状态；恢复完成后清空。
+  TextColumn get statusBeforeDeletion => text().nullable()();
+
   /// 默认封面使用的 ARGB 颜色整数。
   IntColumn get coverColor => integer()();
 
@@ -165,6 +171,65 @@ class RecipeTags extends Table {
   ];
 }
 
+/// 用户维护的菜谱集；名称允许重复，列表按创建时间稳定展示。
+class RecipeCollections extends Table {
+  /// 菜谱集主键。
+  TextColumn get id => text()();
+
+  /// 去除首尾空格的名称，最长 40 字。
+  TextColumn get name => text().withLength(min: 1, max: 40)();
+
+  /// 菜谱集在列表中的零基展示位置。
+  ///
+  /// v6 起仅为兼容旧数据库保留，不再参与产品排序。
+  IntColumn get position => integer()();
+
+  /// 受控封面目录中的相对 JPEG 路径；未设置自定义封面时为空。
+  TextColumn get coverPath => text().nullable()();
+
+  /// 菜谱集首次创建时间。
+  DateTimeColumn get createdAt => dateTime()();
+
+  /// 名称、成员或展示位置最近变更时间。
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// 菜谱与菜谱集的多对多关系。
+class RecipeCollectionMembers extends Table {
+  /// 所属菜谱集 ID；删除集合时只级联删除关系。
+  TextColumn get collectionId =>
+      text().references(RecipeCollections, #id, onDelete: KeyAction.cascade)();
+
+  /// 成员菜谱 ID；永久删除菜谱时级联删除关系。
+  TextColumn get recipeId =>
+      text().references(Recipes, #id, onDelete: KeyAction.cascade)();
+
+  /// 加入集合的时间，用于集合详情默认排序。
+  DateTimeColumn get addedAt => dateTime()();
+
+  /// 成员在集合中的零基位置；软删除菜谱时保留。
+  IntColumn get position => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {collectionId, recipeId};
+}
+
+/// 菜谱库单例设置，避免 Feature 直接接触本地数据库。
+class RecipeLibrarySettings extends Table {
+  /// 固定为 1 的单例主键。
+  IntColumn get id => integer()();
+
+  /// 上次选择的菜谱库排序稳定字符串值。
+  TextColumn get sortOrder =>
+      text().withDefault(const Constant('recentlyUpdated'))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class RecipeDetailData {
   const RecipeDetailData({
     required this.recipe,
@@ -196,14 +261,67 @@ class RecipeSummaryData {
   final List<Ingredient> ingredients;
 }
 
-@DriftDatabase(tables: [Recipes, Ingredients, RecipeSteps, RecipeTags])
+class RecipeCollectionSummaryData {
+  const RecipeCollectionSummaryData({
+    required this.collection,
+    required this.memberCount,
+  });
+
+  /// 菜谱集主表行。
+  final RecipeCollection collection;
+
+  /// 未删除成员数量。
+  final int memberCount;
+}
+
+class RecipeCollectionMemberData {
+  const RecipeCollectionMemberData({
+    required this.recipe,
+    required this.addedAt,
+    required this.position,
+  });
+
+  /// 成员菜谱摘要。
+  final RecipeSummaryData recipe;
+
+  /// 菜谱加入集合的时间。
+  final DateTime addedAt;
+
+  /// 成员在集合内的稳定位置。
+  final int position;
+}
+
+class RecipeCollectionDetailData {
+  const RecipeCollectionDetailData({
+    required this.summary,
+    required this.members,
+  });
+
+  /// 集合自身及封面摘要。
+  final RecipeCollectionSummaryData summary;
+
+  /// 未删除成员，按位置升序。
+  final List<RecipeCollectionMemberData> members;
+}
+
+@DriftDatabase(
+  tables: [
+    Recipes,
+    Ingredients,
+    RecipeSteps,
+    RecipeTags,
+    RecipeCollections,
+    RecipeCollectionMembers,
+    RecipeLibrarySettings,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -241,6 +359,45 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(recipes, recipes.sourcePublicUrl);
         await migrator.addColumn(recipes, recipes.sourceTitle);
       }
+      if (from < 5) {
+        await migrator.addColumn(recipes, recipes.deletedAt);
+        await migrator.addColumn(recipes, recipes.statusBeforeDeletion);
+        await migrator.createTable(recipeCollections);
+        await migrator.createTable(recipeCollectionMembers);
+        await migrator.createTable(recipeLibrarySettings);
+        // 旧版已经标记 deleted 的记录没有精确删除时间，使用最近更新时间作为
+        // 可解释的迁移基线；恢复时会根据详情完整度推断缺失的删除前状态。
+        await customStatement(
+          "UPDATE recipes SET deleted_at = updated_at WHERE status = 'deleted'",
+        );
+      }
+      if (from == 5) {
+        await migrator.addColumn(
+          recipeCollections,
+          recipeCollections.coverPath,
+        );
+        await migrator.addColumn(
+          recipeCollectionMembers,
+          recipeCollectionMembers.position,
+        );
+        // 升级前成员按 addedAt 倒序、recipeId 升序展示。相关子查询把同一集合
+        // 中排在当前成员之前的行数写为 position，从而保持升级前视觉顺序。
+        await customStatement('''
+UPDATE recipe_collection_members AS current
+SET position = (
+  SELECT COUNT(*)
+  FROM recipe_collection_members AS preceding
+  WHERE preceding.collection_id = current.collection_id
+    AND (
+      preceding.added_at > current.added_at
+      OR (
+        preceding.added_at = current.added_at
+        AND preceding.recipe_id < current.recipe_id
+      )
+    )
+)
+''');
+      }
     },
     beforeOpen: (details) async {
       // SQLite 每个连接都要显式开启外键检查，否则 cascade/setNull 不会生效。
@@ -254,6 +411,8 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<Recipe>> watchRecipes({
     String query = '',
     String statusFilter = 'all',
+    String scope = 'library',
+    String sortOrder = 'recentlyUpdated',
   }) {
     final statement = select(recipes);
     final normalized = query.trim();
@@ -287,13 +446,16 @@ class AppDatabase extends _$AppDatabase {
     } else if (statusFilter == 'incomplete') {
       statement.where((recipe) => recipe.status.equals('incomplete'));
     }
-    statement.orderBy([(recipe) => OrderingTerm.desc(recipe.updatedAt)]);
+    _applyRecipeScope(statement, scope);
+    _applyRecipeOrdering(statement, sortOrder);
     return statement.watch();
   }
 
   Stream<List<RecipeSummaryData>> watchRecipeSummaries({
     String query = '',
     String statusFilter = 'all',
+    String scope = 'library',
+    String sortOrder = 'recentlyUpdated',
   }) {
     // 列表卡片需要食材摘要，所以一次监听主表和食材。
     // leftOuterJoin 保证没有食材的“待完善”菜谱仍会出现在结果中。
@@ -329,8 +491,13 @@ class AppDatabase extends _$AppDatabase {
     } else if (statusFilter == 'incomplete') {
       statement.where(recipes.status.equals('incomplete'));
     }
+    if (scope == 'trash') {
+      statement.where(recipes.status.equals('deleted'));
+    } else {
+      statement.where(recipes.status.isIn(['ready', 'incomplete']));
+    }
     statement.orderBy([
-      OrderingTerm.desc(recipes.updatedAt),
+      ..._recipeOrderingTerms(sortOrder),
       OrderingTerm.asc(ingredients.position),
     ]);
 
@@ -358,6 +525,60 @@ class AppDatabase extends _$AppDatabase {
           )
           .toList(growable: false);
     });
+  }
+
+  void _applyRecipeScope(
+    SimpleSelectStatement<Recipes, Recipe> statement,
+    String scope,
+  ) {
+    if (scope == 'trash') {
+      statement.where((recipe) => recipe.status.equals('deleted'));
+    } else {
+      statement.where((recipe) => recipe.status.isIn(['ready', 'incomplete']));
+    }
+  }
+
+  void _applyRecipeOrdering(
+    SimpleSelectStatement<Recipes, Recipe> statement,
+    String order,
+  ) {
+    statement.orderBy([
+      (recipe) => switch (order) {
+        'recentlySaved' => OrderingTerm.desc(recipe.createdAt),
+        'recentlyCooked' => OrderingTerm.desc(recipe.lastCookedAt),
+        'mostCooked' => OrderingTerm.desc(recipe.cookCount),
+        'title' => OrderingTerm.asc(recipe.title),
+        _ => OrderingTerm.desc(recipe.updatedAt),
+      },
+      (recipe) => OrderingTerm.asc(recipe.id),
+    ]);
+  }
+
+  List<OrderingTerm> _recipeOrderingTerms(String order) {
+    return switch (order) {
+      'recentlySaved' => [
+        OrderingTerm.desc(recipes.createdAt),
+        OrderingTerm.asc(recipes.id),
+      ],
+      'recentlyCooked' => [
+        OrderingTerm(
+          expression: recipes.lastCookedAt.isNull(),
+          mode: OrderingMode.asc,
+        ),
+        OrderingTerm.desc(recipes.lastCookedAt),
+        OrderingTerm.asc(recipes.id),
+      ],
+      'mostCooked' => [
+        OrderingTerm.desc(recipes.cookCount),
+        OrderingTerm.desc(recipes.lastCookedAt),
+        OrderingTerm.asc(recipes.id),
+      ],
+      'title' => [
+        OrderingTerm.asc(recipes.title),
+        OrderingTerm.asc(recipes.id),
+      ],
+      _ => [OrderingTerm.desc(recipes.updatedAt), OrderingTerm.asc(recipes.id)],
+    };
   }
 
   Future<RecipeDetailData?> getRecipeDetail(String id) async {
@@ -390,6 +611,444 @@ class AppDatabase extends _$AppDatabase {
       tags: tagRows.map((row) => row.tag).toList(),
     );
   }
+
+  Stream<List<RecipeCollectionSummaryData>> watchCollectionSummaries() {
+    final changes = customSelect(
+      'SELECT c.id FROM recipe_collections c '
+      'LEFT JOIN recipe_collection_members m ON m.collection_id = c.id '
+      'LEFT JOIN recipes r ON r.id = m.recipe_id',
+      readsFrom: {recipeCollections, recipeCollectionMembers, recipes},
+    ).watch();
+    return changes.asyncMap((_) => _loadCollectionSummaries());
+  }
+
+  Future<List<RecipeCollectionSummaryData>> _loadCollectionSummaries() async {
+    final rows =
+        await (select(recipeCollections)..orderBy([
+              (row) => OrderingTerm.asc(row.createdAt),
+              (row) => OrderingTerm.asc(row.id),
+            ]))
+            .get();
+    final results = <RecipeCollectionSummaryData>[];
+    for (final collection in rows) {
+      final members = await _loadCollectionMembers(collection.id);
+      results.add(
+        RecipeCollectionSummaryData(
+          collection: collection,
+          memberCount: members.length,
+        ),
+      );
+    }
+    return results;
+  }
+
+  Future<RecipeCollectionDetailData?> getCollectionDetail(String id) async {
+    final collection = await (select(
+      recipeCollections,
+    )..where((row) => row.id.equals(id))).getSingleOrNull();
+    if (collection == null) return null;
+    final members = await _loadCollectionMembers(id);
+    return RecipeCollectionDetailData(
+      summary: RecipeCollectionSummaryData(
+        collection: collection,
+        memberCount: members.length,
+      ),
+      members: members,
+    );
+  }
+
+  Future<List<RecipeCollectionMemberData>> _loadCollectionMembers(
+    String id,
+  ) async {
+    final joined =
+        select(recipeCollectionMembers).join([
+            innerJoin(
+              recipes,
+              recipes.id.equalsExp(recipeCollectionMembers.recipeId),
+            ),
+            leftOuterJoin(
+              ingredients,
+              ingredients.recipeId.equalsExp(recipes.id),
+            ),
+          ])
+          ..where(
+            recipeCollectionMembers.collectionId.equals(id) &
+                recipes.status.isNotValue('deleted'),
+          )
+          ..orderBy([
+            OrderingTerm.asc(recipeCollectionMembers.position),
+            OrderingTerm.asc(ingredients.position),
+          ]);
+    final rows = await joined.get();
+    final aggregates = <String, _MutableCollectionMember>{};
+    for (final row in rows) {
+      final recipe = row.readTable(recipes);
+      final relation = row.readTable(recipeCollectionMembers);
+      final aggregate = aggregates.putIfAbsent(
+        recipe.id,
+        () => _MutableCollectionMember(
+          recipe,
+          relation.addedAt,
+          relation.position,
+        ),
+      );
+      final ingredient = row.readTableOrNull(ingredients);
+      if (ingredient != null) aggregate.ingredients.add(ingredient);
+    }
+    return aggregates.values
+        .map(
+          (value) => RecipeCollectionMemberData(
+            recipe: RecipeSummaryData(
+              recipe: value.recipe,
+              ingredients: value.ingredients,
+            ),
+            addedAt: value.addedAt,
+            position: value.position,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<int> nextCollectionPosition() async {
+    final expression = recipeCollections.position.max();
+    final row = await (selectOnly(
+      recipeCollections,
+    )..addColumns([expression])).getSingle();
+    return (row.read(expression) ?? -1) + 1;
+  }
+
+  Future<Set<String>> collectionIdsForRecipe(String recipeId) async {
+    final rows = await (select(
+      recipeCollectionMembers,
+    )..where((row) => row.recipeId.equals(recipeId))).get();
+    return rows.map((row) => row.collectionId).toSet();
+  }
+
+  Future<void> replaceCollectionsForRecipe({
+    required String recipeId,
+    required Set<String> collectionIds,
+  }) async {
+    await transaction(() async {
+      final recipe = await (select(
+        recipes,
+      )..where((row) => row.id.equals(recipeId))).getSingleOrNull();
+      if (recipe == null || recipe.status == 'deleted') {
+        throw StateError('Recipe is missing or deleted.');
+      }
+      final existingCollections = await (select(
+        recipeCollections,
+      )..where((row) => row.id.isIn(collectionIds))).get();
+      if (existingCollections.length != collectionIds.length) {
+        throw StateError('One or more collections do not exist.');
+      }
+      final previousRows = await (select(
+        recipeCollectionMembers,
+      )..where((row) => row.recipeId.equals(recipeId))).get();
+      final previousAddedAt = {
+        for (final row in previousRows) row.collectionId: row.addedAt,
+      };
+      final previous = previousAddedAt.keys.toSet();
+      await (delete(
+        recipeCollectionMembers,
+      )..where((row) => row.recipeId.equals(recipeId))).go();
+      final now = DateTime.now();
+      for (final id in collectionIds) {
+        await into(recipeCollectionMembers).insert(
+          RecipeCollectionMembersCompanion.insert(
+            collectionId: id,
+            recipeId: recipeId,
+            addedAt: previousAddedAt[id] ?? now,
+            position: Value(
+              previousRows
+                      .where((row) => row.collectionId == id)
+                      .firstOrNull
+                      ?.position ??
+                  await nextMemberPosition(id),
+            ),
+          ),
+        );
+      }
+      await (update(recipeCollections)
+            ..where((row) => row.id.isIn(previous.union(collectionIds))))
+          .write(RecipeCollectionsCompanion(updatedAt: Value(now)));
+    });
+  }
+
+  Future<int> nextMemberPosition(String collectionId) async {
+    final expression = recipeCollectionMembers.position.max();
+    final row =
+        await (selectOnly(recipeCollectionMembers)
+              ..addColumns([expression])
+              ..where(
+                recipeCollectionMembers.collectionId.equals(collectionId),
+              ))
+            .getSingle();
+    return (row.read(expression) ?? -1) + 1;
+  }
+
+  Future<void> appendRecipesToCollection({
+    required String collectionId,
+    required List<String> orderedRecipeIds,
+  }) async {
+    await transaction(() async {
+      final collection = await (select(
+        recipeCollections,
+      )..where((row) => row.id.equals(collectionId))).getSingleOrNull();
+      if (collection == null) throw StateError('Collection does not exist.');
+      if (orderedRecipeIds.toSet().length != orderedRecipeIds.length) {
+        throw ArgumentError('Recipe append order contains duplicate IDs.');
+      }
+      final validRecipes =
+          await (select(recipes)..where(
+                (row) =>
+                    row.id.isIn(orderedRecipeIds) &
+                    row.status.isNotValue('deleted'),
+              ))
+              .get();
+      if (validRecipes.length != orderedRecipeIds.length) {
+        throw StateError('One or more recipes do not exist or are deleted.');
+      }
+      final oldRows = await (select(
+        recipeCollectionMembers,
+      )..where((row) => row.collectionId.equals(collectionId))).get();
+      final existingIds = oldRows.map((row) => row.recipeId).toSet();
+      final now = DateTime.now();
+      var position = oldRows.isEmpty
+          ? 0
+          : oldRows.map((row) => row.position).reduce((a, b) => a > b ? a : b) +
+                1;
+      for (final recipeId in orderedRecipeIds) {
+        if (existingIds.contains(recipeId)) continue;
+        await into(recipeCollectionMembers).insert(
+          RecipeCollectionMembersCompanion.insert(
+            collectionId: collectionId,
+            recipeId: recipeId,
+            addedAt: now,
+            position: Value(position++),
+          ),
+        );
+      }
+      await (update(recipeCollections)
+            ..where((row) => row.id.equals(collectionId)))
+          .write(RecipeCollectionsCompanion(updatedAt: Value(now)));
+    });
+  }
+
+  Future<int> removeRecipeFromCollection({
+    required String collectionId,
+    required String recipeId,
+  }) async {
+    return transaction(() async {
+      final member =
+          await (select(recipeCollectionMembers)..where(
+                (row) =>
+                    row.collectionId.equals(collectionId) &
+                    row.recipeId.equals(recipeId),
+              ))
+              .getSingleOrNull();
+      if (member == null) throw StateError('Collection member does not exist.');
+      await (delete(recipeCollectionMembers)..where(
+            (row) =>
+                row.collectionId.equals(collectionId) &
+                row.recipeId.equals(recipeId),
+          ))
+          .go();
+      await (update(recipeCollectionMembers)..where(
+            (row) =>
+                row.collectionId.equals(collectionId) &
+                row.position.isBiggerThanValue(member.position),
+          ))
+          .write(
+            RecipeCollectionMembersCompanion.custom(
+              position: recipeCollectionMembers.position - const Constant(1),
+            ),
+          );
+      return member.position;
+    });
+  }
+
+  Future<void> restoreRecipeToCollection({
+    required String collectionId,
+    required String recipeId,
+    required int position,
+  }) async {
+    await transaction(() async {
+      final count = recipeCollectionMembers.recipeId.count();
+      final row =
+          await (selectOnly(recipeCollectionMembers)
+                ..addColumns([count])
+                ..where(
+                  recipeCollectionMembers.collectionId.equals(collectionId),
+                ))
+              .getSingle();
+      final boundedPosition = position.clamp(0, row.read(count) ?? 0).toInt();
+      await (update(recipeCollectionMembers)..where(
+            (member) =>
+                member.collectionId.equals(collectionId) &
+                member.position.isBiggerOrEqualValue(boundedPosition),
+          ))
+          .write(
+            RecipeCollectionMembersCompanion.custom(
+              position: recipeCollectionMembers.position + const Constant(1),
+            ),
+          );
+      await into(recipeCollectionMembers).insert(
+        RecipeCollectionMembersCompanion.insert(
+          collectionId: collectionId,
+          recipeId: recipeId,
+          addedAt: DateTime.now(),
+          position: Value(boundedPosition),
+        ),
+      );
+    });
+  }
+
+  Future<void> reorderCollectionMembers({
+    required String collectionId,
+    required List<String> orderedRecipeIds,
+  }) async {
+    if (orderedRecipeIds.toSet().length != orderedRecipeIds.length) {
+      throw ArgumentError('Member order contains duplicate IDs.');
+    }
+    await transaction(() async {
+      final query =
+          select(recipeCollectionMembers).join([
+              innerJoin(
+                recipes,
+                recipes.id.equalsExp(recipeCollectionMembers.recipeId),
+              ),
+            ])
+            ..where(
+              recipeCollectionMembers.collectionId.equals(collectionId) &
+                  recipes.status.isNotValue('deleted'),
+            )
+            ..orderBy([OrderingTerm.asc(recipeCollectionMembers.position)]);
+      final rows = (await query.get())
+          .map((row) => row.readTable(recipeCollectionMembers))
+          .toList(growable: false);
+      if (rows
+              .map((row) => row.recipeId)
+              .toSet()
+              .difference(orderedRecipeIds.toSet())
+              .isNotEmpty ||
+          rows.length != orderedRecipeIds.length) {
+        throw StateError(
+          'Member order must contain every visible member once.',
+        );
+      }
+      final visiblePositions = rows.map((row) => row.position).toList()..sort();
+      // 先写负数临时位置，避免未来增加唯一位置约束后交换顺序产生冲突。
+      for (final (index, recipeId) in orderedRecipeIds.indexed) {
+        await (update(recipeCollectionMembers)..where(
+              (row) =>
+                  row.collectionId.equals(collectionId) &
+                  row.recipeId.equals(recipeId),
+            ))
+            .write(
+              RecipeCollectionMembersCompanion(position: Value(-index - 1)),
+            );
+      }
+      for (final (index, recipeId) in orderedRecipeIds.indexed) {
+        await (update(recipeCollectionMembers)..where(
+              (row) =>
+                  row.collectionId.equals(collectionId) &
+                  row.recipeId.equals(recipeId),
+            ))
+            .write(
+              RecipeCollectionMembersCompanion(
+                position: Value(visiblePositions[index]),
+              ),
+            );
+      }
+    });
+  }
+
+  Future<void> moveRecipeToTrash(String id) async {
+    await transaction(() async {
+      final recipe = await (select(
+        recipes,
+      )..where((row) => row.id.equals(id))).getSingleOrNull();
+      if (recipe == null) throw StateError('Recipe does not exist.');
+      if (recipe.status == 'deleted') return;
+      await (update(recipes)..where((row) => row.id.equals(id))).write(
+        RecipesCompanion(
+          status: const Value('deleted'),
+          deletedAt: Value(DateTime.now()),
+          statusBeforeDeletion: Value(recipe.status),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    });
+  }
+
+  Future<void> restoreRecipeFromTrash(String id) async {
+    await transaction(() async {
+      final recipe = await (select(
+        recipes,
+      )..where((row) => row.id.equals(id))).getSingleOrNull();
+      if (recipe == null || recipe.status != 'deleted') {
+        throw StateError('Deleted recipe does not exist.');
+      }
+      var restoredStatus = recipe.statusBeforeDeletion;
+      if (restoredStatus == null || restoredStatus == 'deleted') {
+        final ingredientCount = ingredients.id.count();
+        final stepCount = recipeSteps.id.count();
+        final ingredientRow =
+            await (selectOnly(ingredients)
+                  ..addColumns([ingredientCount])
+                  ..where(ingredients.recipeId.equals(id)))
+                .getSingle();
+        final stepRow =
+            await (selectOnly(recipeSteps)
+                  ..addColumns([stepCount])
+                  ..where(recipeSteps.recipeId.equals(id)))
+                .getSingle();
+        restoredStatus =
+            (ingredientRow.read(ingredientCount) ?? 0) > 0 &&
+                (stepRow.read(stepCount) ?? 0) > 0
+            ? 'ready'
+            : 'incomplete';
+      }
+      await (update(recipes)..where((row) => row.id.equals(id))).write(
+        RecipesCompanion(
+          status: Value(restoredStatus),
+          deletedAt: const Value(null),
+          statusBeforeDeletion: const Value(null),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    });
+  }
+
+  Future<int> permanentlyDeleteRecipe(String id) {
+    return (delete(
+      recipes,
+    )..where((row) => row.id.equals(id) & row.status.equals('deleted'))).go();
+  }
+
+  Future<int> purgeDeletedBefore(DateTime cutoff) {
+    return (delete(recipes)..where(
+          (row) =>
+              row.status.equals('deleted') &
+              row.deletedAt.isSmallerOrEqualValue(cutoff),
+        ))
+        .go();
+  }
+
+  Future<String> getSavedSortOrder() async {
+    final row = await (select(
+      recipeLibrarySettings,
+    )..where((row) => row.id.equals(1))).getSingleOrNull();
+    return row?.sortOrder ?? 'recentlyUpdated';
+  }
+
+  Future<void> saveSortOrder(String value) =>
+      into(recipeLibrarySettings).insertOnConflictUpdate(
+        RecipeLibrarySettingsCompanion.insert(
+          id: const Value(1),
+          sortOrder: Value(value),
+        ),
+      );
 
   Future<String?> recipeIdForImportTask(String importTaskId) async {
     final row =
@@ -552,6 +1211,22 @@ class _MutableRecipeSummary {
   final Recipe recipe;
 
   /// 按 JOIN 查询顺序收集的食材行。
+  final List<Ingredient> ingredients = [];
+}
+
+class _MutableCollectionMember {
+  _MutableCollectionMember(this.recipe, this.addedAt, this.position);
+
+  /// 当前成员菜谱主表行。
+  final Recipe recipe;
+
+  /// 当前关系的加入时间。
+  final DateTime addedAt;
+
+  /// 当前成员在集合中的稳定位置。
+  final int position;
+
+  /// 当前成员用于手账摘要的食材。
   final List<Ingredient> ingredients = [];
 }
 

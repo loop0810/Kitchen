@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:kitchen_app_core/kitchen_app_core.dart';
 import 'package:kitchen_design_system/kitchen_design_system.dart';
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
 import 'kitchen_import_dependencies.dart';
+import 'kitchen_import_delete_task_dialog.dart';
 
 class ImportInboxPage extends ConsumerWidget {
   const ImportInboxPage({super.key});
@@ -17,7 +19,7 @@ class ImportInboxPage extends ConsumerWidget {
         title: const Text('导入箱'),
         actions: [
           IconButton(
-            tooltip: '创建食谱',
+            tooltip: '创建菜谱',
             onPressed: context.showRecipeCreationOptions,
             icon: const Icon(Icons.add_rounded),
           ),
@@ -36,9 +38,35 @@ class ImportInboxPage extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.s8),
                   itemBuilder: (context, index) {
                     final task = items[index];
-                    return _TaskCard(
-                      task: task,
-                      onTap: () => context.pushImportTask(task.id),
+                    return Slidable(
+                      key: ValueKey(task.id),
+                      endActionPane: ActionPane(
+                        motion: const DrawerMotion(),
+                        extentRatio: 0.28,
+                        children: [
+                          SlidableAction(
+                            onPressed: (_) => confirmAndDeleteImportTask(
+                              context,
+                              dependencies: ref.read(
+                                importDependenciesProvider,
+                              ),
+                              task: task,
+                            ),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.onError,
+                            icon: Icons.delete_outline_rounded,
+                            label: '删除',
+                          ),
+                        ],
+                      ),
+                      child: _TaskCard(
+                        task: task,
+                        onTap: () => context.pushImportTask(task.id),
+                      ),
                     );
                   },
                 ),
@@ -48,10 +76,10 @@ class ImportInboxPage extends ConsumerWidget {
       ),
       floatingActionButton: tasks.value?.isNotEmpty == true
           ? FloatingActionButton.extended(
-              tooltip: '创建食谱',
+              tooltip: '创建菜谱',
               onPressed: context.showRecipeCreationOptions,
               icon: const Icon(Icons.add_rounded),
-              label: const Text('创建食谱'),
+              label: const Text('创建菜谱'),
             )
           : null,
     );
@@ -173,7 +201,7 @@ class _EmptyInbox extends StatelessWidget {
             FilledButton.icon(
               onPressed: onCreate,
               icon: const Icon(Icons.add_rounded),
-              label: const Text('创建食谱'),
+              label: const Text('创建菜谱'),
             ),
           ],
         ),

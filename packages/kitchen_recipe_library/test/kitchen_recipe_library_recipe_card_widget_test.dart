@@ -7,6 +7,7 @@ void main() {
   testWidgets('菜谱卡片使用 Domain Entity 保持展示和回调行为', (tester) async {
     var tapped = false;
     var favoriteTapped = false;
+    Offset? longPressPosition;
     final now = DateTime(2026, 7, 26);
     final recipe = RecipeEntity(
       id: 'recipe-1',
@@ -48,6 +49,7 @@ void main() {
               recipe: summary,
               onTap: () => tapped = true,
               onFavorite: () => favoriteTapped = true,
+              onLongPress: (position) => longPressPosition = position,
             ),
           ),
         ),
@@ -65,5 +67,8 @@ void main() {
 
     await tester.tap(find.text('测试菜谱'));
     expect(tapped, isTrue);
+
+    await tester.longPress(find.text('测试菜谱'));
+    expect(longPressPosition, isNotNull);
   });
 }

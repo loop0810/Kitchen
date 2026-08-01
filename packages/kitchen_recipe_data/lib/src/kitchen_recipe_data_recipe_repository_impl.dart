@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:uuid/uuid.dart';
+import 'package:lpinyin/lpinyin.dart';
 
 import 'kitchen_recipe_data_app_database.dart';
 import 'kitchen_recipe_data_recipe_mapper.dart';
@@ -18,12 +19,16 @@ class RecipeRepositoryImpl implements RecipeRepository {
         .watchRecipeSummaries(
           query: query.text,
           statusFilter: _statusFilterToData(query.statusFilter),
+          scope: query.scope.name,
+          sortOrder: query.sortOrder.name,
         )
-        .map(
-          (summaries) => summaries
-              .map(RecipeMapper.summaryToDomain)
-              .toList(growable: false),
-        );
+        .map((summaries) {
+          final result = summaries.map(RecipeMapper.summaryToDomain).toList();
+          if (query.sortOrder == RecipeSortOrder.title) {
+            result.sort(_compareRecipeTitles);
+          }
+          return List.unmodifiable(result);
+        });
   }
 
   @override
@@ -248,5 +253,30 @@ class RecipeRepositoryImpl implements RecipeRepository {
     const colors = [0xFFF4B9A8, 0xFFF1CA7B, 0xFFAFC5A7, 0xFFB9CBE0, 0xFFE4B8C5];
     // 用标题散列选择初始颜色，无需维护随机状态；选中结果会随菜谱一起持久化。
     return colors[title.hashCode.abs() % colors.length];
+  }
+
+  int _compareRecipeTitles(
+    RecipeJournalSummaryEntity left,
+    RecipeJournalSummaryEntity right,
+  ) {
+    final byKey = _titleSortKey(
+      left.recipe.title,
+    ).compareTo(_titleSortKey(right.recipe.title));
+    return byKey != 0 ? byKey : left.recipe.id.compareTo(right.recipe.id);
+  }
+
+  String _titleSortKey(String title) {
+    final trimmed = title.trim();
+    final first = trimmed.runes.firstOrNull;
+    if (first != null && first >= 0x4E00 && first <= 0x9FFF) {
+      // 完整拼音由专用转换器生成，避免把排序细节泄露到 Feature。
+      return '0:${PinyinHelper.getPinyinE(trimmed, separator: '').toLowerCase()}';
+    }
+    if (first != null &&
+        ((first >= 0x41 && first <= 0x5A) ||
+            (first >= 0x61 && first <= 0x7A))) {
+      return '1:${trimmed.toLowerCase()}';
+    }
+    return '2:${trimmed.toLowerCase()}';
   }
 }

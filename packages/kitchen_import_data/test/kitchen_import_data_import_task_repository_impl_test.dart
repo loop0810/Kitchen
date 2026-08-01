@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kitchen_import_data/src/kitchen_import_data_app_database.dart';
@@ -50,6 +52,34 @@ void main() {
     final restored = await repository.getTask(taskId);
     expect(restored!.status, ImportTaskStatus.awaitingReview);
     expect(restored.draft!.title.value, '番茄炒蛋');
+  });
+
+  test('删除任务清理受控图片且不触碰目录外文件', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'kitchen_import_media_',
+    );
+    final controlledRoot = Directory('${directory.path}/import_media');
+    final taskDirectory = Directory('${controlledRoot.path}/task')
+      ..createSync(recursive: true);
+    final controlled = File('${taskDirectory.path}/001.jpg')
+      ..writeAsBytesSync([1, 2, 3]);
+    final external = File('${directory.path}/external.jpg')
+      ..writeAsBytesSync([4, 5, 6]);
+    addTearDown(() => directory.delete(recursive: true));
+    final guardedRepository = ImportTaskRepositoryImpl(
+      database,
+      mediaDirectoryProvider: () async => controlledRoot,
+    );
+    final taskId = await guardedRepository.createImageTask([
+      controlled.path,
+      external.path,
+    ]);
+
+    await guardedRepository.delete(taskId);
+
+    expect(await guardedRepository.getTask(taskId), isNull);
+    expect(await controlled.exists(), isFalse);
+    expect(await external.exists(), isTrue);
   });
 
   test('公开网页优先解析 Recipe JSON-LD', () {

@@ -80,10 +80,10 @@ void main() {
       ..execute(
         '''
         INSERT INTO recipes (
-          id, title, cover_color, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?)
+          id, title, status, cover_color, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?)
         ''',
-        ['legacy-recipe', '旧菜谱', 0xFFF4B9A8, 0, 0],
+        ['legacy-recipe', '旧菜谱', 'deleted', 0xFFF4B9A8, 0, 0],
       )
       ..execute(
         '''
@@ -114,9 +114,12 @@ void main() {
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.read<int>('user_version'), 4);
+      expect(version.read<int>('user_version'), 6);
       expect(recipe.importTaskId, isNull);
       expect(recipe.sourceOriginalText, isNull);
+      expect(recipe.deletedAt, isNotNull);
+      expect(recipe.statusBeforeDeletion, isNull);
+      expect(await database.select(database.recipeCollections).get(), isEmpty);
       final columns = await database
           .customSelect('PRAGMA table_info(ingredients)')
           .get();
@@ -135,6 +138,82 @@ void main() {
       )..where((row) => row.id.equals('legacy-ingredient'))).getSingle();
       expect(ingredient.name, '鸡蛋');
       expect(ingredient.position, 0);
+    } finally {
+      await database.close();
+      await directory.delete(recursive: true);
+    }
+  });
+
+  test('schema v5 迁移按旧视觉顺序生成连续成员位置', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'kitchen_notes_v5_migration_',
+    );
+    final file = File('${directory.path}/v5.sqlite');
+    final raw = sqlite.sqlite3.open(file.path);
+    raw
+      ..execute('''
+        CREATE TABLE recipe_collections (
+          id TEXT NOT NULL PRIMARY KEY,
+          name TEXT NOT NULL,
+          position INTEGER NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      ''')
+      ..execute('''
+        CREATE TABLE recipe_collection_members (
+          collection_id TEXT NOT NULL,
+          recipe_id TEXT NOT NULL,
+          added_at INTEGER NOT NULL,
+          PRIMARY KEY (collection_id, recipe_id)
+        )
+      ''')
+      ..execute('INSERT INTO recipe_collections VALUES (?, ?, ?, ?, ?)', [
+        'collection-1',
+        '旧集合',
+        0,
+        0,
+        0,
+      ])
+      ..execute('INSERT INTO recipe_collection_members VALUES (?, ?, ?)', [
+        'collection-1',
+        'recipe-b',
+        200,
+      ])
+      ..execute('INSERT INTO recipe_collection_members VALUES (?, ?, ?)', [
+        'collection-1',
+        'recipe-a',
+        200,
+      ])
+      ..execute('INSERT INTO recipe_collection_members VALUES (?, ?, ?)', [
+        'collection-1',
+        'recipe-newest',
+        300,
+      ])
+      ..execute('PRAGMA user_version = 5')
+      ..close();
+
+    final database = AppDatabase.forTesting(NativeDatabase(file));
+    try {
+      final members = await database
+          .customSelect(
+            'SELECT recipe_id, position FROM recipe_collection_members '
+            'ORDER BY position ASC',
+          )
+          .get();
+      expect(members.map((row) => row.read<String>('recipe_id')), [
+        'recipe-newest',
+        'recipe-a',
+        'recipe-b',
+      ]);
+      expect(members.map((row) => row.read<int>('position')), [0, 1, 2]);
+      final coverPathColumn = await database
+          .customSelect(
+            "SELECT name FROM pragma_table_info('recipe_collections') "
+            "WHERE name = 'cover_path'",
+          )
+          .getSingleOrNull();
+      expect(coverPathColumn, isNotNull);
     } finally {
       await database.close();
       await directory.delete(recursive: true);

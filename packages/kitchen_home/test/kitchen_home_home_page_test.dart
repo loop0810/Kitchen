@@ -10,6 +10,6 @@ void main() {
 
     expect(find.text('今天想吃点什么？'), findsOneWidget);
     expect(find.text('搜索菜名、食材或标签'), findsOneWidget);
-    expect(find.text('创建食谱'), findsOneWidget);
+    expect(find.text('创建菜谱'), findsOneWidget);
   });
 }

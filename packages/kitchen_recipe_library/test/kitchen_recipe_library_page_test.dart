@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
-import 'package:kitchen_app_core/kitchen_app_core.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:kitchen_recipe_library/kitchen_recipe_library.dart';
 
@@ -45,6 +43,21 @@ void main() {
     expect(find.textContaining('菜谱加载失败'), findsOneWidget);
   });
 
+  testWidgets('长按菜谱卡片在当前位置展示管理操作', (tester) async {
+    final repository = _LibraryRepository(
+      streamFactory: (query) => Stream.value([_summary]),
+    );
+    await tester.pumpWidget(_testApp(repository, const RecipeLibraryPage()));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('番茄炒蛋'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('编辑菜谱'), findsOneWidget);
+    expect(find.text('管理菜谱集'), findsOneWidget);
+    expect(find.text('移入回收站'), findsOneWidget);
+  });
+
   testWidgets('搜索页传递文本查询并展示结果', (tester) async {
     final repository = _LibraryRepository(
       streamFactory: (query) => Stream.value([_summary]),
@@ -81,61 +94,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.favoriteRecipeId, 'recipe-1');
     expect(repository.favoriteValue, isTrue);
-    expect(find.byTooltip('编辑菜谱'), findsOneWidget);
-  });
-
-  testWidgets('编辑成功返回后详情失效缓存并展示最新数据', (tester) async {
-    final repository = _LibraryRepository(
-      streamFactory: (query) => const Stream.empty(),
-      detail: _detail,
-    );
-    final router = GoRouter(
-      initialLocation: '/recipes/recipe-1',
-      routes: [
-        GoRoute(
-          path: '/recipes/:id/edit',
-          name: AppRouteNames.editRecipe,
-          builder: (context, state) => Scaffold(
-            body: FilledButton(
-              onPressed: () {
-                repository.detail = _detailWithTitle('更新后的番茄炒蛋');
-                context.pop(true);
-              },
-              child: const Text('完成编辑'),
-            ),
-          ),
-        ),
-        GoRoute(
-          path: '/recipes/:id',
-          name: AppRouteNames.recipeDetail,
-          builder: (context, state) =>
-              RecipeDetailPage(recipeId: state.pathParameters['id']!),
-        ),
-      ],
-    );
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          recipeLibraryDependenciesProvider.overrideWithValue(
-            RecipeLibraryDependencies(
-              watchRecipes: WatchRecipesUseCase(repository),
-              getRecipeDetail: GetRecipeDetailUseCase(repository),
-              setFavorite: SetRecipeFavoriteUseCase(repository),
-            ),
-          ),
-        ],
-        child: MaterialApp.router(routerConfig: router),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byTooltip('编辑菜谱'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('完成编辑'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('更新后的番茄炒蛋'), findsOneWidget);
-    expect(repository.detailReadCount, 2);
+    expect(find.byTooltip('编辑菜谱'), findsNothing);
+    expect(find.byTooltip('更多'), findsNothing);
   });
 
   testWidgets('详情按保存顺序展示食材且不插入分组标题', (tester) async {
@@ -268,40 +228,12 @@ final _detailWithTwoIngredients = RecipeDetailEntity(
   tags: _detail.tags,
 );
 
-RecipeDetailEntity _detailWithTitle(String title) {
-  return RecipeDetailEntity(
-    recipe: RecipeEntity(
-      id: _recipe.id,
-      title: title,
-      summary: _recipe.summary,
-      category: _recipe.category,
-      servings: _recipe.servings,
-      prepMinutes: _recipe.prepMinutes,
-      cookMinutes: _recipe.cookMinutes,
-      difficulty: _recipe.difficulty,
-      presentationStyle: _recipe.presentationStyle,
-      templateSelection: _recipe.templateSelection,
-      isFavorite: _recipe.isFavorite,
-      lastCookedAt: _recipe.lastCookedAt,
-      cookCount: _recipe.cookCount,
-      status: _recipe.status,
-      coverColor: _recipe.coverColor,
-      createdAt: _recipe.createdAt,
-      updatedAt: _recipe.updatedAt,
-    ),
-    ingredients: _detail.ingredients,
-    steps: _detail.steps,
-    tags: _detail.tags,
-  );
-}
-
 class _LibraryRepository implements RecipeRepository {
   _LibraryRepository({required this.streamFactory, this.detail});
 
   final Stream<List<RecipeJournalSummaryEntity>> Function(RecipeQuery query)
   streamFactory;
   RecipeDetailEntity? detail;
-  int detailReadCount = 0;
   RecipeQuery? lastQuery;
   String? favoriteRecipeId;
   bool? favoriteValue;
@@ -311,7 +243,6 @@ class _LibraryRepository implements RecipeRepository {
 
   @override
   Future<RecipeDetailEntity?> getRecipeDetail(String recipeId) async {
-    detailReadCount += 1;
     return detail;
   }
 

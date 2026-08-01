@@ -21,6 +21,8 @@ class RecipeEntity {
     required this.coverColor,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
+    this.statusBeforeDeletion,
   });
 
   /// 菜谱的唯一标识。
@@ -73,4 +75,10 @@ class RecipeEntity {
 
   /// 菜谱内容或状态最近更新时间。
   final DateTime updatedAt;
+
+  /// 移入回收站的时间；非删除状态时为空。
+  final DateTime? deletedAt;
+
+  /// 删除前的生命周期状态；用于恢复，非删除状态时为空。
+  final RecipeStatus? statusBeforeDeletion;
 }

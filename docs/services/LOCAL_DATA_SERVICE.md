@@ -80,6 +80,13 @@ SourceSnapshot
 
 ## 9. 迁移
 
+当前菜谱数据库 schema 为 v6：`recipes` 保存删除时间与删除前状态；
+`recipe_collections` 保存受控封面目录中的相对路径，旧集合 `position` 仅保留兼容；
+`recipe_collection_members.position` 保存集合内成员顺序；单例菜谱库设置表保存
+排序偏好。v5 升级时按旧界面的 `addedAt DESC, recipeId ASC` 生成连续成员位置。
+软删除不移除集合关系和成员位置，恢复后关系自然生效；只有永久删除菜谱才通过
+外键级联清理其从属数据和集合关系。
+
 修改 Drift 表时必须：
 
 1. 增加 schema version。

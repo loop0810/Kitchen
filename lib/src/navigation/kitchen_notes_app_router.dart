@@ -93,6 +93,17 @@ final appRouter = GoRouter(
           _ImportDraftCoordinatorPage(taskId: state.pathParameters['id']!),
     ),
     GoRoute(
+      path: '/recipe-collections/:id',
+      name: AppRouteNames.recipeCollection,
+      builder: (context, state) =>
+          RecipeCollectionDetailPage(collectionId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/recipes/trash',
+      name: AppRouteNames.recipeTrash,
+      builder: (context, state) => const RecipeTrashPage(),
+    ),
+    GoRoute(
       path: '/recipes/:id/edit',
       name: AppRouteNames.editRecipe,
       builder: (context, state) =>

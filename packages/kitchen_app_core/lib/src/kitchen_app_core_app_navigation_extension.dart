@@ -5,6 +5,7 @@ import 'kitchen_app_core_app_route_names.dart';
 import 'kitchen_app_core_recipe_creation_options_sheet.dart';
 
 extension AppNavigationExtension on BuildContext {
+  void goToRecipes() => goNamed(AppRouteNames.recipes);
   void goToImportInbox() => goNamed(AppRouteNames.importInbox);
 
   Future<T?> pushSearch<T>(String query) {
@@ -46,6 +47,15 @@ extension AppNavigationExtension on BuildContext {
       pathParameters: {'id': recipeId},
     );
   }
+
+  Future<T?> pushRecipeCollection<T>(String collectionId) {
+    return pushNamed<T>(
+      AppRouteNames.recipeCollection,
+      pathParameters: {'id': collectionId},
+    );
+  }
+
+  Future<T?> pushRecipeTrash<T>() => pushNamed<T>(AppRouteNames.recipeTrash);
 
   Future<T?> pushEditRecipe<T>(String recipeId) {
     return pushNamed<T>(

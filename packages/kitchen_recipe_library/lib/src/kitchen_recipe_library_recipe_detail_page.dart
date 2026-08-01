@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_design_system/kitchen_design_system.dart';
-import 'package:kitchen_app_core/kitchen_app_core.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 
 import 'kitchen_recipe_library_dependencies.dart';
@@ -44,17 +43,6 @@ class _RecipeDetailContent extends ConsumerWidget {
             title: Text(recipe.title),
             actions: [
               IconButton(
-                tooltip: '编辑菜谱',
-                onPressed: () async {
-                  final updated = await context.pushEditRecipe<bool>(recipe.id);
-                  if (updated == true) {
-                    // 编辑页返回成功标记后重新读取详情；列表由 Drift Stream 自动刷新。
-                    ref.invalidate(recipeDetailProvider(recipe.id));
-                  }
-                },
-                icon: const Icon(Icons.edit_outlined),
-              ),
-              IconButton(
                 tooltip: recipe.isFavorite ? '取消收藏' : '收藏',
                 onPressed: () async {
                   await ref
@@ -73,11 +61,6 @@ class _RecipeDetailContent extends ConsumerWidget {
                       : Icons.favorite_border_rounded,
                   color: recipe.isFavorite ? AppColor.coral : null,
                 ),
-              ),
-              IconButton(
-                tooltip: '更多',
-                onPressed: () {},
-                icon: const Icon(Icons.more_horiz_rounded),
               ),
               const SizedBox(width: AppSpacing.s4),
             ],

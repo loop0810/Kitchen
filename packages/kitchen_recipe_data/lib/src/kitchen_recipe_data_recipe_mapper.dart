@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 
 import 'kitchen_recipe_data_app_database.dart';
@@ -28,6 +30,10 @@ abstract final class RecipeMapper {
       coverColor: recipe.coverColor,
       createdAt: recipe.createdAt,
       updatedAt: recipe.updatedAt,
+      deletedAt: recipe.deletedAt,
+      statusBeforeDeletion: recipe.statusBeforeDeletion == null
+          ? null
+          : _statusToDomain(recipe.statusBeforeDeletion!),
     );
   }
 
@@ -64,6 +70,41 @@ abstract final class RecipeMapper {
           )
           .toList(growable: false),
       tags: List.unmodifiable(detail.tags),
+    );
+  }
+
+  static RecipeCollectionEntity collectionSummaryToDomain(
+    RecipeCollectionSummaryData data, {
+    Uint8List? coverBytes,
+  }) {
+    return RecipeCollectionEntity(
+      id: data.collection.id,
+      name: data.collection.name,
+      memberCount: data.memberCount,
+      coverBytes: coverBytes,
+      createdAt: data.collection.createdAt,
+      updatedAt: data.collection.updatedAt,
+    );
+  }
+
+  static RecipeCollectionDetailEntity collectionDetailToDomain(
+    RecipeCollectionDetailData data, {
+    Uint8List? coverBytes,
+  }) {
+    return RecipeCollectionDetailEntity(
+      collection: collectionSummaryToDomain(
+        data.summary,
+        coverBytes: coverBytes,
+      ),
+      members: data.members
+          .map(
+            (member) => RecipeCollectionMemberEntity(
+              recipe: summaryToDomain(member.recipe),
+              addedAt: member.addedAt,
+              position: member.position,
+            ),
+          )
+          .toList(growable: false),
     );
   }
 

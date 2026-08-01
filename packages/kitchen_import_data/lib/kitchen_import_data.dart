@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
@@ -15,12 +16,15 @@ export 'src/kitchen_import_data_android_share_adapter.dart';
 
 class ImportDataModule {
   ImportDataModule._(this._database)
-    : _repository = ImportTaskRepositoryImpl(_database);
+    : _repository = ImportTaskRepositoryImpl(_database) {
+    // 受控媒体清理失败不阻断导入箱启动，后续启动会再次尝试。
+    unawaited(_repository.cleanupOrphanedMedia().catchError((_) {}));
+  }
 
   factory ImportDataModule() => ImportDataModule._(ImportAppDatabase());
 
   final ImportAppDatabase _database;
-  final ImportTaskRepository _repository;
+  final ImportTaskRepositoryImpl _repository;
   final AndroidShareAdapter androidShareAdapter = AndroidShareAdapter();
 
   ImportTaskRepository get importTaskRepository => _repository;

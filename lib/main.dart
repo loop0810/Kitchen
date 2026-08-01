@@ -53,6 +53,7 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
     // Drift 数据库中，因此恢复不会依赖页面是否打开。
     unawaited(_importPipeline.resumePending());
     unawaited(_consumePendingAndroidShares());
+    unawaited(_purgeExpiredRecipes());
   }
 
   @override
@@ -69,6 +70,15 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_consumePendingAndroidShares());
+      unawaited(_purgeExpiredRecipes());
+    }
+  }
+
+  Future<void> _purgeExpiredRecipes() async {
+    try {
+      await PurgeExpiredRecipesUseCase(_recipeDataModule.deletionRepository)();
+    } catch (_) {
+      // 机会式清理失败不阻塞启动；下次启动、恢复前台或打开回收站会重试。
     }
   }
 
@@ -104,7 +114,12 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
   Widget build(BuildContext context) {
     return ProviderScope(
       overrides: [
-        ...buildRecipeFeatureOverrides(_recipeDataModule.recipeRepository),
+        ...buildRecipeFeatureOverrides(
+          _recipeDataModule.recipeRepository,
+          collectionRepository: _recipeDataModule.collectionRepository,
+          deletionRepository: _recipeDataModule.deletionRepository,
+          sortPreferenceRepository: _recipeDataModule.sortPreferenceRepository,
+        ),
         importDependenciesProvider.overrideWithValue(
           ImportDependencies(
             repository: _importDataModule.importTaskRepository,
@@ -118,7 +133,12 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
   }
 }
 
-List<Override> buildRecipeFeatureOverrides(RecipeRepository repository) {
+List<Override> buildRecipeFeatureOverrides(
+  RecipeRepository repository, {
+  RecipeCollectionRepository? collectionRepository,
+  RecipeDeletionRepository? deletionRepository,
+  RecipeSortPreferenceRepository? sortPreferenceRepository,
+}) {
   // Riverpod override 是根 App 向 Feature 注入依赖的入口。这样 Feature 可以独立测试，
   // 测试时也能用内存实现替换真实数据库。
   return [
@@ -127,6 +147,57 @@ List<Override> buildRecipeFeatureOverrides(RecipeRepository repository) {
         watchRecipes: WatchRecipesUseCase(repository),
         getRecipeDetail: GetRecipeDetailUseCase(repository),
         setFavorite: SetRecipeFavoriteUseCase(repository),
+        watchCollections: collectionRepository == null
+            ? null
+            : WatchRecipeCollectionsUseCase(collectionRepository),
+        getCollectionDetail: collectionRepository == null
+            ? null
+            : GetRecipeCollectionDetailUseCase(collectionRepository),
+        createCollection: collectionRepository == null
+            ? null
+            : CreateRecipeCollectionUseCase(collectionRepository),
+        updateCollection: collectionRepository == null
+            ? null
+            : UpdateRecipeCollectionUseCase(collectionRepository),
+        deleteCollection: collectionRepository == null
+            ? null
+            : DeleteRecipeCollectionUseCase(collectionRepository),
+        getCollectionIdsForRecipe: collectionRepository == null
+            ? null
+            : GetCollectionIdsForRecipeUseCase(collectionRepository),
+        setCollectionsForRecipe: collectionRepository == null
+            ? null
+            : SetCollectionsForRecipeUseCase(collectionRepository),
+        appendRecipesToCollection: collectionRepository == null
+            ? null
+            : AppendRecipesToCollectionUseCase(collectionRepository),
+        removeRecipeFromCollection: collectionRepository == null
+            ? null
+            : RemoveRecipeFromCollectionUseCase(collectionRepository),
+        restoreRecipeToCollection: collectionRepository == null
+            ? null
+            : RestoreRecipeToCollectionUseCase(collectionRepository),
+        reorderCollectionMembers: collectionRepository == null
+            ? null
+            : ReorderCollectionMembersUseCase(collectionRepository),
+        moveToTrash: deletionRepository == null
+            ? null
+            : MoveRecipeToTrashUseCase(deletionRepository),
+        restoreRecipe: deletionRepository == null
+            ? null
+            : RestoreRecipeUseCase(deletionRepository),
+        permanentlyDeleteRecipe: deletionRepository == null
+            ? null
+            : PermanentlyDeleteRecipeUseCase(deletionRepository),
+        purgeExpiredRecipes: deletionRepository == null
+            ? null
+            : PurgeExpiredRecipesUseCase(deletionRepository),
+        getSortPreference: sortPreferenceRepository == null
+            ? null
+            : GetRecipeSortPreferenceUseCase(sortPreferenceRepository),
+        setSortPreference: sortPreferenceRepository == null
+            ? null
+            : SetRecipeSortPreferenceUseCase(sortPreferenceRepository),
       ),
     ),
     recipeEditorDependenciesProvider.overrideWithValue(

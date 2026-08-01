@@ -5,6 +5,7 @@ import 'package:kitchen_design_system/kitchen_design_system.dart';
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
 import 'kitchen_import_dependencies.dart';
+import 'kitchen_import_delete_task_dialog.dart';
 
 class ImportTaskPage extends ConsumerWidget {
   const ImportTaskPage({super.key, required this.taskId});
@@ -110,26 +111,12 @@ class _TaskBody extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('删除导入任务？'),
-        content: const Text('原始内容和处理中间结果也会一并删除。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('保留'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+    final deleted = await confirmAndDeleteImportTask(
+      context,
+      dependencies: ref.read(importDependenciesProvider),
+      task: task,
     );
-    if (confirmed != true || !context.mounted) return;
-    await ref.read(importDependenciesProvider).repository.delete(task.id);
-    if (context.mounted) Navigator.pop(context);
+    if (deleted && context.mounted) Navigator.pop(context);
   }
 }
 

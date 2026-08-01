@@ -73,7 +73,7 @@ class _HomePageState extends State<HomePage> {
               width: double.infinity,
               child: _QuickAction(
                 icon: Icons.add_rounded,
-                label: '创建食谱',
+                label: '创建菜谱',
                 onTap: context.showRecipeCreationOptions,
               ),
             ),

@@ -206,6 +206,32 @@ void main() {
 
     expect(result.map((ingredient) => ingredient.name), ['盐', '番茄']);
   });
+
+  test('菜谱集名称去除首尾空格、允许重名语义且限制 40 字', () {
+    expect(normalizeRecipeCollectionName('  周末菜单  '), '周末菜单');
+    expect(() => normalizeRecipeCollectionName('   '), throwsArgumentError);
+    expect(
+      () => normalizeRecipeCollectionName(List.filled(41, '菜').join()),
+      throwsArgumentError,
+    );
+  });
+
+  test('RecipeQuery 按排序和列表范围参与值相等', () {
+    expect(
+      const RecipeQuery(
+        sortOrder: RecipeSortOrder.title,
+        scope: RecipeListScope.trash,
+      ),
+      const RecipeQuery(
+        sortOrder: RecipeSortOrder.title,
+        scope: RecipeListScope.trash,
+      ),
+    );
+    expect(
+      const RecipeQuery(sortOrder: RecipeSortOrder.title),
+      isNot(const RecipeQuery(sortOrder: RecipeSortOrder.recentlyUpdated)),
+    );
+  });
 }
 
 class _FakeRecipeRepository implements RecipeRepository {
