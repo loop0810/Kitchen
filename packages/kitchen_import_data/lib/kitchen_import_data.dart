@@ -6,13 +6,13 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
-import 'src/kitchen_import_data_app_database.dart';
-import 'src/kitchen_import_data_android_share_adapter.dart';
-import 'src/kitchen_import_data_import_task_repository_impl.dart';
-import 'src/kitchen_import_data_public_content_extractor.dart';
-import 'src/kitchen_import_data_platform_ocr_adapter.dart';
+import 'src/import_task/database/kitchen_import_data_app_database.dart';
+import 'src/share/adapters/kitchen_import_data_android_share_adapter.dart';
+import 'src/import_task/repositories/kitchen_import_data_import_task_repository_impl.dart';
+import 'src/content/adapters/kitchen_import_data_public_content_extractor.dart';
+import 'src/ocr/adapters/kitchen_import_data_platform_ocr_adapter.dart';
 
-export 'src/kitchen_import_data_android_share_adapter.dart';
+export 'src/share/adapters/kitchen_import_data_android_share_adapter.dart';
 
 class ImportDataModule {
   ImportDataModule._(this._database)

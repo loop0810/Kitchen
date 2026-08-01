@@ -1,7 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kitchen_recipe_data/src/kitchen_recipe_data_app_database.dart';
-import 'package:kitchen_recipe_data/src/kitchen_recipe_data_recipe_repository_impl.dart';
+import 'package:kitchen_recipe_data/src/database/kitchen_recipe_data_app_database.dart';
+import 'package:kitchen_recipe_data/src/recipe/repositories/kitchen_recipe_data_recipe_repository_impl.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 
 void main() {

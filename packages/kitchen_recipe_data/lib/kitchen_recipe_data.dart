@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 
-import 'src/kitchen_recipe_data_app_database.dart';
-import 'src/kitchen_recipe_data_pinyin_recipe_reading_order_policy.dart';
-import 'src/kitchen_recipe_data_recipe_repository_impl.dart';
-import 'src/kitchen_recipe_data_recipe_collection_repository_impl.dart';
-import 'src/kitchen_recipe_data_recipe_deletion_repository_impl.dart';
-import 'src/kitchen_recipe_data_recipe_sort_preference_repository_impl.dart';
+import 'src/database/kitchen_recipe_data_app_database.dart';
+import 'src/recipe/policies/kitchen_recipe_data_pinyin_recipe_reading_order_policy.dart';
+import 'src/recipe/repositories/kitchen_recipe_data_recipe_repository_impl.dart';
+import 'src/collection/repositories/kitchen_recipe_data_recipe_collection_repository_impl.dart';
+import 'src/deletion/repositories/kitchen_recipe_data_recipe_deletion_repository_impl.dart';
+import 'src/preferences/repositories/kitchen_recipe_data_recipe_sort_preference_repository_impl.dart';
 
 /// Data package 对外唯一的装配入口。
 ///

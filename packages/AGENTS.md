@@ -21,6 +21,19 @@
 - 禁止含义模糊的 `utils`、`helpers`、`common`、`manager`。
 - `*.g.dart` 等生成文件保留工具命名，禁止手动编辑。
 
+## 目录组织
+
+- `lib/src` 默认采用 feature-first：先按页面流程或领域能力分组，再按职责细分。
+- UI Feature 使用 `src/<功能>/pages`、`widgets`、`providers` 等目录；页面私有小组件
+  可以继续留在页面文件内，不为单个文件强制建立完整目录树。
+- Domain 使用 `src/<领域能力>/entities`、`value_objects`、`repositories`、
+  `use_cases`、`services` 等目录；Data 使用 `database`、`mappers`、
+  `repositories`、`adapters` 等目录。
+- 跨功能的代码只有在确认被多个功能复用后才进入 `shared`；禁止用 `shared` 代替
+  尚未明确的职责归属。
+- 小型 package 可以省略只有一层且不会产生歧义的职责目录；随着同类文件增长再
+  拆分，避免为形式统一制造过深的单文件目录。
+
 ## 依赖与 UI
 
 - 新增生产依赖时说明用途，以及现有依赖无法满足需求的原因。

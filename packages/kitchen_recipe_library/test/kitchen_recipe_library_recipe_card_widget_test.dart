@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
-import 'package:kitchen_recipe_library/src/kitchen_recipe_library_recipe_card_widget.dart';
+import 'package:kitchen_recipe_library/src/recipe_library/widgets/kitchen_recipe_library_recipe_card_widget.dart';
 
 void main() {
   testWidgets('菜谱卡片使用 Domain Entity 保持展示和回调行为', (tester) async {

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kitchen_recipe_data/src/kitchen_recipe_data_app_database.dart';
+import 'package:kitchen_recipe_data/src/database/kitchen_recipe_data_app_database.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 void main() {

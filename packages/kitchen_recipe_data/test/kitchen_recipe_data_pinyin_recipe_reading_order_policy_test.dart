@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 
-import 'package:kitchen_recipe_data/src/kitchen_recipe_data_pinyin_recipe_reading_order_policy.dart';
+import 'package:kitchen_recipe_data/src/recipe/policies/kitchen_recipe_data_pinyin_recipe_reading_order_policy.dart';
 
 void main() {
   const policy = PinyinRecipeReadingOrderPolicy();

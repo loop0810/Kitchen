@@ -1,1 +1,1 @@
-export 'src/kitchen_home_home_page.dart';
+export 'src/home/pages/kitchen_home_home_page.dart';

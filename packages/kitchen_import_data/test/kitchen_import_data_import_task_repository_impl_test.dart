@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kitchen_import_data/src/kitchen_import_data_app_database.dart';
-import 'package:kitchen_import_data/src/kitchen_import_data_import_task_repository_impl.dart';
-import 'package:kitchen_import_data/src/kitchen_import_data_public_content_extractor.dart';
+import 'package:kitchen_import_data/src/import_task/database/kitchen_import_data_app_database.dart';
+import 'package:kitchen_import_data/src/import_task/repositories/kitchen_import_data_import_task_repository_impl.dart';
+import 'package:kitchen_import_data/src/content/adapters/kitchen_import_data_public_content_extractor.dart';
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
 void main() {
