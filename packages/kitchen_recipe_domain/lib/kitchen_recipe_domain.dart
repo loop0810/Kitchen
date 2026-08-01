@@ -11,6 +11,8 @@ export 'src/kitchen_recipe_domain_recipe_detail_entity.dart';
 export 'src/kitchen_recipe_domain_recipe_entity.dart';
 export 'src/kitchen_recipe_domain_recipe_journal_summary_entity.dart';
 export 'src/kitchen_recipe_domain_recipe_query.dart';
+export 'src/kitchen_recipe_domain_recipe_reading_entity.dart';
+export 'src/kitchen_recipe_domain_recipe_reading_use_cases.dart';
 export 'src/kitchen_recipe_domain_recipe_collection_entity.dart';
 export 'src/kitchen_recipe_domain_recipe_collection_repository.dart';
 export 'src/kitchen_recipe_domain_recipe_collection_use_cases.dart';

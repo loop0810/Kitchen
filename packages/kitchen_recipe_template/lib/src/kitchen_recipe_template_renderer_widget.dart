@@ -66,6 +66,7 @@ class RecipeTemplateRendererWidget extends StatelessWidget {
                             _SlotWidget(
                               slot: slot,
                               data: data,
+                              mode: mode,
                               fontScale: fontScale,
                             ),
                           ),
@@ -132,11 +133,13 @@ class _SlotWidget extends StatelessWidget {
   const _SlotWidget({
     required this.slot,
     required this.data,
+    required this.mode,
     required this.fontScale,
   });
 
   final TemplateSlot slot;
   final TemplateRenderData data;
+  final TemplateRenderMode mode;
   final double fontScale;
 
   @override
@@ -144,7 +147,9 @@ class _SlotWidget extends StatelessWidget {
     final content = switch (slot.kind) {
       TemplateSlotKind.recipeTitle => _text(data.title),
       TemplateSlotKind.primaryIngredients => _ingredients(),
-      TemplateSlotKind.detailAction => _text('查看详情 →'),
+      TemplateSlotKind.detailAction => _text(
+        mode == TemplateRenderMode.reader ? '查看详细步骤 →' : '查看详情 →',
+      ),
       TemplateSlotKind.category => _text(data.category),
       TemplateSlotKind.totalTime => _text(
         data.totalMinutes == null ? '时间待补充' : '${data.totalMinutes} 分钟',

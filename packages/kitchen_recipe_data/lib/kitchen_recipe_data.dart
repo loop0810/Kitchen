@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 
 import 'src/kitchen_recipe_data_app_database.dart';
+import 'src/kitchen_recipe_data_pinyin_recipe_reading_order_policy.dart';
 import 'src/kitchen_recipe_data_recipe_repository_impl.dart';
 import 'src/kitchen_recipe_data_recipe_collection_repository_impl.dart';
 import 'src/kitchen_recipe_data_recipe_deletion_repository_impl.dart';
@@ -13,7 +14,8 @@ import 'src/kitchen_recipe_data_recipe_sort_preference_repository_impl.dart';
 /// 调用方只能取得 Domain Repository，无法绕过架构边界直接操作 Drift 表。
 class RecipeDataModule {
   RecipeDataModule._(this._database)
-    : _recipeRepository = RecipeRepositoryImpl(_database),
+    : _readingOrderPolicy = const PinyinRecipeReadingOrderPolicy(),
+      _recipeRepository = RecipeRepositoryImpl(_database),
       _collectionRepository = RecipeCollectionRepositoryImpl(_database),
       _deletionRepository = RecipeDeletionRepositoryImpl(_database),
       _sortPreferenceRepository = RecipeSortPreferenceRepositoryImpl(
@@ -26,6 +28,7 @@ class RecipeDataModule {
   factory RecipeDataModule() => RecipeDataModule._(AppDatabase());
 
   final AppDatabase _database;
+  final RecipeReadingOrderPolicy _readingOrderPolicy;
   final RecipeRepository _recipeRepository;
   final RecipeCollectionRepositoryImpl _collectionRepository;
   final RecipeDeletionRepository _deletionRepository;
@@ -36,6 +39,9 @@ class RecipeDataModule {
   RecipeDeletionRepository get deletionRepository => _deletionRepository;
   RecipeSortPreferenceRepository get sortPreferenceRepository =>
       _sortPreferenceRepository;
+
+  /// 菜谱库与阅读器共享的中文优先标题顺序策略。
+  RecipeReadingOrderPolicy get readingOrderPolicy => _readingOrderPolicy;
 
   Future<void> close() => _database.close();
 }

@@ -55,6 +55,13 @@ extension AppNavigationExtension on BuildContext {
     );
   }
 
+  Future<T?> pushRecipeCollectionReader<T>(String collectionId) {
+    return pushNamed<T>(
+      AppRouteNames.recipeCollectionReader,
+      pathParameters: {'id': collectionId},
+    );
+  }
+
   Future<T?> pushRecipeTrash<T>() => pushNamed<T>(AppRouteNames.recipeTrash);
 
   Future<T?> pushEditRecipe<T>(String recipeId) {

@@ -119,6 +119,7 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
           collectionRepository: _recipeDataModule.collectionRepository,
           deletionRepository: _recipeDataModule.deletionRepository,
           sortPreferenceRepository: _recipeDataModule.sortPreferenceRepository,
+          readingOrderPolicy: _recipeDataModule.readingOrderPolicy,
         ),
         importDependenciesProvider.overrideWithValue(
           ImportDependencies(
@@ -138,6 +139,7 @@ List<Override> buildRecipeFeatureOverrides(
   RecipeCollectionRepository? collectionRepository,
   RecipeDeletionRepository? deletionRepository,
   RecipeSortPreferenceRepository? sortPreferenceRepository,
+  RecipeReadingOrderPolicy? readingOrderPolicy,
 }) {
   // Riverpod override 是根 App 向 Feature 注入依赖的入口。这样 Feature 可以独立测试，
   // 测试时也能用内存实现替换真实数据库。
@@ -180,6 +182,14 @@ List<Override> buildRecipeFeatureOverrides(
         reorderCollectionMembers: collectionRepository == null
             ? null
             : ReorderCollectionMembersUseCase(collectionRepository),
+        getCollectionReaderSnapshot:
+            collectionRepository == null || readingOrderPolicy == null
+            ? null
+            : GetRecipeCollectionReaderSnapshotUseCase(
+                collectionRepository,
+                readingOrderPolicy,
+              ),
+        getRecipeJournalSummary: GetRecipeJournalSummaryUseCase(repository),
         moveToTrash: deletionRepository == null
             ? null
             : MoveRecipeToTrashUseCase(deletionRepository),

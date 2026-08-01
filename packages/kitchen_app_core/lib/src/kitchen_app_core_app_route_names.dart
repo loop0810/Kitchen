@@ -8,6 +8,7 @@ abstract final class AppRouteNames {
   static const editRecipe = 'editRecipe';
   static const recipeDetail = 'recipeDetail';
   static const recipeCollection = 'recipeCollection';
+  static const recipeCollectionReader = 'recipeCollectionReader';
   static const recipeTrash = 'recipeTrash';
   static const pasteImport = 'pasteImport';
   static const imageImport = 'imageImport';

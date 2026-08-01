@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kitchen_app_core/kitchen_app_core.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:kitchen_recipe_library/kitchen_recipe_library.dart';
 
@@ -59,23 +61,96 @@ void main() {
     );
   });
 
-  testWidgets('菜谱集书籍单击不导航，长按显示管理菜单', (tester) async {
+  testWidgets('空菜谱集单击进入成员管理，长按仍显示管理菜单', (tester) async {
     final collections = _CollectionRepository(detail: _emptyCollectionDetail);
-    await tester.pumpWidget(_app(collections: collections));
+    await tester.pumpWidget(_app(collections: collections, routed: true));
     await tester.pumpAndSettle();
     await tester.tap(find.text('菜谱集'));
     await tester.pumpAndSettle();
 
     final book = find.byKey(const ValueKey('collection-1'));
     await tester.ensureVisible(book);
-    await tester.tap(book);
-    await tester.pumpAndSettle();
-    expect(find.text('我的菜谱'), findsOneWidget);
     await tester.longPress(book);
     await tester.pumpAndSettle();
     expect(find.text('编辑'), findsOneWidget);
     expect(find.text('管理成员'), findsOneWidget);
     expect(find.text('删除菜谱集'), findsOneWidget);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
+    await tester.tap(book);
+    await tester.pumpAndSettle();
+    expect(find.text('成员管理页'), findsOneWidget);
+  });
+
+  testWidgets('非空菜谱集单击直接进入阅读器', (tester) async {
+    final collections = _CollectionRepository(
+      detail: _nonEmptyCollectionDetail,
+    );
+    await tester.pumpWidget(_app(collections: collections, routed: true));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('菜谱集'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('collection-2')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('阅读器页'), findsOneWidget);
+  });
+
+  testWidgets('阅读器显示固定页数并可左右翻阅', (tester) async {
+    final collections = _CollectionRepository(
+      detail: _nonEmptyCollectionDetail,
+    );
+    await tester.pumpWidget(
+      _app(
+        collections: collections,
+        page: const RecipeCollectionReaderPage(collectionId: 'collection-2'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 / 2'), findsOneWidget);
+    expect(find.byTooltip('管理菜谱集成员'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('recipe-collection-reader-pages')),
+      findsOneWidget,
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('recipe-collection-reader-pages')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('2 / 2'), findsOneWidget);
+  });
+
+  testWidgets('从详情返回后保持阅读页码', (tester) async {
+    final collections = _CollectionRepository(
+      detail: _nonEmptyCollectionDetail,
+    );
+    await tester.pumpWidget(
+      _app(
+        collections: collections,
+        showActiveRecipe: true,
+        routed: true,
+        actualReaderRoute: true,
+        initialLocation: '/recipe-collections/collection-2/read',
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('recipe-collection-reader-pages')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('2 / 2'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('周末面包，查看详细步骤'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('详情页'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 / 2'), findsOneWidget);
   });
 
   testWidgets('回收站展示保留时间并支持恢复', (tester) async {
@@ -114,6 +189,9 @@ Widget _app({
   _CollectionRepository? collections,
   _DeletionRepository? deletion,
   bool showActiveRecipe = false,
+  bool routed = false,
+  bool actualReaderRoute = false,
+  String initialLocation = '/recipes',
   Widget page = const RecipeLibraryPage(),
 }) {
   final recipeRepository = _RecipeRepository(
@@ -151,6 +229,13 @@ Widget _app({
           reorderCollectionMembers: ReorderCollectionMembersUseCase(
             collectionRepository,
           ),
+          getCollectionReaderSnapshot: GetRecipeCollectionReaderSnapshotUseCase(
+            collectionRepository,
+            const _ReadingOrderPolicy(),
+          ),
+          getRecipeJournalSummary: GetRecipeJournalSummaryUseCase(
+            recipeRepository,
+          ),
           purgeExpiredRecipes: PurgeExpiredRecipesUseCase(deletionRepository),
           restoreRecipe: RestoreRecipeUseCase(deletionRepository),
           permanentlyDeleteRecipe: PermanentlyDeleteRecipeUseCase(
@@ -160,8 +245,54 @@ Widget _app({
         ),
       ),
     ],
-    child: MaterialApp(home: page),
+    child: routed
+        ? MaterialApp.router(
+            routerConfig: GoRouter(
+              initialLocation: initialLocation,
+              routes: [
+                GoRoute(
+                  path: '/recipes',
+                  name: AppRouteNames.recipes,
+                  builder: (_, _) => page,
+                ),
+                GoRoute(
+                  path: '/recipe-collections/:id',
+                  name: AppRouteNames.recipeCollection,
+                  builder: (_, _) => const Scaffold(body: Text('成员管理页')),
+                ),
+                GoRoute(
+                  path: '/recipe-collections/:id/read',
+                  name: AppRouteNames.recipeCollectionReader,
+                  builder: (_, state) => actualReaderRoute
+                      ? RecipeCollectionReaderPage(
+                          collectionId: state.pathParameters['id']!,
+                        )
+                      : const Scaffold(body: Text('阅读器页')),
+                ),
+                GoRoute(
+                  path: '/recipes/:id',
+                  name: AppRouteNames.recipeDetail,
+                  builder: (_, _) =>
+                      Scaffold(appBar: AppBar(title: const Text('详情页'))),
+                ),
+              ],
+            ),
+          )
+        : MaterialApp(home: page),
   );
+}
+
+class _ReadingOrderPolicy implements RecipeReadingOrderPolicy {
+  const _ReadingOrderPolicy();
+
+  @override
+  int compare(
+    RecipeJournalSummaryEntity left,
+    RecipeJournalSummaryEntity right,
+  ) => left.recipe.title.compareTo(right.recipe.title);
+
+  @override
+  String groupLabelFor(String title) => title[0].toUpperCase();
 }
 
 final _now = DateTime.now();
@@ -230,6 +361,54 @@ final _emptyCollectionDetail = RecipeCollectionDetailEntity(
   collection: _emptyCollection,
   members: const [],
 );
+final _nonEmptyCollection = RecipeCollectionEntity(
+  id: 'collection-2',
+  name: '家常菜本',
+  memberCount: 2,
+  coverBytes: null,
+  createdAt: _now,
+  updatedAt: _now,
+);
+final _nonEmptyCollectionDetail = RecipeCollectionDetailEntity(
+  collection: _nonEmptyCollection,
+  members: [
+    RecipeCollectionMemberEntity(
+      recipe: _activeSummary,
+      addedAt: _now,
+      position: 0,
+    ),
+    RecipeCollectionMemberEntity(
+      recipe: _secondActiveSummary,
+      addedAt: _now,
+      position: 1,
+    ),
+  ],
+);
+final _secondActiveSummary = RecipeJournalSummaryEntity(
+  recipe: RecipeEntity(
+    id: 'second-recipe',
+    title: '周末面包',
+    summary: '',
+    category: '烘焙',
+    servings: null,
+    prepMinutes: null,
+    cookMinutes: null,
+    difficulty: '简单',
+    presentationStyle: 'inheritDefault',
+    templateSelection: const RecipeTemplateSelectionValueObject(
+      templateId: 'builtin.journal.basic',
+      templateVersion: 1,
+    ),
+    isFavorite: false,
+    lastCookedAt: null,
+    cookCount: 0,
+    status: RecipeStatus.ready,
+    coverColor: 0xFFF4B9A8,
+    createdAt: _now,
+    updatedAt: _now,
+  ),
+  primaryIngredients: const [],
+);
 
 class _RecipeRepository implements RecipeRepository {
   _RecipeRepository({required this.showActiveRecipe});
@@ -248,7 +427,21 @@ class _RecipeRepository implements RecipeRepository {
   @override
   Future<String> createRecipe(CreateRecipeInput input) async => 'recipe-1';
   @override
-  Future<RecipeDetailEntity?> getRecipeDetail(String recipeId) async => null;
+  Future<RecipeDetailEntity?> getRecipeDetail(String recipeId) async {
+    final summary = switch (recipeId) {
+      'active-recipe' => _activeSummary,
+      'second-recipe' => _secondActiveSummary,
+      _ => null,
+    };
+    if (!showActiveRecipe || summary == null) return null;
+    return RecipeDetailEntity(
+      recipe: summary.recipe,
+      ingredients: const [],
+      steps: const [],
+      tags: const [],
+    );
+  }
+
   @override
   Future<void> setFavorite({
     required String recipeId,

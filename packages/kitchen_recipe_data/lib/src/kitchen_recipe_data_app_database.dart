@@ -626,6 +626,9 @@ SET position = (
     final rows =
         await (select(recipeCollections)..orderBy([
               (row) => OrderingTerm.asc(row.createdAt),
+              // 多个集合可能在数据库时间精度内同刻创建；保留的创建位置用于稳定
+              // 还原实际追加顺序，不重新开放集合手动排序能力。
+              (row) => OrderingTerm.asc(row.position),
               (row) => OrderingTerm.asc(row.id),
             ]))
             .get();

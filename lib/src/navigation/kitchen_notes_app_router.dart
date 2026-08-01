@@ -99,6 +99,12 @@ final appRouter = GoRouter(
           RecipeCollectionDetailPage(collectionId: state.pathParameters['id']!),
     ),
     GoRoute(
+      path: '/recipe-collections/:id/read',
+      name: AppRouteNames.recipeCollectionReader,
+      builder: (context, state) =>
+          RecipeCollectionReaderPage(collectionId: state.pathParameters['id']!),
+    ),
+    GoRoute(
       path: '/recipes/trash',
       name: AppRouteNames.recipeTrash,
       builder: (context, state) => const RecipeTrashPage(),

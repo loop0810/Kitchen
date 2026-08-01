@@ -1,15 +1,19 @@
 import 'package:drift/drift.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:uuid/uuid.dart';
-import 'package:lpinyin/lpinyin.dart';
 
 import 'kitchen_recipe_data_app_database.dart';
+import 'kitchen_recipe_data_pinyin_recipe_reading_order_policy.dart';
 import 'kitchen_recipe_data_recipe_mapper.dart';
 
 class RecipeRepositoryImpl implements RecipeRepository {
-  RecipeRepositoryImpl(this._database);
+  RecipeRepositoryImpl(
+    this._database, {
+    this._readingOrderPolicy = const PinyinRecipeReadingOrderPolicy(),
+  });
 
   final AppDatabase _database;
+  final RecipeReadingOrderPolicy _readingOrderPolicy;
   final _uuid = const Uuid();
 
   @override
@@ -258,25 +262,5 @@ class RecipeRepositoryImpl implements RecipeRepository {
   int _compareRecipeTitles(
     RecipeJournalSummaryEntity left,
     RecipeJournalSummaryEntity right,
-  ) {
-    final byKey = _titleSortKey(
-      left.recipe.title,
-    ).compareTo(_titleSortKey(right.recipe.title));
-    return byKey != 0 ? byKey : left.recipe.id.compareTo(right.recipe.id);
-  }
-
-  String _titleSortKey(String title) {
-    final trimmed = title.trim();
-    final first = trimmed.runes.firstOrNull;
-    if (first != null && first >= 0x4E00 && first <= 0x9FFF) {
-      // 完整拼音由专用转换器生成，避免把排序细节泄露到 Feature。
-      return '0:${PinyinHelper.getPinyinE(trimmed, separator: '').toLowerCase()}';
-    }
-    if (first != null &&
-        ((first >= 0x41 && first <= 0x5A) ||
-            (first >= 0x61 && first <= 0x7A))) {
-      return '1:${trimmed.toLowerCase()}';
-    }
-    return '2:${trimmed.toLowerCase()}';
-  }
+  ) => _readingOrderPolicy.compare(left, right);
 }

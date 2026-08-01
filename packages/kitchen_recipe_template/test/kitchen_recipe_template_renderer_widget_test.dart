@@ -51,7 +51,7 @@ void main() {
       ),
     );
 
-    expect(find.text('查看详情 →'), findsOneWidget);
+    expect(find.text('查看详细步骤 →'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

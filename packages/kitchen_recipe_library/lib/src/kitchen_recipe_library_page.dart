@@ -286,6 +286,9 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
                 return _CollectionBookCard(
                   key: ValueKey(collection.id),
                   collection: collection,
+                  onTap: () => collection.memberCount == 0
+                      ? context.pushRecipeCollection<void>(collection.id)
+                      : context.pushRecipeCollectionReader<void>(collection.id),
                   onLongPress: (position) =>
                       _showCollectionActions(collection, position),
                 );
@@ -546,9 +549,11 @@ class _CollectionBookCard extends StatelessWidget {
   const _CollectionBookCard({
     super.key,
     required this.collection,
+    required this.onTap,
     required this.onLongPress,
   });
   final RecipeCollectionEntity collection;
+  final VoidCallback onTap;
   final ValueChanged<Offset> onLongPress;
 
   @override
@@ -556,9 +561,12 @@ class _CollectionBookCard extends StatelessWidget {
     final colors = _bookColors(collection.id);
     return Semantics(
       button: true,
-      label: '${collection.name}，${collection.memberCount} 道菜谱，长按管理',
+      label: collection.memberCount == 0
+          ? '${collection.name}，空菜谱集，点击添加菜谱，长按管理'
+          : '${collection.name}，${collection.memberCount} 道菜谱，点击翻阅，长按管理',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        onTap: onTap,
         onLongPressStart: (details) => onLongPress(details.globalPosition),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

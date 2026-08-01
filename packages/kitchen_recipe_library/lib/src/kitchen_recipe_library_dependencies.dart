@@ -17,6 +17,8 @@ class RecipeLibraryDependencies {
     this.removeRecipeFromCollection,
     this.restoreRecipeToCollection,
     this.reorderCollectionMembers,
+    this.getCollectionReaderSnapshot,
+    this.getRecipeJournalSummary,
     this.moveToTrash,
     this.restoreRecipe,
     this.permanentlyDeleteRecipe,
@@ -39,6 +41,8 @@ class RecipeLibraryDependencies {
   final RemoveRecipeFromCollectionUseCase? removeRecipeFromCollection;
   final RestoreRecipeToCollectionUseCase? restoreRecipeToCollection;
   final ReorderCollectionMembersUseCase? reorderCollectionMembers;
+  final GetRecipeCollectionReaderSnapshotUseCase? getCollectionReaderSnapshot;
+  final GetRecipeJournalSummaryUseCase? getRecipeJournalSummary;
   final MoveRecipeToTrashUseCase? moveToTrash;
   final RestoreRecipeUseCase? restoreRecipe;
   final PermanentlyDeleteRecipeUseCase? permanentlyDeleteRecipe;
@@ -81,5 +85,13 @@ final recipeCollectionDetailProvider = FutureProvider.autoDispose
       final useCase = ref
           .watch(recipeLibraryDependenciesProvider)
           .getCollectionDetail;
+      return useCase == null ? Future.value() : useCase(collectionId);
+    });
+
+final recipeCollectionReaderSnapshotProvider = FutureProvider.autoDispose
+    .family<RecipeCollectionReaderSnapshotEntity?, String>((ref, collectionId) {
+      final useCase = ref
+          .watch(recipeLibraryDependenciesProvider)
+          .getCollectionReaderSnapshot;
       return useCase == null ? Future.value() : useCase(collectionId);
     });
