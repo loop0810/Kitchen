@@ -1,6 +1,7 @@
 # Package 通用约束
 
-本文件适用于 `packages/**`，并继承项目根目录 `AGENTS.md`。
+本文件适用于 `client/packages/**`，并继承仓库根 `AGENTS.md` 和
+`client/AGENTS.md`。
 
 ## 公共边界
 
@@ -14,7 +15,7 @@
 
 ## 命名
 
-- 新增或重命名文件前阅读 `docs/NAMING_CONVENTIONS.md`。
+- 新增或重命名文件前阅读 `docs/client/engineering/NAMING_CONVENTIONS.md`。
 - Dart 文件使用该组件唯一且统一的文件前缀。
 - 页面使用 `*_page.dart` / `*Page`，禁止新增 `screen`。
 - 独立 UI 子组件使用 `*_widget.dart` / `*Widget`。
@@ -43,4 +44,4 @@
 ## 验证
 
 - 修改 package 后运行该 package 的相关测试。
-- 跨 package 修改完成后执行根 `AGENTS.md` 中的全量验证。
+- 跨 package 修改完成后执行 `client/AGENTS.md` 中的全量验证。

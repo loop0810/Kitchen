@@ -86,6 +86,9 @@ pending 状态。v5 升级时按旧界面的 `addedAt DESC, recipeId ASC` 生成
 软删除不移除集合关系和成员位置，恢复后关系自然生效；只有永久删除菜谱才通过
 外键级联清理其从属数据和集合关系。
 
+个性化配置中哪些字段属于服务端快照、哪些仅为客户端同步元数据，以
+`../../contracts/PERSONALIZATION_SYNC_CONTRACT.md` 为准；本表只负责端侧缓存实现。
+
 修改 Drift 表时必须：
 
 1. 增加 schema version。

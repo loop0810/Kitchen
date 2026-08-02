@@ -18,10 +18,10 @@ Flutter 工程。
 
 权威需求：
 
-- `PRODUCT_REQUIREMENTS.md`
-- `MVP_REQUIREMENTS.md`
-- `RECIPE_REQUIREMENTS.md`
-- `services/TEMPLATE_SERVICE.md`
+- `../../product/PRODUCT_REQUIREMENTS.md`
+- `../../product/MVP_REQUIREMENTS.md`
+- `../../product/RECIPE_REQUIREMENTS.md`
+- `../services/TEMPLATE_SERVICE.md`
 
 ## 2. 本轮设计目标
 

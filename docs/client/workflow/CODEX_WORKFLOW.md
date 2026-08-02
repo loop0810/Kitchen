@@ -129,7 +129,7 @@ codex
 ### 解释架构
 
 ```text
-阅读 AGENTS.md 和 MVP_REQUIREMENTS.md。
+阅读 `client/AGENTS.md` 和 `docs/product/MVP_REQUIREMENTS.md`。
 追踪“收藏菜谱”从 Widget 到数据库的完整调用链。
 用文件和符号说明每一层职责，只解释，不修改代码。
 ```

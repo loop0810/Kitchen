@@ -27,7 +27,9 @@
 
 ## Impact
 
-- 权威文档：`docs/PRODUCT_REQUIREMENTS.md`、`docs/MVP_REQUIREMENTS.md`、`docs/RECIPE_REQUIREMENTS.md`、`docs/DECISION_LOG.md`、`docs/services/README.md`、`docs/services/IMPORT_PIPELINE_SERVICE.md` 和烹饪运行时服务文档。
+- 权威文档：`docs/product/PRODUCT_REQUIREMENTS.md`、`docs/product/MVP_REQUIREMENTS.md`、
+  `docs/product/RECIPE_REQUIREMENTS.md`、`docs/decisions/DECISION_LOG.md`、
+  `docs/client/services/README.md` 和 `docs/client/services/IMPORT_PIPELINE_SERVICE.md`。
 - Recipe Domain/Data/UI：移除烹饪历史查询语义和详情入口；现有 SQLite 遗留列优先兼容保留但停止公开使用，避免无价值的破坏性表重建。
 - Recipe Domain/Data/Profile：增加个性化食谱配置实体、Repository、服务端网关和本地缓存；Profile 提供集中管理入口，Import 与 Recipe Editor 只消费缓存快照。
 - Import Domain/Data/UI：扩展媒体变更命令、OCR 失效与重处理规则、字段级确认状态和持久化草稿编辑；根 App 继续负责 Import Draft 到 Recipe Editor 的跨 Feature 协调。

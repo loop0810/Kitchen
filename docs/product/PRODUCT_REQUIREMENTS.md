@@ -18,8 +18,8 @@
 1. 本文档：理解完整产品。
 2. `MVP_REQUIREMENTS.md`：确认当前版本交付范围。
 3. 对应专项需求：确认模块细节和验收标准。
-4. `services/README.md`：确认基础能力边界。
-5. `DECISION_LOG.md`：了解关键决策及原因。
+4. `../client/services/README.md`：确认当前客户端基础能力边界。
+5. `../decisions/DECISION_LOG.md`：了解关键决策及原因。
 
 ## 2. 文档单一事实源
 
@@ -28,10 +28,10 @@
 | 产品定位、模块关系、长期范围 | `PRODUCT_REQUIREMENTS.md` |
 | 当前 MVP 范围与验收 | `MVP_REQUIREMENTS.md` |
 | 菜谱、菜谱集、模板和阅读器 | `RECIPE_REQUIREMENTS.md` |
-| 基础服务边界 | `services/*.md` |
-| 已确认决策与变更原因 | `DECISION_LOG.md` |
+| 客户端基础服务边界 | `../client/services/*.md` |
+| 已确认决策与变更原因 | `../decisions/DECISION_LOG.md` |
 | 工程规则 | `AGENTS.md` |
-| 文件和类型命名 | `NAMING_CONVENTIONS.md` |
+| Dart 与 Flutter 文件和类型命名 | `../client/engineering/NAMING_CONVENTIONS.md` |
 
 专项文档可以比总纲更详细，但不能静默改变总纲里的产品方向。需求改变时，应
 同时更新受影响的权威文档和决策日志。
@@ -358,7 +358,7 @@
 
 ## 13. 基础服务地图
 
-基础服务定义见 `services/README.md`：
+当前客户端基础服务定义见 `../client/services/README.md`：
 
 - 本地数据服务。
 - 媒体资源服务。
