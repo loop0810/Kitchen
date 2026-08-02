@@ -17,7 +17,7 @@
 
 ```text
 Feature
-├── 菜谱库 / 编辑器 / 导入箱 / 烹饪
+├── 菜谱库 / 编辑器 / 导入箱
 │
 ├── LocalDataService
 ├── MediaAssetService
@@ -27,7 +27,6 @@ Feature
 ├── TemplateService
 │   └── EntitlementQuotaService
 ├── SearchService
-├── CookingRuntimeService
 └── BackupSyncService
 ```
 
@@ -42,7 +41,6 @@ Feature
 | 模板服务 | 模板注册、渲染、缓存和版本 | 当前核心 | `TEMPLATE_SERVICE.md` |
 | 搜索服务 | 本地索引与未来联合搜索 | 已开始 | `SEARCH_SERVICE.md` |
 | 权益与额度服务 | 未来 AI 付费权益和模板权益 | 后续 | `ENTITLEMENT_QUOTA_SERVICE.md` |
-| 烹饪运行时服务 | 会话、计时、通知和恢复 | MVP | `COOKING_RUNTIME_SERVICE.md` |
 | 备份与同步服务 | 导出、恢复、云备份和同步 | 后续 | `BACKUP_SYNC_SERVICE.md` |
 
 ## 4. 通用服务约束

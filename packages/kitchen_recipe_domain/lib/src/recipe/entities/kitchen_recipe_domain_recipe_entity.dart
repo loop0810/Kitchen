@@ -15,8 +15,6 @@ class RecipeEntity {
     required this.presentationStyle,
     required this.templateSelection,
     required this.isFavorite,
-    required this.lastCookedAt,
-    required this.cookCount,
     required this.status,
     required this.coverColor,
     required this.createdAt,
@@ -57,12 +55,6 @@ class RecipeEntity {
 
   /// 用户是否已收藏这道菜谱。
   final bool isFavorite;
-
-  /// 最近一次完成烹饪的时间；从未做过时为空。
-  final DateTime? lastCookedAt;
-
-  /// 已完成烹饪的累计次数。
-  final int cookCount;
 
   /// 菜谱当前所处的生命周期状态。
   final RecipeStatus status;

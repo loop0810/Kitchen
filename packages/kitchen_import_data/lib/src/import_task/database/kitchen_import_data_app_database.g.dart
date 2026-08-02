@@ -85,6 +85,40 @@ class $ImportTasksTable extends ImportTasks
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _correctedOcrTextMeta = const VerificationMeta(
+    'correctedOcrText',
+  );
+  @override
+  late final GeneratedColumn<String> correctedOcrText = GeneratedColumn<String>(
+    'corrected_ocr_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _supplementalTextMeta = const VerificationMeta(
+    'supplementalText',
+  );
+  @override
+  late final GeneratedColumn<String> supplementalText = GeneratedColumn<String>(
+    'supplemental_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _processingGenerationMeta =
+      const VerificationMeta('processingGeneration');
+  @override
+  late final GeneratedColumn<int> processingGeneration = GeneratedColumn<int>(
+    'processing_generation',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _draftJsonMeta = const VerificationMeta(
     'draftJson',
   );
@@ -160,6 +194,9 @@ class $ImportTasksTable extends ImportTasks
     detectedPublicUrl,
     mediaJson,
     ocrText,
+    correctedOcrText,
+    supplementalText,
+    processingGeneration,
     draftJson,
     errorCode,
     errorMessage,
@@ -228,6 +265,33 @@ class $ImportTasksTable extends ImportTasks
       context.handle(
         _ocrTextMeta,
         ocrText.isAcceptableOrUnknown(data['ocr_text']!, _ocrTextMeta),
+      );
+    }
+    if (data.containsKey('corrected_ocr_text')) {
+      context.handle(
+        _correctedOcrTextMeta,
+        correctedOcrText.isAcceptableOrUnknown(
+          data['corrected_ocr_text']!,
+          _correctedOcrTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('supplemental_text')) {
+      context.handle(
+        _supplementalTextMeta,
+        supplementalText.isAcceptableOrUnknown(
+          data['supplemental_text']!,
+          _supplementalTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('processing_generation')) {
+      context.handle(
+        _processingGenerationMeta,
+        processingGeneration.isAcceptableOrUnknown(
+          data['processing_generation']!,
+          _processingGenerationMeta,
+        ),
       );
     }
     if (data.containsKey('draft_json')) {
@@ -313,6 +377,18 @@ class $ImportTasksTable extends ImportTasks
         DriftSqlType.string,
         data['${effectivePrefix}ocr_text'],
       ),
+      correctedOcrText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}corrected_ocr_text'],
+      ),
+      supplementalText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}supplemental_text'],
+      )!,
+      processingGeneration: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}processing_generation'],
+      )!,
       draftJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}draft_json'],
@@ -365,8 +441,17 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
   /// 应用受控媒体引用的 JSON 数组；无图片时为 `[]`。
   final String mediaJson;
 
-  /// 已完成页面汇总后的 OCR 文字；尚未识别时为空。
+  /// 按当前页面顺序汇总的机器 OCR 文字；尚未识别时为空。
   final String? ocrText;
+
+  /// 用户校对后的 OCR 正文；未校对时为空。
+  final String? correctedOcrText;
+
+  /// 用户在识别文字之外增加的补充说明。
+  final String supplementalText;
+
+  /// 任务内容变化的单调递增代次，过期处理结果不得回写。
+  final int processingGeneration;
 
   /// 最新版本化结构草稿 JSON；尚未整理时为空。
   final String? draftJson;
@@ -393,6 +478,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     this.detectedPublicUrl,
     required this.mediaJson,
     this.ocrText,
+    this.correctedOcrText,
+    required this.supplementalText,
+    required this.processingGeneration,
     this.draftJson,
     this.errorCode,
     this.errorMessage,
@@ -414,6 +502,11 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     if (!nullToAbsent || ocrText != null) {
       map['ocr_text'] = Variable<String>(ocrText);
     }
+    if (!nullToAbsent || correctedOcrText != null) {
+      map['corrected_ocr_text'] = Variable<String>(correctedOcrText);
+    }
+    map['supplemental_text'] = Variable<String>(supplementalText);
+    map['processing_generation'] = Variable<int>(processingGeneration);
     if (!nullToAbsent || draftJson != null) {
       map['draft_json'] = Variable<String>(draftJson);
     }
@@ -444,6 +537,11 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
       ocrText: ocrText == null && nullToAbsent
           ? const Value.absent()
           : Value(ocrText),
+      correctedOcrText: correctedOcrText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(correctedOcrText),
+      supplementalText: Value(supplementalText),
+      processingGeneration: Value(processingGeneration),
       draftJson: draftJson == null && nullToAbsent
           ? const Value.absent()
           : Value(draftJson),
@@ -476,6 +574,11 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
       ),
       mediaJson: serializer.fromJson<String>(json['mediaJson']),
       ocrText: serializer.fromJson<String?>(json['ocrText']),
+      correctedOcrText: serializer.fromJson<String?>(json['correctedOcrText']),
+      supplementalText: serializer.fromJson<String>(json['supplementalText']),
+      processingGeneration: serializer.fromJson<int>(
+        json['processingGeneration'],
+      ),
       draftJson: serializer.fromJson<String?>(json['draftJson']),
       errorCode: serializer.fromJson<String?>(json['errorCode']),
       errorMessage: serializer.fromJson<String?>(json['errorMessage']),
@@ -495,6 +598,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
       'detectedPublicUrl': serializer.toJson<String?>(detectedPublicUrl),
       'mediaJson': serializer.toJson<String>(mediaJson),
       'ocrText': serializer.toJson<String?>(ocrText),
+      'correctedOcrText': serializer.toJson<String?>(correctedOcrText),
+      'supplementalText': serializer.toJson<String>(supplementalText),
+      'processingGeneration': serializer.toJson<int>(processingGeneration),
       'draftJson': serializer.toJson<String?>(draftJson),
       'errorCode': serializer.toJson<String?>(errorCode),
       'errorMessage': serializer.toJson<String?>(errorMessage),
@@ -512,6 +618,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     Value<String?> detectedPublicUrl = const Value.absent(),
     String? mediaJson,
     Value<String?> ocrText = const Value.absent(),
+    Value<String?> correctedOcrText = const Value.absent(),
+    String? supplementalText,
+    int? processingGeneration,
     Value<String?> draftJson = const Value.absent(),
     Value<String?> errorCode = const Value.absent(),
     Value<String?> errorMessage = const Value.absent(),
@@ -528,6 +637,11 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
         : this.detectedPublicUrl,
     mediaJson: mediaJson ?? this.mediaJson,
     ocrText: ocrText.present ? ocrText.value : this.ocrText,
+    correctedOcrText: correctedOcrText.present
+        ? correctedOcrText.value
+        : this.correctedOcrText,
+    supplementalText: supplementalText ?? this.supplementalText,
+    processingGeneration: processingGeneration ?? this.processingGeneration,
     draftJson: draftJson.present ? draftJson.value : this.draftJson,
     errorCode: errorCode.present ? errorCode.value : this.errorCode,
     errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
@@ -550,6 +664,15 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
           : this.detectedPublicUrl,
       mediaJson: data.mediaJson.present ? data.mediaJson.value : this.mediaJson,
       ocrText: data.ocrText.present ? data.ocrText.value : this.ocrText,
+      correctedOcrText: data.correctedOcrText.present
+          ? data.correctedOcrText.value
+          : this.correctedOcrText,
+      supplementalText: data.supplementalText.present
+          ? data.supplementalText.value
+          : this.supplementalText,
+      processingGeneration: data.processingGeneration.present
+          ? data.processingGeneration.value
+          : this.processingGeneration,
       draftJson: data.draftJson.present ? data.draftJson.value : this.draftJson,
       errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
       errorMessage: data.errorMessage.present
@@ -573,6 +696,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
           ..write('detectedPublicUrl: $detectedPublicUrl, ')
           ..write('mediaJson: $mediaJson, ')
           ..write('ocrText: $ocrText, ')
+          ..write('correctedOcrText: $correctedOcrText, ')
+          ..write('supplementalText: $supplementalText, ')
+          ..write('processingGeneration: $processingGeneration, ')
           ..write('draftJson: $draftJson, ')
           ..write('errorCode: $errorCode, ')
           ..write('errorMessage: $errorMessage, ')
@@ -592,6 +718,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     detectedPublicUrl,
     mediaJson,
     ocrText,
+    correctedOcrText,
+    supplementalText,
+    processingGeneration,
     draftJson,
     errorCode,
     errorMessage,
@@ -610,6 +739,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
           other.detectedPublicUrl == this.detectedPublicUrl &&
           other.mediaJson == this.mediaJson &&
           other.ocrText == this.ocrText &&
+          other.correctedOcrText == this.correctedOcrText &&
+          other.supplementalText == this.supplementalText &&
+          other.processingGeneration == this.processingGeneration &&
           other.draftJson == this.draftJson &&
           other.errorCode == this.errorCode &&
           other.errorMessage == this.errorMessage &&
@@ -626,6 +758,9 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
   final Value<String?> detectedPublicUrl;
   final Value<String> mediaJson;
   final Value<String?> ocrText;
+  final Value<String?> correctedOcrText;
+  final Value<String> supplementalText;
+  final Value<int> processingGeneration;
   final Value<String?> draftJson;
   final Value<String?> errorCode;
   final Value<String?> errorMessage;
@@ -641,6 +776,9 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     this.detectedPublicUrl = const Value.absent(),
     this.mediaJson = const Value.absent(),
     this.ocrText = const Value.absent(),
+    this.correctedOcrText = const Value.absent(),
+    this.supplementalText = const Value.absent(),
+    this.processingGeneration = const Value.absent(),
     this.draftJson = const Value.absent(),
     this.errorCode = const Value.absent(),
     this.errorMessage = const Value.absent(),
@@ -657,6 +795,9 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     this.detectedPublicUrl = const Value.absent(),
     this.mediaJson = const Value.absent(),
     this.ocrText = const Value.absent(),
+    this.correctedOcrText = const Value.absent(),
+    this.supplementalText = const Value.absent(),
+    this.processingGeneration = const Value.absent(),
     this.draftJson = const Value.absent(),
     this.errorCode = const Value.absent(),
     this.errorMessage = const Value.absent(),
@@ -677,6 +818,9 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     Expression<String>? detectedPublicUrl,
     Expression<String>? mediaJson,
     Expression<String>? ocrText,
+    Expression<String>? correctedOcrText,
+    Expression<String>? supplementalText,
+    Expression<int>? processingGeneration,
     Expression<String>? draftJson,
     Expression<String>? errorCode,
     Expression<String>? errorMessage,
@@ -693,6 +837,10 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
       if (detectedPublicUrl != null) 'detected_public_url': detectedPublicUrl,
       if (mediaJson != null) 'media_json': mediaJson,
       if (ocrText != null) 'ocr_text': ocrText,
+      if (correctedOcrText != null) 'corrected_ocr_text': correctedOcrText,
+      if (supplementalText != null) 'supplemental_text': supplementalText,
+      if (processingGeneration != null)
+        'processing_generation': processingGeneration,
       if (draftJson != null) 'draft_json': draftJson,
       if (errorCode != null) 'error_code': errorCode,
       if (errorMessage != null) 'error_message': errorMessage,
@@ -711,6 +859,9 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     Value<String?>? detectedPublicUrl,
     Value<String>? mediaJson,
     Value<String?>? ocrText,
+    Value<String?>? correctedOcrText,
+    Value<String>? supplementalText,
+    Value<int>? processingGeneration,
     Value<String?>? draftJson,
     Value<String?>? errorCode,
     Value<String?>? errorMessage,
@@ -727,6 +878,9 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
       detectedPublicUrl: detectedPublicUrl ?? this.detectedPublicUrl,
       mediaJson: mediaJson ?? this.mediaJson,
       ocrText: ocrText ?? this.ocrText,
+      correctedOcrText: correctedOcrText ?? this.correctedOcrText,
+      supplementalText: supplementalText ?? this.supplementalText,
+      processingGeneration: processingGeneration ?? this.processingGeneration,
       draftJson: draftJson ?? this.draftJson,
       errorCode: errorCode ?? this.errorCode,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -760,6 +914,15 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     }
     if (ocrText.present) {
       map['ocr_text'] = Variable<String>(ocrText.value);
+    }
+    if (correctedOcrText.present) {
+      map['corrected_ocr_text'] = Variable<String>(correctedOcrText.value);
+    }
+    if (supplementalText.present) {
+      map['supplemental_text'] = Variable<String>(supplementalText.value);
+    }
+    if (processingGeneration.present) {
+      map['processing_generation'] = Variable<int>(processingGeneration.value);
     }
     if (draftJson.present) {
       map['draft_json'] = Variable<String>(draftJson.value);
@@ -795,6 +958,9 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
           ..write('detectedPublicUrl: $detectedPublicUrl, ')
           ..write('mediaJson: $mediaJson, ')
           ..write('ocrText: $ocrText, ')
+          ..write('correctedOcrText: $correctedOcrText, ')
+          ..write('supplementalText: $supplementalText, ')
+          ..write('processingGeneration: $processingGeneration, ')
           ..write('draftJson: $draftJson, ')
           ..write('errorCode: $errorCode, ')
           ..write('errorMessage: $errorMessage, ')
@@ -827,6 +993,9 @@ typedef $$ImportTasksTableCreateCompanionBuilder =
       Value<String?> detectedPublicUrl,
       Value<String> mediaJson,
       Value<String?> ocrText,
+      Value<String?> correctedOcrText,
+      Value<String> supplementalText,
+      Value<int> processingGeneration,
       Value<String?> draftJson,
       Value<String?> errorCode,
       Value<String?> errorMessage,
@@ -844,6 +1013,9 @@ typedef $$ImportTasksTableUpdateCompanionBuilder =
       Value<String?> detectedPublicUrl,
       Value<String> mediaJson,
       Value<String?> ocrText,
+      Value<String?> correctedOcrText,
+      Value<String> supplementalText,
+      Value<int> processingGeneration,
       Value<String?> draftJson,
       Value<String?> errorCode,
       Value<String?> errorMessage,
@@ -894,6 +1066,21 @@ class $$ImportTasksTableFilterComposer
 
   ColumnFilters<String> get ocrText => $composableBuilder(
     column: $table.ocrText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get correctedOcrText => $composableBuilder(
+    column: $table.correctedOcrText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get supplementalText => $composableBuilder(
+    column: $table.supplementalText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get processingGeneration => $composableBuilder(
+    column: $table.processingGeneration,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -972,6 +1159,21 @@ class $$ImportTasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get correctedOcrText => $composableBuilder(
+    column: $table.correctedOcrText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get supplementalText => $composableBuilder(
+    column: $table.supplementalText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get processingGeneration => $composableBuilder(
+    column: $table.processingGeneration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get draftJson => $composableBuilder(
     column: $table.draftJson,
     builder: (column) => ColumnOrderings(column),
@@ -1037,6 +1239,21 @@ class $$ImportTasksTableAnnotationComposer
   GeneratedColumn<String> get ocrText =>
       $composableBuilder(column: $table.ocrText, builder: (column) => column);
 
+  GeneratedColumn<String> get correctedOcrText => $composableBuilder(
+    column: $table.correctedOcrText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get supplementalText => $composableBuilder(
+    column: $table.supplementalText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get processingGeneration => $composableBuilder(
+    column: $table.processingGeneration,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get draftJson =>
       $composableBuilder(column: $table.draftJson, builder: (column) => column);
 
@@ -1100,6 +1317,9 @@ class $$ImportTasksTableTableManager
                 Value<String?> detectedPublicUrl = const Value.absent(),
                 Value<String> mediaJson = const Value.absent(),
                 Value<String?> ocrText = const Value.absent(),
+                Value<String?> correctedOcrText = const Value.absent(),
+                Value<String> supplementalText = const Value.absent(),
+                Value<int> processingGeneration = const Value.absent(),
                 Value<String?> draftJson = const Value.absent(),
                 Value<String?> errorCode = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
@@ -1115,6 +1335,9 @@ class $$ImportTasksTableTableManager
                 detectedPublicUrl: detectedPublicUrl,
                 mediaJson: mediaJson,
                 ocrText: ocrText,
+                correctedOcrText: correctedOcrText,
+                supplementalText: supplementalText,
+                processingGeneration: processingGeneration,
                 draftJson: draftJson,
                 errorCode: errorCode,
                 errorMessage: errorMessage,
@@ -1132,6 +1355,9 @@ class $$ImportTasksTableTableManager
                 Value<String?> detectedPublicUrl = const Value.absent(),
                 Value<String> mediaJson = const Value.absent(),
                 Value<String?> ocrText = const Value.absent(),
+                Value<String?> correctedOcrText = const Value.absent(),
+                Value<String> supplementalText = const Value.absent(),
+                Value<int> processingGeneration = const Value.absent(),
                 Value<String?> draftJson = const Value.absent(),
                 Value<String?> errorCode = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
@@ -1147,6 +1373,9 @@ class $$ImportTasksTableTableManager
                 detectedPublicUrl: detectedPublicUrl,
                 mediaJson: mediaJson,
                 ocrText: ocrText,
+                correctedOcrText: correctedOcrText,
+                supplementalText: supplementalText,
+                processingGeneration: processingGeneration,
                 draftJson: draftJson,
                 errorCode: errorCode,
                 errorMessage: errorMessage,

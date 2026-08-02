@@ -294,6 +294,7 @@ void main() {
     expect(draft.title.value, '番茄炒蛋');
     expect(draft.ingredients.value, ['番茄 2 个', '鸡蛋 3 个']);
     expect(draft.steps.value, ['番茄切块，鸡蛋打散', '炒熟鸡蛋后加入番茄']);
+    expect(draft.difficulty.value, isEmpty);
     expect(draft.sourceSnapshot.originalText, text);
   });
 

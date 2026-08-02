@@ -288,7 +288,7 @@ class LocalRecipeStructurerService implements RecipeStructurer {
         needsConfirmation: true,
       ),
       category: const DraftFieldValue(
-        value: '家常菜',
+        value: '',
         origin: DraftFieldOrigin.inferred,
         needsConfirmation: true,
       ),

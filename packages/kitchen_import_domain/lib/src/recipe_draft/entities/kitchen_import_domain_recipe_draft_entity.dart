@@ -28,6 +28,7 @@ class DraftFieldValue<T> {
     this.needsConfirmation = false,
     this.confidence = DraftConfidenceLevel.medium,
     this.evidence = const [],
+    this.conflictCandidate,
   });
 
   /// 当前字段值；无法可靠推断时允许为空值或空集合。
@@ -44,6 +45,9 @@ class DraftFieldValue<T> {
 
   /// 支撑当前字段值的 OCR 行；非图片输入或无可靠对应行时为空。
   final List<DraftFieldEvidence> evidence;
+
+  /// 重新处理产生但因用户保护而未覆盖的自动候选值。
+  final T? conflictCandidate;
 }
 
 class SourceSnapshot {
@@ -74,11 +78,17 @@ class RecipeDraftEntity {
     required this.difficulty,
     required this.tags,
     required this.ingredients,
+    this.preparations = const DraftFieldValue<List<String>>(
+      value: [],
+      origin: DraftFieldOrigin.inferred,
+      needsConfirmation: true,
+      confidence: DraftConfidenceLevel.low,
+    ),
     required this.steps,
     required this.sourceSnapshot,
     this.quality = RecipeDraftQuality.partial,
     this.warnings = const [],
-    this.schemaVersion = 1,
+    this.schemaVersion = 2,
   });
 
   /// 版本化草稿结构版本，用于数据库恢复和未来迁移。
@@ -116,6 +126,9 @@ class RecipeDraftEntity {
 
   /// 食材自然语言行，顺序即最终展示顺序。
   final DraftFieldValue<List<String>> ingredients;
+
+  /// 下锅前的独立准备工作，按用户确认的展示顺序保存。
+  final DraftFieldValue<List<String>> preparations;
 
   /// 烹饪步骤，顺序即最终执行顺序。
   final DraftFieldValue<List<String>> steps;

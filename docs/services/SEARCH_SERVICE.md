@@ -83,8 +83,6 @@ FederatedSearchCoordinator
 
 - 最近更新。
 - 最近保存。
-- 最近做过。
-- 最常制作。
 - 菜名。
 
 菜谱集阅读器的中文优先拼音顺序由 RecipeReadingOrderPolicy 定义，可以复用

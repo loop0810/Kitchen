@@ -28,3 +28,5 @@ export 'src/recipe/use_cases/kitchen_recipe_domain_set_recipe_favorite_use_case.
 export 'src/recipe/use_cases/kitchen_recipe_domain_watch_recipes_use_case.dart';
 export 'src/recipe/inputs/kitchen_recipe_domain_update_recipe_input.dart';
 export 'src/recipe/use_cases/kitchen_recipe_domain_update_recipe_use_case.dart';
+export 'src/personalization/entities/kitchen_recipe_domain_personal_recipe_config_entity.dart';
+export 'src/personalization/repositories/kitchen_recipe_domain_personal_recipe_config_repository.dart';

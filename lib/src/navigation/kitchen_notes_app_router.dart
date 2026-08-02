@@ -132,6 +132,9 @@ class _ImportDraftCoordinatorPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final task = ref.watch(importTaskProvider(taskId));
+    final personalConfig =
+        ref.watch(personalRecipeConfigProvider).valueOrNull ??
+        PersonalRecipeConfigEntity.defaults;
     return task.when(
       data: (value) {
         if (value == null) {
@@ -149,33 +152,48 @@ class _ImportDraftCoordinatorPage extends ConsumerWidget {
         if (draft == null) {
           return const _ImportMessagePage(message: '草稿尚未准备好，请返回导入箱稍后重试');
         }
-        // 映射留在组合根：Import Feature 不直接依赖 Recipe Feature，
-        // 两个领域只通过根 App 的协调页面发生转换。
-        final initialInput = CreateRecipeInput(
-          title: draft.title.value,
-          summary: draft.summary.value,
-          category: draft.category.value,
-          ingredients: draft.ingredients.value,
-          steps: draft.steps.value,
-          templateSelection: BuiltInTemplates.defaultSelection,
-          servings: draft.servings.value,
-          prepMinutes: draft.prepMinutes.value,
-          cookMinutes: draft.cookMinutes.value,
-          difficulty: draft.difficulty.value,
-          tags: draft.tags.value,
-          sourceSnapshot: RecipeSourceSnapshot(
-            originalText: draft.sourceSnapshot.originalText,
-            publicUrl: draft.sourceSnapshot.publicUrl,
-            sourceTitle: draft.sourceSnapshot.sourceTitle,
-          ),
-          importTaskId: taskId,
-        );
-        return CreateRecipePage(
-          initialInput: initialInput,
-          onCreated: (recipeId) => ref
-              .read(importDependenciesProvider)
-              .repository
-              .markSaved(taskId: taskId, recipeId: recipeId),
+        return ImportDraftReviewPage(
+          taskId: taskId,
+          categories: personalConfig.categories,
+          tags: personalConfig.tags,
+          difficulties: personalConfig.difficulties,
+          onContinue: (confirmedDraft) async {
+            // 领域映射留在组合根：Import Feature 只交付确认草稿，
+            // Recipe Feature 仍通过自己的 UseCase 完成校验和幂等保存。
+            final initialInput = CreateRecipeInput(
+              title: confirmedDraft.title.value,
+              summary: confirmedDraft.summary.value,
+              category: confirmedDraft.category.value,
+              ingredients: confirmedDraft.ingredients.value,
+              steps: [
+                ...confirmedDraft.preparations.value.map((item) => '准备：$item'),
+                ...confirmedDraft.steps.value,
+              ],
+              templateSelection: BuiltInTemplates.defaultSelection,
+              servings: confirmedDraft.servings.value,
+              prepMinutes: confirmedDraft.prepMinutes.value,
+              cookMinutes: confirmedDraft.cookMinutes.value,
+              difficulty: confirmedDraft.difficulty.value,
+              tags: confirmedDraft.tags.value,
+              sourceSnapshot: RecipeSourceSnapshot(
+                originalText: confirmedDraft.sourceSnapshot.originalText,
+                publicUrl: confirmedDraft.sourceSnapshot.publicUrl,
+                sourceTitle: confirmedDraft.sourceSnapshot.sourceTitle,
+              ),
+              importTaskId: taskId,
+            );
+            await Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) => CreateRecipePage(
+                  initialInput: initialInput,
+                  onCreated: (recipeId) => ref
+                      .read(importDependenciesProvider)
+                      .repository
+                      .markSaved(taskId: taskId, recipeId: recipeId),
+                ),
+              ),
+            );
+          },
         );
       },
       error: (_, _) => const _ImportMessagePage(message: '草稿加载失败，请稍后重试'),

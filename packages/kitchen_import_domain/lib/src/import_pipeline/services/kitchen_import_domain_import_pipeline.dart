@@ -2,6 +2,7 @@ import '../../import_task/entities/kitchen_import_domain_import_task_entity.dart
 import '../../import_task/repositories/kitchen_import_domain_import_task_repository.dart';
 import '../../ocr/entities/kitchen_import_domain_ocr_document_entity.dart';
 import '../../recipe_draft/entities/kitchen_import_domain_recipe_draft_entity.dart';
+import '../../recipe_draft/services/kitchen_import_domain_recipe_draft_merge_service.dart';
 
 abstract interface class OcrAdapter {
   Future<OcrPageEntity> recognize(ImportMediaReference media);
@@ -45,10 +46,13 @@ class ImportPipeline {
   final RecipeStructurer _localStructurer;
   final PublicContentExtractor? _publicContentExtractor;
   final OcrAdapter? _ocrAdapter;
+  final RecipeDraftMergeService _draftMergeService =
+      const RecipeDraftMergeService();
 
   Future<void> process(String taskId) async {
     final task = await _repository.getTask(taskId);
     if (task == null || task.status == ImportTaskStatus.cancelled) return;
+    final generation = task.processingGeneration;
     try {
       var text = task.originalText;
       OcrDocumentEntity? ocrDocument;
@@ -63,6 +67,7 @@ class ImportPipeline {
         await _repository.updateStatus(
           taskId,
           ImportTaskStatus.recognizingImages,
+          expectedGeneration: generation,
         );
         final pages = <OcrPageEntity>[];
         final orderedMedia =
@@ -80,13 +85,31 @@ class ImportPipeline {
             pages.add(media.ocrPage!);
             continue;
           }
-          final page = await adapter.recognize(media);
-          await _repository.saveMediaOcr(
-            taskId: taskId,
-            mediaId: media.id,
-            page: page,
-          );
-          pages.add(page);
+          try {
+            await _repository.markMediaOcrProcessing(
+              taskId: taskId,
+              mediaId: media.id,
+              expectedGeneration: generation,
+            );
+            final page = await adapter.recognize(media);
+            await _repository.saveMediaOcr(
+              taskId: taskId,
+              mediaId: media.id,
+              page: page,
+              expectedGeneration: generation,
+            );
+            pages.add(page);
+          } catch (_) {
+            // 单页失败不丢弃已成功页；页面级错误会驱动
+            // 替换、旋转、裁剪或仅重试该页的恢复操作。
+            await _repository.saveMediaOcrFailure(
+              taskId: taskId,
+              mediaId: media.id,
+              code: 'pageUnreadable',
+              message: '这张图片未识别成功，可替换、旋转、裁剪或单独重试。',
+              expectedGeneration: generation,
+            );
+          }
         }
         if (await _isCancelled(taskId)) return;
         ocrDocument = OcrDocumentEntity(pages: pages);
@@ -97,14 +120,23 @@ class ImportPipeline {
             '没有识别到清晰文字，请更换图片或手动创建菜谱。',
           );
         }
-        await _repository.saveOcrText(taskId, ocrText);
+        await _repository.saveOcrText(
+          taskId,
+          ocrText,
+          expectedGeneration: generation,
+        );
         text = [
           task.originalText.trim(),
-          ocrText.trim(),
+          (task.correctedOcrText ?? ocrText).trim(),
+          task.supplementalText.trim(),
         ].where((part) => part.isNotEmpty).join('\n\n');
       } else if (task.detectedPublicUrl != null &&
           _publicContentExtractor != null) {
-        await _repository.updateStatus(taskId, ImportTaskStatus.extracting);
+        await _repository.updateStatus(
+          taskId,
+          ImportTaskStatus.extracting,
+          expectedGeneration: generation,
+        );
         final extracted = await _publicContentExtractor.extract(
           task.detectedPublicUrl!,
         );
@@ -124,27 +156,47 @@ class ImportPipeline {
               : '$textWithoutUrl\n\n$extracted';
         }
       }
-      await _repository.updateStatus(taskId, ImportTaskStatus.structuring);
+      await _repository.updateStatus(
+        taskId,
+        ImportTaskStatus.structuring,
+        expectedGeneration: generation,
+      );
       final source = SourceSnapshot(
         originalText: task.originalText,
         publicUrl: task.detectedPublicUrl,
       );
       // AI 属于未来由用户主动选择的付费增强能力；默认导入流程只执行本地
       // OCR、布局分析和保守结构化，不会静默上传内容或触发付费能力。
-      final draft = _localStructurer.structure(
+      final candidate = _localStructurer.structure(
         text: text,
         source: source,
         ocrDocument: ocrDocument,
       );
+      final draft = task.draft == null
+          ? candidate
+          : _draftMergeService.merge(
+              current: task.draft!,
+              candidate: candidate,
+            );
       if (await _isCancelled(taskId)) return;
-      await _repository.saveDraft(taskId, draft);
+      await _repository.saveDraft(
+        taskId,
+        draft,
+        expectedGeneration: generation,
+      );
     } on ImportPipelineException catch (error) {
-      await _failIfPresent(taskId, error.code, error.message);
+      await _failIfPresent(
+        taskId,
+        error.code,
+        error.message,
+        expectedGeneration: generation,
+      );
     } catch (_) {
       await _failIfPresent(
         taskId,
         'processingFailed',
         '整理过程中遇到问题，原始内容已保留，可以重试。',
+        expectedGeneration: generation,
       );
     }
   }
@@ -170,8 +222,15 @@ class ImportPipeline {
         '识别文字不能为空，可返回后重新选择图片。',
       );
     }
-    await _repository.saveOcrText(taskId, normalized);
-    await _repository.updateStatus(taskId, ImportTaskStatus.structuring);
+    await _repository.saveCorrectedOcrText(taskId, normalized);
+    final current = await _repository.getTask(taskId);
+    if (current == null) return;
+    final generation = current.processingGeneration;
+    await _repository.updateStatus(
+      taskId,
+      ImportTaskStatus.structuring,
+      expectedGeneration: generation,
+    );
     final source = SourceSnapshot(
       originalText: task.originalText,
       publicUrl: task.detectedPublicUrl,
@@ -180,12 +239,16 @@ class ImportPipeline {
       text: [
         task.originalText.trim(),
         normalized,
+        current.supplementalText.trim(),
       ].where((part) => part.isNotEmpty).join('\n\n'),
       source: source,
       ocrDocument: null,
     );
     if (await _isCancelled(taskId)) return;
-    await _repository.saveDraft(taskId, draft);
+    final merged = current.draft == null
+        ? draft
+        : _draftMergeService.merge(current: current.draft!, candidate: draft);
+    await _repository.saveDraft(taskId, merged, expectedGeneration: generation);
   }
 
   Future<void> resumePending() async {
@@ -210,10 +273,16 @@ class ImportPipeline {
   Future<void> _failIfPresent(
     String taskId,
     String code,
-    String message,
-  ) async {
+    String message, {
+    int? expectedGeneration,
+  }) async {
     try {
-      await _repository.fail(taskId: taskId, code: code, message: message);
+      await _repository.fail(
+        taskId: taskId,
+        code: code,
+        message: message,
+        expectedGeneration: expectedGeneration,
+      );
     } on StateError {
       // 用户可在 OCR、提取或结构化期间删除任务；此时没有状态需要回写。
     }

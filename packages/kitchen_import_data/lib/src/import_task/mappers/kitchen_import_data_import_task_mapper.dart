@@ -16,6 +16,9 @@ abstract final class ImportTaskMapper {
           : Uri.tryParse(row.detectedPublicUrl!),
       media: decodeMedia(row.mediaJson),
       ocrText: row.ocrText,
+      correctedOcrText: row.correctedOcrText,
+      supplementalText: row.supplementalText,
+      processingGeneration: row.processingGeneration,
       draft: row.draftJson == null ? null : decodeDraft(row.draftJson!),
       errorCode: row.errorCode,
       errorMessage: row.errorMessage,
@@ -32,6 +35,8 @@ abstract final class ImportTaskMapper {
             (item) => {
               'id': item.id,
               'localPath': item.localPath,
+              'originalLocalPath': item.originalLocalPath,
+              'contentRevision': item.contentRevision,
               'position': item.position,
               'rotationQuarterTurns': item.rotationQuarterTurns,
               'ignored': item.ignored,
@@ -39,6 +44,10 @@ abstract final class ImportTaskMapper {
               'ocrPage': item.ocrPage == null
                   ? null
                   : encodeOcrPage(item.ocrPage!),
+              'ocrStatus': item.ocrStatus.name,
+              'ocrErrorCode': item.ocrErrorCode,
+              'ocrErrorMessage': item.ocrErrorMessage,
+              // 保留旧字段一个版本，方便已发布客户端回读新任务。
               'ocrCompleted': item.ocrCompleted,
             },
           )
@@ -54,6 +63,10 @@ abstract final class ImportTaskMapper {
           return ImportMediaReference(
             id: map['id'] as String,
             localPath: map['localPath'] as String,
+            originalLocalPath:
+                map['originalLocalPath'] as String? ??
+                map['localPath'] as String,
+            contentRevision: map['contentRevision'] as int? ?? 0,
             position: map['position'] as int,
             rotationQuarterTurns: map['rotationQuarterTurns'] as int? ?? 0,
             ignored: map['ignored'] as bool? ?? false,
@@ -61,7 +74,14 @@ abstract final class ImportTaskMapper {
             ocrPage: map['ocrPage'] == null
                 ? null
                 : decodeOcrPage(map['ocrPage'] as Map<String, dynamic>),
+            ocrStatus: map['ocrStatus'] == null
+                ? null
+                : ImportMediaOcrStatus.values.byName(
+                    map['ocrStatus'] as String,
+                  ),
             ocrCompleted: map['ocrCompleted'] as bool? ?? false,
+            ocrErrorCode: map['ocrErrorCode'] as String?,
+            ocrErrorMessage: map['ocrErrorMessage'] as String?,
           );
         })
         .toList(growable: false);
@@ -131,6 +151,7 @@ abstract final class ImportTaskMapper {
             },
           )
           .toList(growable: false),
+      'conflictCandidate': value.conflictCandidate,
     };
     return jsonEncode({
       'schemaVersion': draft.schemaVersion,
@@ -145,6 +166,7 @@ abstract final class ImportTaskMapper {
       'difficulty': field(draft.difficulty),
       'tags': field(draft.tags),
       'ingredients': field(draft.ingredients),
+      'preparations': field(draft.preparations),
       'steps': field(draft.steps),
       'sourceSnapshot': {
         'originalText': draft.sourceSnapshot.originalText,
@@ -175,6 +197,9 @@ abstract final class ImportTaskMapper {
               );
             })
             .toList(growable: false),
+        conflictCandidate: data['conflictCandidate'] == null
+            ? null
+            : decode(data['conflictCandidate']),
       );
     }
 
@@ -197,6 +222,17 @@ abstract final class ImportTaskMapper {
         'ingredients',
         (value) => (value as List<dynamic>).cast<String>(),
       ),
+      preparations: map['preparations'] == null
+          ? const DraftFieldValue<List<String>>(
+              value: [],
+              origin: DraftFieldOrigin.inferred,
+              needsConfirmation: true,
+              confidence: DraftConfidenceLevel.low,
+            )
+          : field(
+              'preparations',
+              (value) => (value as List<dynamic>).cast<String>(),
+            ),
       steps: field('steps', (value) => (value as List<dynamic>).cast<String>()),
       sourceSnapshot: SourceSnapshot(
         originalText: source['originalText'] as String,

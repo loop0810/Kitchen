@@ -14,23 +14,41 @@ enum ImportTaskStatus {
 
 enum ImportInputKind { pastedText, images, sharedText, sharedImages }
 
+enum ImportMediaOcrStatus { pending, processing, succeeded, failed }
+
 class ImportMediaReference {
   const ImportMediaReference({
     required this.id,
     required this.localPath,
     required this.position,
+    String? originalLocalPath,
+    this.contentRevision = 0,
     this.rotationQuarterTurns = 0,
     this.ignored = false,
     this.ocrText,
     this.ocrPage,
-    this.ocrCompleted = false,
-  });
+    ImportMediaOcrStatus? ocrStatus,
+    bool ocrCompleted = false,
+    this.ocrErrorCode,
+    this.ocrErrorMessage,
+  }) : originalLocalPath = originalLocalPath ?? localPath,
+       ocrStatus =
+           ocrStatus ??
+           (ocrCompleted
+               ? ImportMediaOcrStatus.succeeded
+               : ImportMediaOcrStatus.pending);
 
   /// 媒体引用稳定 ID。
   final String id;
 
   /// 已复制到应用受控目录的本地文件路径。
   final String localPath;
+
+  /// 首次导入时的受控原图路径，裁剪或替换不会改写该引用。
+  final String originalLocalPath;
+
+  /// 当前有效图内容的单调递增修订号，用于判断分页 OCR 是否可复用。
+  final int contentRevision;
 
   /// 用户确定的零基处理顺序。
   final int position;
@@ -47,8 +65,17 @@ class ImportMediaReference {
   /// 本页包含坐标和置信度的 OCR 结构；旧任务或用户手动改写纯文本时为空。
   final OcrPageEntity? ocrPage;
 
-  /// 是否已完成本页 OCR，便于中断后只恢复未完成图片。
-  final bool ocrCompleted;
+  /// 本页 OCR 的可恢复状态。
+  final ImportMediaOcrStatus ocrStatus;
+
+  /// 本页 OCR 的稳定错误分类；非失败状态为空。
+  final String? ocrErrorCode;
+
+  /// 本页 OCR 的中文可行动错误说明；非失败状态为空。
+  final String? ocrErrorMessage;
+
+  /// 兼容旧调用方的完成标记，权威状态为 [ocrStatus]。
+  bool get ocrCompleted => ocrStatus == ImportMediaOcrStatus.succeeded;
 }
 
 class ImportTaskEntity {
@@ -62,6 +89,9 @@ class ImportTaskEntity {
     required this.updatedAt,
     this.detectedPublicUrl,
     this.ocrText,
+    this.correctedOcrText,
+    this.supplementalText = '',
+    this.processingGeneration = 0,
     this.draft,
     this.errorCode,
     this.errorMessage,
@@ -88,6 +118,18 @@ class ImportTaskEntity {
 
   /// 汇总后的 OCR 文字；尚未识别时为空。
   final String? ocrText;
+
+  /// 用户校对后的 OCR 正文；为空时使用机器 OCR 汇总。
+  final String? correctedOcrText;
+
+  /// 用户补充的说明文字，与机器 OCR 和校对正文独立保存。
+  final String supplementalText;
+
+  /// 媒体内容或顺序变化时递增的处理代次，用于拒绝过期异步回写。
+  final int processingGeneration;
+
+  /// 结构化时实际使用的用户文字，校对正文优先于机器 OCR。
+  String get effectiveOcrText => correctedOcrText ?? ocrText ?? '';
 
   /// 最新版本化结构草稿；尚未整理时为空。
   final RecipeDraftEntity? draft;

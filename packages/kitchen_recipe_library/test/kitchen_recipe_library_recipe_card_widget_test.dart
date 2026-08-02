@@ -24,8 +24,6 @@ void main() {
         templateVersion: 1,
       ),
       isFavorite: true,
-      lastCookedAt: null,
-      cookCount: 0,
       status: RecipeStatus.incomplete,
       coverColor: 0xFFF4B9A8,
       createdAt: now,

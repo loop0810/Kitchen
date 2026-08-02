@@ -6,6 +6,7 @@ import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
 import '../../shared/providers/kitchen_import_dependencies.dart';
 import '../../import_inbox/widgets/kitchen_import_delete_task_dialog.dart';
+import '../widgets/kitchen_import_media_workspace_widget.dart';
 
 class ImportTaskPage extends ConsumerWidget {
   const ImportTaskPage({super.key, required this.taskId});
@@ -57,10 +58,7 @@ class _TaskBody extends ConsumerWidget {
         ],
         if (task.media.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.s20),
-          Text(
-            '已保存 ${task.media.length} 张图片',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          ImportMediaWorkspaceWidget(taskId: task.id, media: task.media),
         ],
         if (task.ocrText?.trim().isNotEmpty == true) ...[
           const SizedBox(height: AppSpacing.s20),
@@ -72,18 +70,23 @@ class _TaskBody extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              if (task.status == ImportTaskStatus.awaitingReview)
-                TextButton.icon(
-                  onPressed: () => _editOcrText(context, ref),
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('校对'),
-                ),
+              TextButton.icon(
+                onPressed: () => _editOcrText(context, ref),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('校对'),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.s8),
           Semantics(
             label: '图片识别文字',
-            child: SelectableText(task.ocrText!, maxLines: 18),
+            child: SelectableText(task.effectiveOcrText, maxLines: 18),
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          OutlinedButton.icon(
+            onPressed: () => _editSupplementalText(context, ref),
+            icon: const Icon(Icons.note_add_outlined),
+            label: Text(task.supplementalText.isEmpty ? '添加补充说明' : '编辑补充说明'),
           ),
         ],
         if (task.draft?.warnings.isNotEmpty == true) ...[
@@ -150,6 +153,25 @@ class _TaskBody extends ConsumerWidget {
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('重试'),
           ),
+        if (task.status == ImportTaskStatus.failed) ...[
+          OutlinedButton.icon(
+            onPressed: task.ocrText?.trim().isNotEmpty == true
+                ? () => _editOcrText(context, ref)
+                : null,
+            icon: const Icon(Icons.edit_note_outlined),
+            label: const Text('编辑已识别文字'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => _editSupplementalText(context, ref),
+            icon: const Icon(Icons.note_add_outlined),
+            label: const Text('添加补充说明'),
+          ),
+          TextButton.icon(
+            onPressed: context.pushCreateRecipe,
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('转手动创建'),
+          ),
+        ],
         if ({
           ImportTaskStatus.queued,
           ImportTaskStatus.extracting,
@@ -183,7 +205,7 @@ class _TaskBody extends ConsumerWidget {
   }
 
   Future<void> _editOcrText(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController(text: task.ocrText);
+    final controller = TextEditingController(text: task.effectiveOcrText);
     final corrected = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -228,6 +250,45 @@ class _TaskBody extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(error.message)));
     }
+  }
+
+  Future<void> _editSupplementalText(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final controller = TextEditingController(text: task.supplementalText);
+    final value = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('补充说明'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          minLines: 4,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            hintText: '例如：少盐、用家里的小烤箱',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('保存并重新整理'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null || !context.mounted) return;
+    final dependencies = ref.read(importDependenciesProvider);
+    await dependencies.repository.saveSupplementalText(task.id, value);
+    await dependencies.pipeline.process(task.id);
+    ref.invalidate(importTaskProvider(task.id));
   }
 }
 

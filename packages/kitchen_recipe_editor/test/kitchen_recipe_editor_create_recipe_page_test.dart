@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -171,9 +173,30 @@ void main() {
     expect(find.text('保存失败，请稍后重试'), findsOneWidget);
     expect(find.text('创建菜谱'), findsOneWidget);
   });
+
+  testWidgets('新建菜谱分类读取统一个性化配置缓存', (tester) async {
+    final repository = _EditorRepository();
+    final configRepository = _ConfigRepository(
+      PersonalRecipeConfigEntity.defaults.copyWith(
+        categories: const ['低脂餐', '节日菜'],
+      ),
+    );
+    await tester.pumpWidget(_testApp(repository, configRepository));
+    await tester.pumpAndSettle();
+
+    expect(find.text('低脂餐'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, '缓存分类菜谱');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(repository.createdInput?.category, '低脂餐');
+  });
 }
 
-Widget _testApp(_EditorRepository repository) {
+Widget _testApp(
+  _EditorRepository repository, [
+  PersonalRecipeConfigRepository? configRepository,
+]) {
   final router = GoRouter(
     initialLocation: '/',
     routes: [
@@ -195,11 +218,32 @@ Widget _testApp(_EditorRepository repository) {
           createRecipe: CreateRecipeUseCase(repository),
           getRecipeDetail: GetRecipeDetailUseCase(repository),
           updateRecipe: UpdateRecipeUseCase(repository),
+          personalRecipeConfigRepository: configRepository,
         ),
       ),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
+}
+
+class _ConfigRepository implements PersonalRecipeConfigRepository {
+  _ConfigRepository(this.config);
+
+  PersonalRecipeConfigEntity config;
+
+  @override
+  Future<PersonalRecipeConfigEntity> getCached() async => config;
+
+  @override
+  Future<void> save(PersonalRecipeConfigEntity config) async {
+    this.config = config;
+  }
+
+  @override
+  Future<void> synchronize() async {}
+
+  @override
+  Stream<PersonalRecipeConfigEntity> watchCached() => Stream.value(config);
 }
 
 Widget _navigationTestApp(_EditorRepository repository) {

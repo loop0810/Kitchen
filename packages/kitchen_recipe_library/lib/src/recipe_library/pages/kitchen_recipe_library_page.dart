@@ -771,14 +771,11 @@ class _EmptyCollections extends StatelessWidget {
 String _filterLabel(RecipeStatusFilter filter) => switch (filter) {
   RecipeStatusFilter.all => '全部',
   RecipeStatusFilter.favorite => '收藏',
-  RecipeStatusFilter.cooked => '做过',
   RecipeStatusFilter.incomplete => '待完善',
 };
 
 String _sortOrderLabel(RecipeSortOrder order) => switch (order) {
   RecipeSortOrder.recentlyUpdated => '最近更新',
   RecipeSortOrder.recentlySaved => '最近保存',
-  RecipeSortOrder.recentlyCooked => '最近做过',
-  RecipeSortOrder.mostCooked => '最常制作',
   RecipeSortOrder.title => '菜名',
 };

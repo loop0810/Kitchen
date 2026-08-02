@@ -24,8 +24,6 @@ abstract final class RecipeMapper {
         templateVersion: recipe.templateVersion,
       ),
       isFavorite: recipe.isFavorite,
-      lastCookedAt: recipe.lastCookedAt,
-      cookCount: recipe.cookCount,
       status: _statusToDomain(recipe.status),
       coverColor: recipe.coverColor,
       createdAt: recipe.createdAt,

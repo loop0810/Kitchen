@@ -173,7 +173,7 @@ class RecipeRepositoryImpl implements RecipeRepository {
         ? 'incomplete'
         : 'ready';
 
-    // 更新主表并同步两个有序子表必须处于同一事务。收藏、烹饪统计、创建时间、
+    // 更新主表并同步两个有序子表必须处于同一事务。收藏、创建时间、
     // 标签以及当前编辑器尚未覆盖的主表字段都不会被这次写入改动。
     await _database.transaction(() async {
       await (_database.update(
@@ -248,7 +248,6 @@ class RecipeRepositoryImpl implements RecipeRepository {
     return switch (filter) {
       RecipeStatusFilter.all => 'all',
       RecipeStatusFilter.favorite => 'favorite',
-      RecipeStatusFilter.cooked => 'cooked',
       RecipeStatusFilter.incomplete => 'incomplete',
     };
   }

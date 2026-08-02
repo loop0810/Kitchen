@@ -164,25 +164,6 @@ class _RecipeDetailContent extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(
-          AppSpacing.s16,
-          AppSpacing.s8,
-          AppSpacing.s16,
-          AppSpacing.s12,
-        ),
-        child: FilledButton.icon(
-          onPressed: detail.steps.isEmpty
-              ? null
-              : () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('逐步烹饪模式将在下一迭代接入')),
-                  );
-                },
-          icon: const Icon(Icons.play_arrow_rounded),
-          label: const Text('开始烹饪'),
-        ),
-      ),
     );
   }
 

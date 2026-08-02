@@ -8,24 +8,33 @@ import 'src/recipe/repositories/kitchen_recipe_data_recipe_repository_impl.dart'
 import 'src/collection/repositories/kitchen_recipe_data_recipe_collection_repository_impl.dart';
 import 'src/deletion/repositories/kitchen_recipe_data_recipe_deletion_repository_impl.dart';
 import 'src/preferences/repositories/kitchen_recipe_data_recipe_sort_preference_repository_impl.dart';
+import 'src/personalization/repositories/kitchen_recipe_data_personal_recipe_config_repository_impl.dart';
 
 /// Data package 对外唯一的装配入口。
 ///
 /// 调用方只能取得 Domain Repository，无法绕过架构边界直接操作 Drift 表。
 class RecipeDataModule {
-  RecipeDataModule._(this._database)
-    : _readingOrderPolicy = const PinyinRecipeReadingOrderPolicy(),
-      _recipeRepository = RecipeRepositoryImpl(_database),
-      _collectionRepository = RecipeCollectionRepositoryImpl(_database),
-      _deletionRepository = RecipeDeletionRepositoryImpl(_database),
-      _sortPreferenceRepository = RecipeSortPreferenceRepositoryImpl(
-        _database,
-      ) {
+  RecipeDataModule._(
+    this._database, {
+    PersonalRecipeConfigRemoteGateway? remoteGateway,
+  }) : _readingOrderPolicy = const PinyinRecipeReadingOrderPolicy(),
+       _recipeRepository = RecipeRepositoryImpl(_database),
+       _collectionRepository = RecipeCollectionRepositoryImpl(_database),
+       _deletionRepository = RecipeDeletionRepositoryImpl(_database),
+       _sortPreferenceRepository = RecipeSortPreferenceRepositoryImpl(
+         _database,
+       ),
+       _personalRecipeConfigRepository = PersonalRecipeConfigRepositoryImpl(
+         _database,
+         remoteGateway: remoteGateway,
+       ) {
     // 封面文件清理是机会式维护，失败不能阻断应用组合根创建。
     unawaited(_collectionRepository.cleanupOrphanedCovers().catchError((_) {}));
   }
 
-  factory RecipeDataModule() => RecipeDataModule._(AppDatabase());
+  factory RecipeDataModule({
+    PersonalRecipeConfigRemoteGateway? remoteGateway,
+  }) => RecipeDataModule._(AppDatabase(), remoteGateway: remoteGateway);
 
   final AppDatabase _database;
   final RecipeReadingOrderPolicy _readingOrderPolicy;
@@ -33,12 +42,16 @@ class RecipeDataModule {
   final RecipeCollectionRepositoryImpl _collectionRepository;
   final RecipeDeletionRepository _deletionRepository;
   final RecipeSortPreferenceRepository _sortPreferenceRepository;
+  final PersonalRecipeConfigRepository _personalRecipeConfigRepository;
 
   RecipeRepository get recipeRepository => _recipeRepository;
   RecipeCollectionRepository get collectionRepository => _collectionRepository;
   RecipeDeletionRepository get deletionRepository => _deletionRepository;
   RecipeSortPreferenceRepository get sortPreferenceRepository =>
       _sortPreferenceRepository;
+
+  PersonalRecipeConfigRepository get personalRecipeConfigRepository =>
+      _personalRecipeConfigRepository;
 
   /// 菜谱库与阅读器共享的中文优先标题顺序策略。
   RecipeReadingOrderPolicy get readingOrderPolicy => _readingOrderPolicy;

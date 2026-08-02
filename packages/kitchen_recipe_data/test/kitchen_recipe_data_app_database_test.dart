@@ -114,7 +114,7 @@ void main() {
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.read<int>('user_version'), 6);
+      expect(version.read<int>('user_version'), 7);
       expect(recipe.importTaskId, isNull);
       expect(recipe.sourceOriginalText, isNull);
       expect(recipe.deletedAt, isNotNull);
@@ -214,6 +214,13 @@ void main() {
           )
           .getSingleOrNull();
       expect(coverPathColumn, isNotNull);
+      final personalizationTable = await database
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'personal_recipe_config_cache'",
+          )
+          .getSingleOrNull();
+      expect(personalizationTable, isNotNull);
     } finally {
       await database.close();
       await directory.delete(recursive: true);

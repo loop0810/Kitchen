@@ -46,18 +46,6 @@ class _RecipeEditorFormWidgetState
   String? _categoryError;
   String? _templateError;
 
-  static const _categories = [
-    '家常菜',
-    '主食',
-    '汤羹',
-    '烘焙',
-    '甜品',
-    '小吃',
-    '饮品',
-    '酱料与配菜',
-    '其他',
-  ];
-
   bool get _isEditing => widget.initialDetail != null;
 
   @override
@@ -89,7 +77,7 @@ class _RecipeEditorFormWidgetState
     _stepsController = TextEditingController(
       text: _stepItems.map((item) => item.line).join('\n'),
     );
-    _category = detail?.recipe.category ?? initialInput?.category ?? '家常菜';
+    _category = detail?.recipe.category ?? initialInput?.category ?? '';
     _templateSelection =
         detail?.recipe.templateSelection ??
         initialInput?.templateSelection ??
@@ -238,6 +226,16 @@ class _RecipeEditorFormWidgetState
 
   @override
   Widget build(BuildContext context) {
+    final personalConfig =
+        ref.watch(recipeEditorPersonalRecipeConfigProvider).valueOrNull ??
+        PersonalRecipeConfigEntity.defaults;
+    final selectedCategory = _resolvedCategory(personalConfig);
+    final categoryOptions = [
+      ...personalConfig.categories,
+      if (selectedCategory.isNotEmpty &&
+          !personalConfig.categories.contains(selectedCategory))
+        selectedCategory,
+    ];
     return PopScope(
       canPop: _allowPop || !_dirty,
       onPopInvokedWithResult: (didPop, result) {
@@ -290,12 +288,14 @@ class _RecipeEditorFormWidgetState
                   ),
                   const SizedBox(height: AppSpacing.s12),
                   DropdownButtonFormField<String>(
-                    initialValue: _category,
+                    initialValue: selectedCategory.isEmpty
+                        ? null
+                        : selectedCategory,
                     decoration: InputDecoration(
                       labelText: '主分类',
                       errorText: _categoryError,
                     ),
-                    items: _categories
+                    items: categoryOptions
                         .map(
                           (category) => DropdownMenuItem(
                             value: category,
@@ -399,11 +399,23 @@ class _RecipeEditorFormWidgetState
     );
   }
 
+  String _resolvedCategory(PersonalRecipeConfigEntity config) {
+    if (_category.isNotEmpty) return _category;
+    return config.categories.isEmpty ? '' : config.categories.first;
+  }
+
+  String get _currentCategory {
+    final config =
+        ref.read(recipeEditorPersonalRecipeConfigProvider).valueOrNull ??
+        PersonalRecipeConfigEntity.defaults;
+    return _resolvedCategory(config);
+  }
+
   CreateRecipeInput get _createInput {
     return CreateRecipeInput(
       title: _titleController.text,
       summary: _summaryController.text,
-      category: _category,
+      category: _currentCategory,
       ingredients: _ingredientLines,
       steps: _linesOf(_stepsController),
       templateSelection: _templateSelection,
@@ -423,7 +435,7 @@ class _RecipeEditorFormWidgetState
       recipeId: widget.initialDetail!.recipe.id,
       title: _titleController.text,
       summary: _summaryController.text,
-      category: _category,
+      category: _currentCategory,
       ingredients: _ingredientItems
           .map((item) {
             final parsed = parser(item.line);
@@ -477,7 +489,7 @@ class _RecipeEditorFormWidgetState
           ? '菜名待补充'
           : _titleController.text.trim(),
       primaryIngredients: ingredients,
-      category: _category,
+      category: _currentCategory,
       totalMinutes: null,
       isIncomplete: ingredients.isEmpty || _linesOf(_stepsController).isEmpty,
     );

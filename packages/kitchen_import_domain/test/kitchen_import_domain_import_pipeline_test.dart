@@ -84,7 +84,8 @@ void main() {
     );
 
     expect(repository.task.media.single.localPath, '1.jpg');
-    expect(repository.task.ocrText, contains('葱油拌面'));
+    expect(repository.task.ocrText, isNull);
+    expect(repository.task.correctedOcrText, contains('葱油拌面'));
     expect(repository.task.draft!.ingredients.value, ['面条 100克']);
   });
 
@@ -113,6 +114,30 @@ void main() {
     expect(repository.task.media.single.ocrPage, isNotNull);
     expect(repository.task.ocrText, contains('番茄炒蛋'));
   });
+
+  test('多图单页失败时保留成功页并生成部分草稿', () async {
+    final repository = _MemoryImportTaskRepository(
+      media: const [
+        ImportMediaReference(id: 'ok', localPath: '1.jpg', position: 0),
+        ImportMediaReference(id: 'failed', localPath: '2.jpg', position: 1),
+      ],
+    );
+    final pipeline = ImportPipeline(
+      repository: repository,
+      localStructurer: const LocalRecipeStructurerService(),
+      ocrAdapter: const _PartiallyFailingOcrAdapter(),
+    );
+
+    await pipeline.process('task-1');
+
+    expect(repository.task.status, ImportTaskStatus.awaitingReview);
+    expect(
+      repository.task.media.first.ocrStatus,
+      ImportMediaOcrStatus.succeeded,
+    );
+    expect(repository.task.media.last.ocrStatus, ImportMediaOcrStatus.failed);
+    expect(repository.task.draft!.title.value, '番茄炒蛋');
+  });
 }
 
 class _MappedOcrAdapter implements OcrAdapter {
@@ -125,6 +150,19 @@ class _MappedOcrAdapter implements OcrAdapter {
     return OcrPageEntity.fromPlainText(
       pageIndex: media.position,
       text: values[media.id] ?? '',
+    );
+  }
+}
+
+class _PartiallyFailingOcrAdapter implements OcrAdapter {
+  const _PartiallyFailingOcrAdapter();
+
+  @override
+  Future<OcrPageEntity> recognize(ImportMediaReference media) async {
+    if (media.id == 'failed') throw StateError('unreadable');
+    return OcrPageEntity.fromPlainText(
+      pageIndex: media.position,
+      text: '番茄炒蛋\n食材\n番茄 2个\n步骤\n番茄切块',
     );
   }
 }
@@ -147,7 +185,11 @@ class _MemoryImportTaskRepository implements ImportTaskRepository {
   Future<ImportTaskEntity?> getTask(String taskId) async => task;
 
   @override
-  Future<void> updateStatus(String taskId, ImportTaskStatus status) async {
+  Future<void> updateStatus(
+    String taskId,
+    ImportTaskStatus status, {
+    int? expectedGeneration,
+  }) async {
     task = _copy(status: status, clearError: true);
   }
 
@@ -156,6 +198,7 @@ class _MemoryImportTaskRepository implements ImportTaskRepository {
     required String taskId,
     required String mediaId,
     required OcrPageEntity page,
+    int? expectedGeneration,
   }) async {
     task = _copy(
       media: task.media
@@ -176,12 +219,82 @@ class _MemoryImportTaskRepository implements ImportTaskRepository {
   }
 
   @override
-  Future<void> saveOcrText(String taskId, String text) async {
+  Future<void> markMediaOcrProcessing({
+    required String taskId,
+    required String mediaId,
+    int? expectedGeneration,
+  }) async {
+    task = _copy(
+      media: task.media
+          .map(
+            (item) => item.id == mediaId
+                ? ImportMediaReference(
+                    id: item.id,
+                    localPath: item.localPath,
+                    originalLocalPath: item.originalLocalPath,
+                    contentRevision: item.contentRevision,
+                    position: item.position,
+                    rotationQuarterTurns: item.rotationQuarterTurns,
+                    ignored: item.ignored,
+                    ocrText: item.ocrText,
+                    ocrPage: item.ocrPage,
+                    ocrStatus: ImportMediaOcrStatus.processing,
+                  )
+                : item,
+          )
+          .toList(growable: false),
+    );
+  }
+
+  @override
+  Future<void> saveOcrText(
+    String taskId,
+    String text, {
+    int? expectedGeneration,
+  }) async {
     task = _copy(ocrText: text);
   }
 
   @override
-  Future<void> saveDraft(String taskId, RecipeDraftEntity draft) async {
+  Future<void> saveCorrectedOcrText(String taskId, String text) async {
+    task = _copy(
+      correctedOcrText: text,
+      processingGeneration: task.processingGeneration + 1,
+    );
+  }
+
+  @override
+  Future<void> saveMediaOcrFailure({
+    required String taskId,
+    required String mediaId,
+    required String code,
+    required String message,
+    int? expectedGeneration,
+  }) async {
+    task = _copy(
+      media: task.media
+          .map(
+            (item) => item.id == mediaId
+                ? ImportMediaReference(
+                    id: item.id,
+                    localPath: item.localPath,
+                    position: item.position,
+                    ocrStatus: ImportMediaOcrStatus.failed,
+                    ocrErrorCode: code,
+                    ocrErrorMessage: message,
+                  )
+                : item,
+          )
+          .toList(growable: false),
+    );
+  }
+
+  @override
+  Future<void> saveDraft(
+    String taskId,
+    RecipeDraftEntity draft, {
+    int? expectedGeneration,
+  }) async {
     task = _copy(status: ImportTaskStatus.awaitingReview, draft: draft);
   }
 
@@ -190,6 +303,7 @@ class _MemoryImportTaskRepository implements ImportTaskRepository {
     required String taskId,
     required String code,
     required String message,
+    int? expectedGeneration,
   }) async {
     task = _copy(
       status: ImportTaskStatus.failed,
@@ -202,6 +316,8 @@ class _MemoryImportTaskRepository implements ImportTaskRepository {
     ImportTaskStatus? status,
     List<ImportMediaReference>? media,
     String? ocrText,
+    String? correctedOcrText,
+    int? processingGeneration,
     RecipeDraftEntity? draft,
     String? errorCode,
     String? errorMessage,
@@ -214,6 +330,9 @@ class _MemoryImportTaskRepository implements ImportTaskRepository {
       originalText: task.originalText,
       media: media ?? task.media,
       ocrText: ocrText ?? task.ocrText,
+      correctedOcrText: correctedOcrText ?? task.correctedOcrText,
+      supplementalText: task.supplementalText,
+      processingGeneration: processingGeneration ?? task.processingGeneration,
       draft: draft ?? task.draft,
       errorCode: clearError ? null : errorCode ?? task.errorCode,
       errorMessage: clearError ? null : errorMessage ?? task.errorMessage,
@@ -271,7 +390,11 @@ class _DeletingImportTaskRepository implements ImportTaskRepository {
   Future<ImportTaskEntity?> getTask(String taskId) async => _task;
 
   @override
-  Future<void> updateStatus(String taskId, ImportTaskStatus status) async {
+  Future<void> updateStatus(
+    String taskId,
+    ImportTaskStatus status, {
+    int? expectedGeneration,
+  }) async {
     if (_task == null) throw StateError('deleted');
   }
 
@@ -280,6 +403,16 @@ class _DeletingImportTaskRepository implements ImportTaskRepository {
     required String taskId,
     required String mediaId,
     required OcrPageEntity page,
+    int? expectedGeneration,
+  }) async {
+    if (_task == null) throw StateError('deleted');
+  }
+
+  @override
+  Future<void> markMediaOcrProcessing({
+    required String taskId,
+    required String mediaId,
+    int? expectedGeneration,
   }) async {
     if (_task == null) throw StateError('deleted');
   }
@@ -289,6 +422,7 @@ class _DeletingImportTaskRepository implements ImportTaskRepository {
     required String taskId,
     required String code,
     required String message,
+    int? expectedGeneration,
   }) async {
     if (_task == null) {
       throw StateError('deleted');

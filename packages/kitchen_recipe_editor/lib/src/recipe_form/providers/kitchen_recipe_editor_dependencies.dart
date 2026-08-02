@@ -6,11 +6,13 @@ class RecipeEditorDependencies {
     required this.createRecipe,
     required this.getRecipeDetail,
     required this.updateRecipe,
+    this.personalRecipeConfigRepository,
   });
 
   final CreateRecipeUseCase createRecipe;
   final GetRecipeDetailUseCase getRecipeDetail;
   final UpdateRecipeUseCase updateRecipe;
+  final PersonalRecipeConfigRepository? personalRecipeConfigRepository;
 }
 
 // 编辑器只依赖创建、详情读取和更新三个 UseCase，不接触 Repository 或数据库类型。
@@ -25,4 +27,13 @@ final recipeEditorDetailProvider = FutureProvider.autoDispose
       return ref
           .watch(recipeEditorDependenciesProvider)
           .getRecipeDetail(recipeId);
+    });
+
+final recipeEditorPersonalRecipeConfigProvider =
+    StreamProvider<PersonalRecipeConfigEntity>((ref) {
+      final repository = ref
+          .watch(recipeEditorDependenciesProvider)
+          .personalRecipeConfigRepository;
+      return repository?.watchCached() ??
+          Stream.value(PersonalRecipeConfigEntity.defaults);
     });

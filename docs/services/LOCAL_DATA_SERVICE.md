@@ -14,7 +14,6 @@ Repository 实现和一致性，不负责页面状态或业务展示。
 - 菜谱编辑器。
 - 导入处理服务。
 - 手账阅读器。
-- 烹饪运行时服务。
 - 搜索服务。
 - 备份与同步服务。
 
@@ -23,8 +22,8 @@ Repository 实现和一致性，不负责页面状态或业务展示。
 - 保存 Recipe、Ingredient、Step、Tag 和 Collection。
 - 保存导入任务、原始材料引用和处理状态。
 - 保存编辑草稿和用户确认状态。
-- 保存 CookSession 和 CookRecord。
 - 保存模板选择、资源引用和权益缓存。
+- 保存账号个性化食谱配置及其待同步状态。
 - 提供事务、查询、Stream 和分页能力。
 - 管理 Drift schema version 和迁移。
 - 维护删除、归档和回收站规则。
@@ -65,7 +64,6 @@ SourceSnapshot
 - 获取菜谱集及成员。
 - 获取阅读器范围快照。
 - 获取导入任务及状态。
-- 获取进行中的烹饪会话。
 - 获取回收站和到期记录。
 - 为搜索服务提供可索引字段。
 
@@ -80,10 +78,11 @@ SourceSnapshot
 
 ## 9. 迁移
 
-当前菜谱数据库 schema 为 v6：`recipes` 保存删除时间与删除前状态；
+当前菜谱数据库 schema 为 v7：`recipes` 保存删除时间与删除前状态；
 `recipe_collections` 保存受控封面目录中的相对路径，旧集合 `position` 仅保留兼容；
 `recipe_collection_members.position` 保存集合内成员顺序；单例菜谱库设置表保存
-排序偏好。v5 升级时按旧界面的 `addedAt DESC, recipeId ASC` 生成连续成员位置。
+排序偏好；单例 `personal_recipe_config_cache` 保存分类、标签、难度、服务端修订号和
+pending 状态。v5 升级时按旧界面的 `addedAt DESC, recipeId ASC` 生成连续成员位置。
 软删除不移除集合关系和成员位置，恢复后关系自然生效；只有永久删除菜谱才通过
 外键级联清理其从属数据和集合关系。
 

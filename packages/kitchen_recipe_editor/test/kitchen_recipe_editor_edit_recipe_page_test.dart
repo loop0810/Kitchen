@@ -180,8 +180,6 @@ final _detail = RecipeDetailEntity(
     presentationStyle: 'inheritDefault',
     templateSelection: _templateSelection,
     isFavorite: true,
-    lastCookedAt: _now,
-    cookCount: 3,
     status: RecipeStatus.ready,
     coverColor: 0xFFF4B9A8,
     createdAt: _now,

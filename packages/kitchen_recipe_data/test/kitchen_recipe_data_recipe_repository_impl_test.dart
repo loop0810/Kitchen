@@ -49,11 +49,6 @@ void main() {
           const RecipeQuery(statusFilter: RecipeStatusFilter.favorite),
         )
         .first;
-    final cookedResults = await repository
-        .watchRecipes(
-          const RecipeQuery(statusFilter: RecipeStatusFilter.cooked),
-        )
-        .first;
     final incompleteResults = await repository
         .watchRecipes(
           const RecipeQuery(statusFilter: RecipeStatusFilter.incomplete),
@@ -66,10 +61,6 @@ void main() {
     );
     expect(
       favoriteResults.map((summary) => summary.recipe.title),
-      contains('红烧鸡翅'),
-    );
-    expect(
-      cookedResults.map((summary) => summary.recipe.title),
       contains('红烧鸡翅'),
     );
     expect(
@@ -203,7 +194,6 @@ void main() {
     expect(after!.recipe.title, '番茄炒鸡蛋');
     expect(after.recipe.status, RecipeStatus.ready);
     expect(after.recipe.isFavorite, recipeBefore.isFavorite);
-    expect(after.recipe.cookCount, recipeBefore.cookCount);
     expect(after.recipe.createdAt, recipeBefore.createdAt);
     expect(after.tags, containsAll(before.tags));
     expect(after.ingredients.map((ingredient) => ingredient.name), [

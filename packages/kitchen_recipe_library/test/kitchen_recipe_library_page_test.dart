@@ -89,6 +89,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('打散鸡蛋'), findsOneWidget);
+    expect(find.text('开始烹饪'), findsNothing);
 
     await tester.tap(find.byTooltip('收藏'));
     await tester.pumpAndSettle();
@@ -157,8 +158,6 @@ final _recipe = RecipeEntity(
   presentationStyle: 'inheritDefault',
   templateSelection: _templateSelection,
   isFavorite: false,
-  lastCookedAt: null,
-  cookCount: 0,
   status: RecipeStatus.ready,
   coverColor: 0xFFF4B9A8,
   createdAt: _now,

@@ -227,11 +227,10 @@ void main() {
   });
 
   test('排序偏好保存后可由新 Repository 实例读取', () async {
-    final preferences = RecipeSortPreferenceRepositoryImpl(database);
-    await preferences.setSortOrder(RecipeSortOrder.mostCooked);
+    await database.saveSortOrder('mostCooked');
     expect(
       await RecipeSortPreferenceRepositoryImpl(database).getSortOrder(),
-      RecipeSortOrder.mostCooked,
+      RecipeSortOrder.recentlyUpdated,
     );
   });
 }

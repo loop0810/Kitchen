@@ -56,8 +56,6 @@ RecipeJournalSummaryEntity _summary(String id, String title) {
         templateVersion: 1,
       ),
       isFavorite: false,
-      lastCookedAt: null,
-      cookCount: 0,
       status: RecipeStatus.ready,
       coverColor: 0xFFF4B9A8,
       createdAt: now,

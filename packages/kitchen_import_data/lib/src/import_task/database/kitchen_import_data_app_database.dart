@@ -29,8 +29,18 @@ class ImportTasks extends Table {
   /// 应用受控媒体引用的 JSON 数组；无图片时为 `[]`。
   TextColumn get mediaJson => text().withDefault(const Constant('[]'))();
 
-  /// 已完成页面汇总后的 OCR 文字；尚未识别时为空。
+  /// 按当前页面顺序汇总的机器 OCR 文字；尚未识别时为空。
   TextColumn get ocrText => text().nullable()();
+
+  /// 用户校对后的 OCR 正文；未校对时为空。
+  TextColumn get correctedOcrText => text().nullable()();
+
+  /// 用户在识别文字之外增加的补充说明。
+  TextColumn get supplementalText => text().withDefault(const Constant(''))();
+
+  /// 任务内容变化的单调递增代次，过期处理结果不得回写。
+  IntColumn get processingGeneration =>
+      integer().withDefault(const Constant(0))();
 
   /// 最新版本化结构草稿 JSON；尚未整理时为空。
   TextColumn get draftJson => text().nullable()();
@@ -61,7 +71,20 @@ class ImportAppDatabase extends _$ImportAppDatabase {
   ImportAppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        // 新增列都提供旧任务可安全恢复的默认值，不重建表，
+        // 以免丢失原始文本、媒体引用和已生成的草稿。
+        await migrator.addColumn(importTasks, importTasks.correctedOcrText);
+        await migrator.addColumn(importTasks, importTasks.supplementalText);
+        await migrator.addColumn(importTasks, importTasks.processingGeneration);
+      }
+    },
+  );
 
   Stream<List<ImportTask>> watchImportTasks() {
     return (select(

@@ -9,6 +9,7 @@ import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:kitchen_recipe_editor/kitchen_recipe_editor.dart';
 import 'package:kitchen_recipe_library/kitchen_recipe_library.dart';
+import 'package:kitchen_profile/kitchen_profile.dart';
 import 'package:kitchen_notes/src/kitchen_notes_app.dart';
 
 void main() {
@@ -52,6 +53,8 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
     // App 冷启动后恢复被系统中断的导入阶段；任务原文和中间结果已经在独立
     // Drift 数据库中，因此恢复不会依赖页面是否打开。
     unawaited(_importPipeline.resumePending());
+    // 个性化配置先读本地缓存，不阻塞首屏；远端可用时再双向同步账号配置。
+    unawaited(_recipeDataModule.personalRecipeConfigRepository.synchronize());
     unawaited(_consumePendingAndroidShares());
     unawaited(_purgeExpiredRecipes());
   }
@@ -120,6 +123,14 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
           deletionRepository: _recipeDataModule.deletionRepository,
           sortPreferenceRepository: _recipeDataModule.sortPreferenceRepository,
           readingOrderPolicy: _recipeDataModule.readingOrderPolicy,
+          personalRecipeConfigRepository:
+              _recipeDataModule.personalRecipeConfigRepository,
+        ),
+        profileDependenciesProvider.overrideWithValue(
+          ProfileDependencies(
+            personalRecipeConfigRepository:
+                _recipeDataModule.personalRecipeConfigRepository,
+          ),
         ),
         importDependenciesProvider.overrideWithValue(
           ImportDependencies(
@@ -140,6 +151,7 @@ List<Override> buildRecipeFeatureOverrides(
   RecipeDeletionRepository? deletionRepository,
   RecipeSortPreferenceRepository? sortPreferenceRepository,
   RecipeReadingOrderPolicy? readingOrderPolicy,
+  PersonalRecipeConfigRepository? personalRecipeConfigRepository,
 }) {
   // Riverpod override 是根 App 向 Feature 注入依赖的入口。这样 Feature 可以独立测试，
   // 测试时也能用内存实现替换真实数据库。
@@ -215,6 +227,7 @@ List<Override> buildRecipeFeatureOverrides(
         createRecipe: CreateRecipeUseCase(repository),
         getRecipeDetail: GetRecipeDetailUseCase(repository),
         updateRecipe: UpdateRecipeUseCase(repository),
+        personalRecipeConfigRepository: personalRecipeConfigRepository,
       ),
     ),
   ];

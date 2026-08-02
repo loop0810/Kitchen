@@ -49,10 +49,10 @@ class Recipes extends Table {
   /// 用户是否已收藏该菜谱。
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
 
-  /// 最近一次完成烹饪的时间；从未做过时为空。
+  /// 历史烹饪时间列；仅为旧版 SQLite 兼容保留，新代码不读写。
   DateTimeColumn get lastCookedAt => dateTime().nullable()();
 
-  /// 已完成烹饪的累计次数。
+  /// 历史烹饪次数列；仅为旧版 SQLite 兼容保留，新代码不读写。
   IntColumn get cookCount => integer().withDefault(const Constant(0))();
 
   /// 菜谱生命周期状态的稳定字符串值。
@@ -230,6 +230,39 @@ class RecipeLibrarySettings extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// 当前账号的个性化食谱配置缓存。
+///
+/// UI 只监听本表，不直接读取远端响应；同步成功或本地编辑都通过 Repository
+/// 原子更新同一行，从而让所有 Feature 看到一致快照。
+class PersonalRecipeConfigCache extends Table {
+  /// 单例主键，固定为 1。
+  IntColumn get id => integer()();
+
+  /// 按用户顺序保存的分类 JSON 数组。
+  TextColumn get categoriesJson => text()();
+
+  /// 按用户顺序保存的标签 JSON 数组。
+  TextColumn get tagsJson => text()();
+
+  /// 按用户顺序保存的难度 JSON 数组，首项为默认难度。
+  TextColumn get difficultiesJson => text()();
+
+  /// 服务端配置修订号；尚未成功同步时为空。
+  TextColumn get serverRevision => text().nullable()();
+
+  /// 是否存在尚未上传成功的本地修改。
+  BoolColumn get syncPending => boolean().withDefault(const Constant(false))();
+
+  /// 最近一次成功同步时间；从未同步时为空。
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  /// 缓存最近更新时间，用于诊断和备份合并。
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class RecipeDetailData {
   const RecipeDetailData({
     required this.recipe,
@@ -313,6 +346,7 @@ class RecipeCollectionDetailData {
     RecipeCollections,
     RecipeCollectionMembers,
     RecipeLibrarySettings,
+    PersonalRecipeConfigCache,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -321,7 +355,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -398,6 +432,11 @@ SET position = (
 )
 ''');
       }
+      if (from < 7) {
+        // 个性化配置是独立单例缓存；新增空表不会改写现有菜谱内容，首次读取时
+        // Repository 会提供默认值，首次远端响应后再写入权威缓存。
+        await migrator.createTable(personalRecipeConfigCache);
+      }
     },
     beforeOpen: (details) async {
       // SQLite 每个连接都要显式开启外键检查，否则 cascade/setNull 不会生效。
@@ -441,8 +480,6 @@ SET position = (
     }
     if (statusFilter == 'favorite') {
       statement.where((recipe) => recipe.isFavorite.equals(true));
-    } else if (statusFilter == 'cooked') {
-      statement.where((recipe) => recipe.cookCount.isBiggerThanValue(0));
     } else if (statusFilter == 'incomplete') {
       statement.where((recipe) => recipe.status.equals('incomplete'));
     }
@@ -486,8 +523,6 @@ SET position = (
     }
     if (statusFilter == 'favorite') {
       statement.where(recipes.isFavorite.equals(true));
-    } else if (statusFilter == 'cooked') {
-      statement.where(recipes.cookCount.isBiggerThanValue(0));
     } else if (statusFilter == 'incomplete') {
       statement.where(recipes.status.equals('incomplete'));
     }
@@ -545,8 +580,6 @@ SET position = (
     statement.orderBy([
       (recipe) => switch (order) {
         'recentlySaved' => OrderingTerm.desc(recipe.createdAt),
-        'recentlyCooked' => OrderingTerm.desc(recipe.lastCookedAt),
-        'mostCooked' => OrderingTerm.desc(recipe.cookCount),
         'title' => OrderingTerm.asc(recipe.title),
         _ => OrderingTerm.desc(recipe.updatedAt),
       },
@@ -558,19 +591,6 @@ SET position = (
     return switch (order) {
       'recentlySaved' => [
         OrderingTerm.desc(recipes.createdAt),
-        OrderingTerm.asc(recipes.id),
-      ],
-      'recentlyCooked' => [
-        OrderingTerm(
-          expression: recipes.lastCookedAt.isNull(),
-          mode: OrderingMode.asc,
-        ),
-        OrderingTerm.desc(recipes.lastCookedAt),
-        OrderingTerm.asc(recipes.id),
-      ],
-      'mostCooked' => [
-        OrderingTerm.desc(recipes.cookCount),
-        OrderingTerm.desc(recipes.lastCookedAt),
         OrderingTerm.asc(recipes.id),
       ],
       'title' => [
@@ -1100,8 +1120,6 @@ SET position = (
           cookMinutes: const Value(30),
           difficulty: const Value('中等'),
           isFavorite: const Value(true),
-          lastCookedAt: Value(now.subtract(const Duration(days: 3))),
-          cookCount: const Value(2),
           coverColor: 0xFFD9A06F,
           createdAt: now.subtract(const Duration(minutes: 2)),
           updatedAt: now.subtract(const Duration(minutes: 2)),

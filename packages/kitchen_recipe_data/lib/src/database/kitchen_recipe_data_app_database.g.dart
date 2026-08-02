@@ -655,10 +655,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
   /// 用户是否已收藏该菜谱。
   final bool isFavorite;
 
-  /// 最近一次完成烹饪的时间；从未做过时为空。
+  /// 历史烹饪时间列；仅为旧版 SQLite 兼容保留，新代码不读写。
   final DateTime? lastCookedAt;
 
-  /// 已完成烹饪的累计次数。
+  /// 历史烹饪次数列；仅为旧版 SQLite 兼容保留，新代码不读写。
   final int cookCount;
 
   /// 菜谱生命周期状态的稳定字符串值。
@@ -3711,6 +3711,560 @@ class RecipeLibrarySettingsCompanion
   }
 }
 
+class $PersonalRecipeConfigCacheTable extends PersonalRecipeConfigCache
+    with
+        TableInfo<
+          $PersonalRecipeConfigCacheTable,
+          PersonalRecipeConfigCacheData
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PersonalRecipeConfigCacheTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _categoriesJsonMeta = const VerificationMeta(
+    'categoriesJson',
+  );
+  @override
+  late final GeneratedColumn<String> categoriesJson = GeneratedColumn<String>(
+    'categories_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tagsJsonMeta = const VerificationMeta(
+    'tagsJson',
+  );
+  @override
+  late final GeneratedColumn<String> tagsJson = GeneratedColumn<String>(
+    'tags_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _difficultiesJsonMeta = const VerificationMeta(
+    'difficultiesJson',
+  );
+  @override
+  late final GeneratedColumn<String> difficultiesJson = GeneratedColumn<String>(
+    'difficulties_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _serverRevisionMeta = const VerificationMeta(
+    'serverRevision',
+  );
+  @override
+  late final GeneratedColumn<String> serverRevision = GeneratedColumn<String>(
+    'server_revision',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncPendingMeta = const VerificationMeta(
+    'syncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> syncPending = GeneratedColumn<bool>(
+    'sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _lastSyncedAtMeta = const VerificationMeta(
+    'lastSyncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+    'last_synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    categoriesJson,
+    tagsJson,
+    difficultiesJson,
+    serverRevision,
+    syncPending,
+    lastSyncedAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'personal_recipe_config_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PersonalRecipeConfigCacheData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('categories_json')) {
+      context.handle(
+        _categoriesJsonMeta,
+        categoriesJson.isAcceptableOrUnknown(
+          data['categories_json']!,
+          _categoriesJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_categoriesJsonMeta);
+    }
+    if (data.containsKey('tags_json')) {
+      context.handle(
+        _tagsJsonMeta,
+        tagsJson.isAcceptableOrUnknown(data['tags_json']!, _tagsJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagsJsonMeta);
+    }
+    if (data.containsKey('difficulties_json')) {
+      context.handle(
+        _difficultiesJsonMeta,
+        difficultiesJson.isAcceptableOrUnknown(
+          data['difficulties_json']!,
+          _difficultiesJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_difficultiesJsonMeta);
+    }
+    if (data.containsKey('server_revision')) {
+      context.handle(
+        _serverRevisionMeta,
+        serverRevision.isAcceptableOrUnknown(
+          data['server_revision']!,
+          _serverRevisionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sync_pending')) {
+      context.handle(
+        _syncPendingMeta,
+        syncPending.isAcceptableOrUnknown(
+          data['sync_pending']!,
+          _syncPendingMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+        _lastSyncedAtMeta,
+        lastSyncedAt.isAcceptableOrUnknown(
+          data['last_synced_at']!,
+          _lastSyncedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PersonalRecipeConfigCacheData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PersonalRecipeConfigCacheData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      categoriesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}categories_json'],
+      )!,
+      tagsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags_json'],
+      )!,
+      difficultiesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}difficulties_json'],
+      )!,
+      serverRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}server_revision'],
+      ),
+      syncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sync_pending'],
+      )!,
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_synced_at'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PersonalRecipeConfigCacheTable createAlias(String alias) {
+    return $PersonalRecipeConfigCacheTable(attachedDatabase, alias);
+  }
+}
+
+class PersonalRecipeConfigCacheData extends DataClass
+    implements Insertable<PersonalRecipeConfigCacheData> {
+  /// 单例主键，固定为 1。
+  final int id;
+
+  /// 按用户顺序保存的分类 JSON 数组。
+  final String categoriesJson;
+
+  /// 按用户顺序保存的标签 JSON 数组。
+  final String tagsJson;
+
+  /// 按用户顺序保存的难度 JSON 数组，首项为默认难度。
+  final String difficultiesJson;
+
+  /// 服务端配置修订号；尚未成功同步时为空。
+  final String? serverRevision;
+
+  /// 是否存在尚未上传成功的本地修改。
+  final bool syncPending;
+
+  /// 最近一次成功同步时间；从未同步时为空。
+  final DateTime? lastSyncedAt;
+
+  /// 缓存最近更新时间，用于诊断和备份合并。
+  final DateTime updatedAt;
+  const PersonalRecipeConfigCacheData({
+    required this.id,
+    required this.categoriesJson,
+    required this.tagsJson,
+    required this.difficultiesJson,
+    this.serverRevision,
+    required this.syncPending,
+    this.lastSyncedAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['categories_json'] = Variable<String>(categoriesJson);
+    map['tags_json'] = Variable<String>(tagsJson);
+    map['difficulties_json'] = Variable<String>(difficultiesJson);
+    if (!nullToAbsent || serverRevision != null) {
+      map['server_revision'] = Variable<String>(serverRevision);
+    }
+    map['sync_pending'] = Variable<bool>(syncPending);
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  PersonalRecipeConfigCacheCompanion toCompanion(bool nullToAbsent) {
+    return PersonalRecipeConfigCacheCompanion(
+      id: Value(id),
+      categoriesJson: Value(categoriesJson),
+      tagsJson: Value(tagsJson),
+      difficultiesJson: Value(difficultiesJson),
+      serverRevision: serverRevision == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverRevision),
+      syncPending: Value(syncPending),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory PersonalRecipeConfigCacheData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PersonalRecipeConfigCacheData(
+      id: serializer.fromJson<int>(json['id']),
+      categoriesJson: serializer.fromJson<String>(json['categoriesJson']),
+      tagsJson: serializer.fromJson<String>(json['tagsJson']),
+      difficultiesJson: serializer.fromJson<String>(json['difficultiesJson']),
+      serverRevision: serializer.fromJson<String?>(json['serverRevision']),
+      syncPending: serializer.fromJson<bool>(json['syncPending']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'categoriesJson': serializer.toJson<String>(categoriesJson),
+      'tagsJson': serializer.toJson<String>(tagsJson),
+      'difficultiesJson': serializer.toJson<String>(difficultiesJson),
+      'serverRevision': serializer.toJson<String?>(serverRevision),
+      'syncPending': serializer.toJson<bool>(syncPending),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  PersonalRecipeConfigCacheData copyWith({
+    int? id,
+    String? categoriesJson,
+    String? tagsJson,
+    String? difficultiesJson,
+    Value<String?> serverRevision = const Value.absent(),
+    bool? syncPending,
+    Value<DateTime?> lastSyncedAt = const Value.absent(),
+    DateTime? updatedAt,
+  }) => PersonalRecipeConfigCacheData(
+    id: id ?? this.id,
+    categoriesJson: categoriesJson ?? this.categoriesJson,
+    tagsJson: tagsJson ?? this.tagsJson,
+    difficultiesJson: difficultiesJson ?? this.difficultiesJson,
+    serverRevision: serverRevision.present
+        ? serverRevision.value
+        : this.serverRevision,
+    syncPending: syncPending ?? this.syncPending,
+    lastSyncedAt: lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  PersonalRecipeConfigCacheData copyWithCompanion(
+    PersonalRecipeConfigCacheCompanion data,
+  ) {
+    return PersonalRecipeConfigCacheData(
+      id: data.id.present ? data.id.value : this.id,
+      categoriesJson: data.categoriesJson.present
+          ? data.categoriesJson.value
+          : this.categoriesJson,
+      tagsJson: data.tagsJson.present ? data.tagsJson.value : this.tagsJson,
+      difficultiesJson: data.difficultiesJson.present
+          ? data.difficultiesJson.value
+          : this.difficultiesJson,
+      serverRevision: data.serverRevision.present
+          ? data.serverRevision.value
+          : this.serverRevision,
+      syncPending: data.syncPending.present
+          ? data.syncPending.value
+          : this.syncPending,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PersonalRecipeConfigCacheData(')
+          ..write('id: $id, ')
+          ..write('categoriesJson: $categoriesJson, ')
+          ..write('tagsJson: $tagsJson, ')
+          ..write('difficultiesJson: $difficultiesJson, ')
+          ..write('serverRevision: $serverRevision, ')
+          ..write('syncPending: $syncPending, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    categoriesJson,
+    tagsJson,
+    difficultiesJson,
+    serverRevision,
+    syncPending,
+    lastSyncedAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PersonalRecipeConfigCacheData &&
+          other.id == this.id &&
+          other.categoriesJson == this.categoriesJson &&
+          other.tagsJson == this.tagsJson &&
+          other.difficultiesJson == this.difficultiesJson &&
+          other.serverRevision == this.serverRevision &&
+          other.syncPending == this.syncPending &&
+          other.lastSyncedAt == this.lastSyncedAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PersonalRecipeConfigCacheCompanion
+    extends UpdateCompanion<PersonalRecipeConfigCacheData> {
+  final Value<int> id;
+  final Value<String> categoriesJson;
+  final Value<String> tagsJson;
+  final Value<String> difficultiesJson;
+  final Value<String?> serverRevision;
+  final Value<bool> syncPending;
+  final Value<DateTime?> lastSyncedAt;
+  final Value<DateTime> updatedAt;
+  const PersonalRecipeConfigCacheCompanion({
+    this.id = const Value.absent(),
+    this.categoriesJson = const Value.absent(),
+    this.tagsJson = const Value.absent(),
+    this.difficultiesJson = const Value.absent(),
+    this.serverRevision = const Value.absent(),
+    this.syncPending = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  PersonalRecipeConfigCacheCompanion.insert({
+    this.id = const Value.absent(),
+    required String categoriesJson,
+    required String tagsJson,
+    required String difficultiesJson,
+    this.serverRevision = const Value.absent(),
+    this.syncPending = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
+    required DateTime updatedAt,
+  }) : categoriesJson = Value(categoriesJson),
+       tagsJson = Value(tagsJson),
+       difficultiesJson = Value(difficultiesJson),
+       updatedAt = Value(updatedAt);
+  static Insertable<PersonalRecipeConfigCacheData> custom({
+    Expression<int>? id,
+    Expression<String>? categoriesJson,
+    Expression<String>? tagsJson,
+    Expression<String>? difficultiesJson,
+    Expression<String>? serverRevision,
+    Expression<bool>? syncPending,
+    Expression<DateTime>? lastSyncedAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (categoriesJson != null) 'categories_json': categoriesJson,
+      if (tagsJson != null) 'tags_json': tagsJson,
+      if (difficultiesJson != null) 'difficulties_json': difficultiesJson,
+      if (serverRevision != null) 'server_revision': serverRevision,
+      if (syncPending != null) 'sync_pending': syncPending,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  PersonalRecipeConfigCacheCompanion copyWith({
+    Value<int>? id,
+    Value<String>? categoriesJson,
+    Value<String>? tagsJson,
+    Value<String>? difficultiesJson,
+    Value<String?>? serverRevision,
+    Value<bool>? syncPending,
+    Value<DateTime?>? lastSyncedAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return PersonalRecipeConfigCacheCompanion(
+      id: id ?? this.id,
+      categoriesJson: categoriesJson ?? this.categoriesJson,
+      tagsJson: tagsJson ?? this.tagsJson,
+      difficultiesJson: difficultiesJson ?? this.difficultiesJson,
+      serverRevision: serverRevision ?? this.serverRevision,
+      syncPending: syncPending ?? this.syncPending,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (categoriesJson.present) {
+      map['categories_json'] = Variable<String>(categoriesJson.value);
+    }
+    if (tagsJson.present) {
+      map['tags_json'] = Variable<String>(tagsJson.value);
+    }
+    if (difficultiesJson.present) {
+      map['difficulties_json'] = Variable<String>(difficultiesJson.value);
+    }
+    if (serverRevision.present) {
+      map['server_revision'] = Variable<String>(serverRevision.value);
+    }
+    if (syncPending.present) {
+      map['sync_pending'] = Variable<bool>(syncPending.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PersonalRecipeConfigCacheCompanion(')
+          ..write('id: $id, ')
+          ..write('categoriesJson: $categoriesJson, ')
+          ..write('tagsJson: $tagsJson, ')
+          ..write('difficultiesJson: $difficultiesJson, ')
+          ..write('serverRevision: $serverRevision, ')
+          ..write('syncPending: $syncPending, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3724,6 +4278,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $RecipeCollectionMembersTable(this);
   late final $RecipeLibrarySettingsTable recipeLibrarySettings =
       $RecipeLibrarySettingsTable(this);
+  late final $PersonalRecipeConfigCacheTable personalRecipeConfigCache =
+      $PersonalRecipeConfigCacheTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3736,6 +4292,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     recipeCollections,
     recipeCollectionMembers,
     recipeLibrarySettings,
+    personalRecipeConfigCache,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6714,6 +7271,286 @@ typedef $$RecipeLibrarySettingsTableProcessedTableManager =
       RecipeLibrarySetting,
       PrefetchHooks Function()
     >;
+typedef $$PersonalRecipeConfigCacheTableCreateCompanionBuilder =
+    PersonalRecipeConfigCacheCompanion Function({
+      Value<int> id,
+      required String categoriesJson,
+      required String tagsJson,
+      required String difficultiesJson,
+      Value<String?> serverRevision,
+      Value<bool> syncPending,
+      Value<DateTime?> lastSyncedAt,
+      required DateTime updatedAt,
+    });
+typedef $$PersonalRecipeConfigCacheTableUpdateCompanionBuilder =
+    PersonalRecipeConfigCacheCompanion Function({
+      Value<int> id,
+      Value<String> categoriesJson,
+      Value<String> tagsJson,
+      Value<String> difficultiesJson,
+      Value<String?> serverRevision,
+      Value<bool> syncPending,
+      Value<DateTime?> lastSyncedAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$PersonalRecipeConfigCacheTableFilterComposer
+    extends Composer<_$AppDatabase, $PersonalRecipeConfigCacheTable> {
+  $$PersonalRecipeConfigCacheTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoriesJson => $composableBuilder(
+    column: $table.categoriesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tagsJson => $composableBuilder(
+    column: $table.tagsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get difficultiesJson => $composableBuilder(
+    column: $table.difficultiesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get serverRevision => $composableBuilder(
+    column: $table.serverRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PersonalRecipeConfigCacheTableOrderingComposer
+    extends Composer<_$AppDatabase, $PersonalRecipeConfigCacheTable> {
+  $$PersonalRecipeConfigCacheTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoriesJson => $composableBuilder(
+    column: $table.categoriesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tagsJson => $composableBuilder(
+    column: $table.tagsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get difficultiesJson => $composableBuilder(
+    column: $table.difficultiesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get serverRevision => $composableBuilder(
+    column: $table.serverRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PersonalRecipeConfigCacheTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PersonalRecipeConfigCacheTable> {
+  $$PersonalRecipeConfigCacheTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get categoriesJson => $composableBuilder(
+    column: $table.categoriesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tagsJson =>
+      $composableBuilder(column: $table.tagsJson, builder: (column) => column);
+
+  GeneratedColumn<String> get difficultiesJson => $composableBuilder(
+    column: $table.difficultiesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get serverRevision => $composableBuilder(
+    column: $table.serverRevision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$PersonalRecipeConfigCacheTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PersonalRecipeConfigCacheTable,
+          PersonalRecipeConfigCacheData,
+          $$PersonalRecipeConfigCacheTableFilterComposer,
+          $$PersonalRecipeConfigCacheTableOrderingComposer,
+          $$PersonalRecipeConfigCacheTableAnnotationComposer,
+          $$PersonalRecipeConfigCacheTableCreateCompanionBuilder,
+          $$PersonalRecipeConfigCacheTableUpdateCompanionBuilder,
+          (
+            PersonalRecipeConfigCacheData,
+            BaseReferences<
+              _$AppDatabase,
+              $PersonalRecipeConfigCacheTable,
+              PersonalRecipeConfigCacheData
+            >,
+          ),
+          PersonalRecipeConfigCacheData,
+          PrefetchHooks Function()
+        > {
+  $$PersonalRecipeConfigCacheTableTableManager(
+    _$AppDatabase db,
+    $PersonalRecipeConfigCacheTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PersonalRecipeConfigCacheTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$PersonalRecipeConfigCacheTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$PersonalRecipeConfigCacheTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> categoriesJson = const Value.absent(),
+                Value<String> tagsJson = const Value.absent(),
+                Value<String> difficultiesJson = const Value.absent(),
+                Value<String?> serverRevision = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => PersonalRecipeConfigCacheCompanion(
+                id: id,
+                categoriesJson: categoriesJson,
+                tagsJson: tagsJson,
+                difficultiesJson: difficultiesJson,
+                serverRevision: serverRevision,
+                syncPending: syncPending,
+                lastSyncedAt: lastSyncedAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String categoriesJson,
+                required String tagsJson,
+                required String difficultiesJson,
+                Value<String?> serverRevision = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
+                required DateTime updatedAt,
+              }) => PersonalRecipeConfigCacheCompanion.insert(
+                id: id,
+                categoriesJson: categoriesJson,
+                tagsJson: tagsJson,
+                difficultiesJson: difficultiesJson,
+                serverRevision: serverRevision,
+                syncPending: syncPending,
+                lastSyncedAt: lastSyncedAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PersonalRecipeConfigCacheTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PersonalRecipeConfigCacheTable,
+      PersonalRecipeConfigCacheData,
+      $$PersonalRecipeConfigCacheTableFilterComposer,
+      $$PersonalRecipeConfigCacheTableOrderingComposer,
+      $$PersonalRecipeConfigCacheTableAnnotationComposer,
+      $$PersonalRecipeConfigCacheTableCreateCompanionBuilder,
+      $$PersonalRecipeConfigCacheTableUpdateCompanionBuilder,
+      (
+        PersonalRecipeConfigCacheData,
+        BaseReferences<
+          _$AppDatabase,
+          $PersonalRecipeConfigCacheTable,
+          PersonalRecipeConfigCacheData
+        >,
+      ),
+      PersonalRecipeConfigCacheData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6735,4 +7572,9 @@ class $AppDatabaseManager {
       );
   $$RecipeLibrarySettingsTableTableManager get recipeLibrarySettings =>
       $$RecipeLibrarySettingsTableTableManager(_db, _db.recipeLibrarySettings);
+  $$PersonalRecipeConfigCacheTableTableManager get personalRecipeConfigCache =>
+      $$PersonalRecipeConfigCacheTableTableManager(
+        _db,
+        _db.personalRecipeConfigCache,
+      );
 }

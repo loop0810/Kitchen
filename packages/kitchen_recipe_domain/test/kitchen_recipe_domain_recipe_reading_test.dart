@@ -207,8 +207,6 @@ RecipeEntity _recipe({
       templateVersion: 1,
     ),
     isFavorite: false,
-    lastCookedAt: null,
-    cookCount: 0,
     status: status,
     coverColor: 0xFFF4B9A8,
     createdAt: now,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_design_system/kitchen_design_system.dart';
 
 import '../providers/kitchen_profile_visual_style_provider.dart';
+import 'kitchen_profile_personal_recipe_page.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -52,6 +53,20 @@ class ProfilePage extends ConsumerWidget {
                         .setStyle(value.first),
                   ),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.tune_rounded),
+              title: const Text('个性化食谱'),
+              subtitle: const Text('管理分类、标签与难度'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const PersonalRecipePage(),
+                ),
               ),
             ),
           ),

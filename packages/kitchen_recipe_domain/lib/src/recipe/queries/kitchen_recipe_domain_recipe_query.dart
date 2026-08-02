@@ -1,13 +1,7 @@
-enum RecipeStatusFilter { all, favorite, cooked, incomplete }
+enum RecipeStatusFilter { all, favorite, incomplete }
 
 /// 菜谱库支持的稳定排序方式。
-enum RecipeSortOrder {
-  recentlyUpdated,
-  recentlySaved,
-  recentlyCooked,
-  mostCooked,
-  title,
-}
+enum RecipeSortOrder { recentlyUpdated, recentlySaved, title }
 
 /// 列表查询的数据范围，避免页面用生命周期字符串拼装查询。
 enum RecipeListScope { library, trash }
