@@ -422,4 +422,96 @@ void main() {
 
     expect(draft.ingredients.value, ['鸭掌 2斤', '姜 10片', '红辣椒 25克', '桂皮 2块']);
   });
+
+  test('食材准备和带份量的食材清单会进入食材分区且不抢占菜名', () {
+    for (final heading in ['食材准备', '准备食材', '食材清单（1人份）']) {
+      final draft = const LocalRecipeStructurerService().structure(
+        text:
+            '''清炒西兰花
+$heading
+西兰花
+300g
+蒜末
+适量
+做法步骤
+① 西兰花切小朵，焯水备用
+② 热锅下油，爆香蒜末
+③ 倒入西兰花翻炒
+④ 加盐调味，炒匀即可出锅''',
+        source: const SourceSnapshot(originalText: ''),
+      );
+
+      expect(draft.title.value, '清炒西兰花', reason: heading);
+      expect(draft.ingredients.value, ['西兰花 300g', '蒜末 适量'], reason: heading);
+      expect(draft.steps.value, hasLength(4), reason: heading);
+    }
+  });
+
+  test('装饰分区和轻微误识别的小贴士能截断步骤后的推广正文', () {
+    final draft = const LocalRecipeStructurerService().structure(
+      text: '''1岁+宝宝辅食｜酸甜豆腐抱蛋
+【 食材清单】
+嫩豆腐｜鸡蛋｜宝宝番茄酱｜宝宝酱油｜玉米淀粉
+【Q制作步骤】
+工两个鸡蛋打散，豆腐切小块
+2平底锅薄刷一层油，倒入豆腐蛋液
+3小火慢煎到底部定型
+5|小火焖煮到汤汁浓稠
+产小贴士：优先选嫩豆腐，口感更软嫩
+搭配主食：最近新囤的杂粮饭团
+微波炉叮2分钟就搞定''',
+      source: const SourceSnapshot(originalText: ''),
+    );
+
+    expect(draft.title.value, '1岁+宝宝辅食｜酸甜豆腐抱蛋');
+    expect(draft.ingredients.value, ['嫩豆腐', '鸡蛋', '宝宝番茄酱', '宝宝酱油', '玉米淀粉']);
+    expect(draft.steps.value, [
+      '两个鸡蛋打散，豆腐切小块',
+      '平底锅薄刷一层油，倒入豆腐蛋液',
+      '小火慢煎到底部定型',
+      '小火焖煮到汤汁浓稠',
+    ]);
+  });
+
+  test('分区标题、搜索建议和平台控件不能成为菜名', () {
+    final draft = const LocalRecipeStructurerService().structure(
+      text: '''做法步骤
+|100道减脂餐食谱合集
+2/7
+说点什么.
+收藏
+评论''',
+      source: const SourceSnapshot(originalText: ''),
+    );
+
+    expect(draft.title.value, isEmpty);
+    expect(draft.quality, RecipeDraftQuality.uncertain);
+  });
+
+  test('短烹饪方式菜名优先于动作残句和状态栏文字', () {
+    final draft = const LocalRecipeStructurerService().structure(
+      text: '''55.1 KB/s
+翻炒即回
+炒油菜
+Q猜你想搜
+100道减脂餐食谱合集''',
+      source: const SourceSnapshot(originalText: ''),
+    );
+
+    expect(draft.title.value, '炒油菜');
+  });
+
+  test('多项竖线食材列表不会抢占宝宝辅食菜名', () {
+    final draft = const LocalRecipeStructurerService().structure(
+      text: '''1岁+宝宝辅食｜酸甜豆腐抱蛋（
+食材
+嫩豆腐｜鸡蛋｜宝宝番茄酱｜宝宝酱油｜玉米淀粉
+步骤
+1 两个鸡蛋打散，豆腐切小块''',
+      source: const SourceSnapshot(originalText: ''),
+    );
+
+    expect(draft.title.value, '1岁+宝宝辅食｜酸甜豆腐抱蛋');
+    expect(draft.ingredients.value, hasLength(5));
+  });
 }
