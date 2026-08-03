@@ -117,3 +117,23 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+
+# Python/FastAPI server
+server/.venv/
+server/.uv-cache/
+server/.pytest_cache/
+server/.mypy_cache/
+server/.ruff_cache/
+server/.coverage
+server/htmlcov/
+server/dist/
+server/*.egg-info/
+server/.env
+server/.env.*
+!server/.env.example
+server/.postgres-data/
+server/postgres-data/
+server/*.pem
+server/*.key
+server/*.p12
+!server/uv.lock

@@ -8,7 +8,7 @@
 
 - 产品目标和页面行为。
 - Flutter 缓存、Riverpod 或 Drift 实现。
-- Vapor Controller、ORM 和部署实现。
+- FastAPI handler、ORM 和部署实现。
 
 ## 契约目录
 

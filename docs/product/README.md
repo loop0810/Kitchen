@@ -7,7 +7,7 @@
 ## 不负责
 
 - Flutter Widget、状态管理和本地数据库实现。
-- Vapor 路由、数据库表和腾讯云部署。
+- FastAPI 路由、数据库表和腾讯云部署。
 - HTTP 字段与错误格式；这些由 `docs/contracts` 定义。
 
 ## 阅读路由

@@ -6,10 +6,10 @@
 
 | 分区 | 权威范围 | 不负责 |
 | --- | --- | --- |
-| [`product/`](product/README.md) | 产品目标、当前版本范围、用户行为和菜谱领域需求 | Flutter、Vapor 或部署实现 |
+| [`product/`](product/README.md) | 产品目标、当前版本范围、用户行为和菜谱领域需求 | Flutter、FastAPI 或部署实现 |
 | [`contracts/`](contracts/README.md) | 客户端与服务端共同依赖的 API、标识符、错误、幂等和同步语义 | 单端内部实现 |
 | [`client/`](client/README.md) | Flutter 架构、端侧服务、视觉和工程工作流 | 服务端内部实现 |
-| [`server/`](server/README.md) | Swift/Vapor 架构、模块、数据库、安全和运维 | Flutter 页面与端侧细节 |
+| [`server/`](server/README.md) | Python/FastAPI 架构、模块、数据库、安全和运维 | Flutter 页面与端侧细节 |
 | [`learning/`](learning/README.md) | 完成迭代后的学习复盘和代码导航 | 权威需求或接口定义 |
 | [`decisions/`](decisions/README.md) | 已确认且需要长期保留的架构与产品决策及原因 | 任务进度 |
 

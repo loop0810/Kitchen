@@ -2,7 +2,7 @@
 
 ## 命名
 
-文件使用三位递增序号和主题：`NNN-kebab-case-topic.md`，例如 `001-vapor-bootstrap.md`。序号表示学习顺序，不替代 OpenSpec change 名称。
+文件使用三位递增序号和主题：`NNN-kebab-case-topic.md`，例如 `001-python-fastapi-bootstrap.md`。序号表示学习顺序，不替代 OpenSpec change 名称。
 
 ## 完成条件
 

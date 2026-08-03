@@ -2,7 +2,7 @@
 
 ## 先确定任务范围
 
-- 本仓库同时维护 Flutter 客户端和未来 Swift/Vapor 服务端；当前客户端位于 `client/`，服务端尚未初始化。
+- 本仓库同时维护 `client/` 中的 Flutter 客户端和 `server/` 中的 Python/FastAPI 服务端。
 - 开始任务先阅读 `docs/README.md` 的任务矩阵，只加载默认文档；禁止默认遍历整个 `docs/`。
 - 修改 `client/**` 时继续阅读 `client/AGENTS.md` 和命中目录中的专项 `AGENTS.md`。
 - 修改 `server/**` 时继续阅读 `server/AGENTS.md`；服务端内部任务不默认读取客户端、Figma 或完整产品文档。
