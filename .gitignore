@@ -32,6 +32,7 @@ analysis_benchmark.json
 .packages.generated
 
 # Flutter/Dart/Pub related
+!client/pubspec.lock
 **/doc/api/
 .dart_tool/
 .flutter-plugins
@@ -124,10 +125,13 @@ server/.uv-cache/
 server/.pytest_cache/
 server/.mypy_cache/
 server/.ruff_cache/
+server/**/__pycache__/
 server/.coverage
+server/.coverage.*
+server/coverage.xml
 server/htmlcov/
 server/dist/
-server/*.egg-info/
+server/**/*.egg-info/
 server/.env
 server/.env.*
 !server/.env.example
