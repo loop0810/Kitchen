@@ -34,6 +34,24 @@ class Settings(BaseSettings):
         default=None,
         validation_alias="LOG_LEVEL",
     )
+    auth_signing_secret: SecretStr = Field(
+        default=SecretStr("development-only-auth-signing-secret"),
+        validation_alias="AUTH_SIGNING_SECRET",
+    )
+    access_token_ttl_seconds: int = Field(
+        default=900,
+        ge=60,
+        le=86_400,
+        validation_alias="ACCESS_TOKEN_TTL_SECONDS",
+    )
+    refresh_token_ttl_seconds: int = Field(
+        default=2_592_000,
+        ge=3_600,
+        le=31_536_000,
+        validation_alias="REFRESH_TOKEN_TTL_SECONDS",
+    )
+    apple_client_id: str | None = Field(default=None, validation_alias="APPLE_CLIENT_ID")
+    apple_issuer: str = Field(default="https://appleid.apple.com", validation_alias="APPLE_ISSUER")
 
     @field_validator("database_url", mode="before")
     @classmethod

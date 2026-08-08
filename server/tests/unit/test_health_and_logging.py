@@ -71,6 +71,17 @@ def test_ready_succeeds_when_dependency_is_ready(test_settings: Settings) -> Non
     assert response.json() == {"status": "ok"}
 
 
+def test_apple_flow_is_registered_without_exposing_credentials(test_settings: Settings) -> None:
+    with TestClient(make_app(test_settings)) as client:
+        response = client.post(
+            "/v1/auth/apple/flow",
+            json={"flowId": "flow-1234567890123456", "nonce": "nonce-1234567890123456"},
+        )
+
+    assert response.status_code == 204
+    assert response.content == b""
+
+
 def test_request_id_accepts_only_controlled_values(test_settings: Settings) -> None:
     with TestClient(make_app(test_settings)) as client:
         accepted = client.get("/health/live", headers={"X-Request-ID": "device_123-ok"})

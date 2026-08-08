@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_design_system/kitchen_design_system.dart';
+import 'package:kitchen_auth_domain/kitchen_auth_domain.dart';
 
 import '../providers/kitchen_profile_personal_recipe_config_provider.dart';
 import '../providers/kitchen_profile_visual_style_provider.dart';
@@ -19,6 +20,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final style = ref.watch(visualStyleProvider);
+    // 视觉风格测试和极简嵌入场景可以不装配账号服务；真正需要本地资料操作时，
+    // 仍由对应入口读取组合根依赖并给出明确错误。
+    ProfileDependencies? dependencies;
+    try {
+      dependencies = ref.read(profileDependenciesProvider);
+    } catch (_) {
+      dependencies = null;
+    }
+    final authRepository = dependencies?.authSessionRepository;
+    final signInWithApple = dependencies?.signInWithApple;
+    final session = authRepository == null
+        ? const AsyncValue<AuthSessionState>.data(AuthSessionState.anonymous())
+        : ref.watch(_profileSessionProvider(authRepository));
     return Scaffold(
       appBar: AppBar(title: const Text('我的')),
       body: ListView(
@@ -29,6 +43,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           AppSpacing.s24,
         ),
         children: [
+          _AccountCard(
+            session: session,
+            repository: authRepository,
+            signInWithApple: signInWithApple,
+          ),
+          const SizedBox(height: AppSpacing.s12),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.s16),
@@ -124,6 +144,57 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount(
+    BuildContext context,
+    AuthSessionRepository repository,
+  ) async {
+    var clearLocalData = false;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('删除账号'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('删除账号会撤销全部设备会话并进入服务端清理流程。此操作与清除本机菜谱相互独立。'),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: clearLocalData,
+                onChanged: (value) =>
+                    setState(() => clearLocalData = value ?? false),
+                title: const Text('同时清除本机资料'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('确认删除'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await repository.deleteAccount(clearLocalData: clearLocalData);
+      if (clearLocalData) {
+        await ref.read(profileDependenciesProvider).clearLocalData?.call();
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('账号删除请求失败，请稍后重试。')));
+      }
+    }
   }
 
   Future<void> _showLocalDataDialog(BuildContext context, WidgetRef ref) async {
@@ -279,5 +350,179 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ],
       ),
     );
+  }
+}
+
+final _profileSessionProvider = StreamProvider.autoDispose
+    .family<AuthSessionState, AuthSessionRepository>(
+      (ref, repository) => repository.watch(),
+    );
+
+class _AccountCard extends StatelessWidget {
+  const _AccountCard({
+    required this.session,
+    required this.repository,
+    required this.signInWithApple,
+  });
+
+  final AsyncValue<AuthSessionState> session;
+  final AuthSessionRepository? repository;
+  final Future<bool> Function()? signInWithApple;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = session.valueOrNull;
+    final status = value?.status ?? AuthSessionStatus.authenticating;
+    final title = switch (status) {
+      AuthSessionStatus.authenticated || AuthSessionStatus.refreshing => '已登录',
+      AuthSessionStatus.authenticating => '正在恢复会话',
+      AuthSessionStatus.invalid => '会话已失效',
+      AuthSessionStatus.anonymous => '未登录',
+    };
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.account_circle_outlined),
+            title: Text(title),
+            subtitle: Text(value?.userId ?? '登录可用于账号与设备会话管理，本地菜谱无需登录。'),
+          ),
+          if (signInWithApple != null &&
+              status != AuthSessionStatus.authenticated)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s16,
+                0,
+                AppSpacing.s16,
+                AppSpacing.s12,
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.apple),
+                  label: const Text('通过 Apple 登录'),
+                  onPressed: () async {
+                    final success = await signInWithApple!();
+                    if (!context.mounted || success) return;
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Apple 登录未完成，本地功能仍可继续使用。'),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ),
+          if (repository != null &&
+              status == AuthSessionStatus.authenticated) ...[
+            const Divider(height: AppSpacing.s1, indent: AppSpacing.s56),
+            _AppleIdentitySection(repository: repository!),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('退出当前设备'),
+              onTap: repository!.signOutCurrentDevice,
+            ),
+            ListTile(
+              leading: const Icon(Icons.devices),
+              title: const Text('退出全部设备'),
+              onTap: repository!.signOutAllDevices,
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('删除账号'),
+              onTap: () =>
+                  (context.findAncestorStateOfType<_ProfilePageState>())
+                      ?._confirmDeleteAccount(context, repository!),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 账号设置只展示服务端确认过的 Apple 身份；解绑失败时保留当前状态并提示原因。
+class _AppleIdentitySection extends StatefulWidget {
+  const _AppleIdentitySection({required this.repository});
+
+  final AuthSessionRepository repository;
+
+  @override
+  State<_AppleIdentitySection> createState() => _AppleIdentitySectionState();
+}
+
+class _AppleIdentitySectionState extends State<_AppleIdentitySection> {
+  late Future<List<AuthIdentitySummary>> _identities;
+
+  @override
+  void initState() {
+    super.initState();
+    _identities = widget.repository.listIdentities();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<AuthIdentitySummary>>(
+      future: _identities,
+      builder: (context, snapshot) {
+        final apple = snapshot.data
+            ?.where((identity) => identity.provider == 'apple')
+            .firstOrNull;
+        if (apple == null) return const SizedBox.shrink();
+        final detail = apple.email == null || apple.email!.isEmpty
+            ? 'Apple 身份已绑定'
+            : 'Apple 身份已绑定 · ${apple.email}';
+        return ListTile(
+          leading: const Icon(Icons.apple),
+          title: const Text('Apple 登录'),
+          subtitle: Text(apple.status == 'active' ? detail : 'Apple 身份已撤销'),
+          trailing: TextButton(
+            onPressed: apple.status != 'active'
+                ? null
+                : () => _unbind(context, apple),
+            child: const Text('解绑'),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _unbind(
+    BuildContext context,
+    AuthIdentitySummary identity,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('解绑 Apple 登录？'),
+        content: const Text('解绑后不能再使用当前 Apple 身份登录。若这是账号最后一个登录身份，服务端会拒绝解绑。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('确认解绑'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await widget.repository.unbindIdentity(identity.id);
+      if (!mounted) return;
+      setState(() => _identities = widget.repository.listIdentities());
+      ScaffoldMessenger.of(
+        this.context,
+      ).showSnackBar(const SnackBar(content: Text('Apple 登录已解绑。')));
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('解绑失败，可能需要近期重新登录或保留至少一个登录身份。')),
+      );
+    }
   }
 }

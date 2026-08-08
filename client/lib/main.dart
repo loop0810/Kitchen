@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kitchen_auth_domain/kitchen_auth_domain.dart';
 import 'package:kitchen_recipe_data/kitchen_recipe_data.dart';
 import 'package:kitchen_import/kitchen_import.dart';
 import 'package:kitchen_import_data/kitchen_import_data.dart';
@@ -13,6 +14,8 @@ import 'package:kitchen_recipe_library/kitchen_recipe_library.dart';
 import 'package:kitchen_profile/kitchen_profile.dart';
 import 'package:kitchen_notes/src/backup/kitchen_notes_local_backup_service.dart';
 import 'package:kitchen_notes/src/kitchen_notes_app.dart';
+import 'package:kitchen_notes/src/auth/kitchen_notes_auth_session_repository.dart';
+import 'package:kitchen_notes/src/auth/kitchen_notes_apple_sign_in.dart';
 
 void main() {
   // 数据库连接依赖 Flutter 插件提供的应用目录，因此要先初始化绑定。
@@ -36,6 +39,8 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
   late final ImportDataModule _importDataModule;
   late final ImportPipeline _importPipeline;
   late final KitchenNotesLocalBackupService _backupService;
+  late final KitchenNotesAuthSessionRepository _authSessionRepository;
+  late final KitchenNotesAppleSignInCoordinator _appleSignInCoordinator;
   var _isConsumingAndroidShares = false;
 
   @override
@@ -53,6 +58,15 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
       recipeDataModule: _recipeDataModule,
       importDataModule: _importDataModule,
     );
+    _authSessionRepository = KitchenNotesAuthSessionRepository(
+      secureStore: FlutterSecureRefreshTokenStore(),
+      gateway: _UnconfiguredAuthGateway(),
+    );
+    _appleSignInCoordinator = KitchenNotesAppleSignInCoordinator(
+      gateway: _UnconfiguredAppleAuthGateway(),
+      sessionRepository: _authSessionRepository,
+    );
+    unawaited(_authSessionRepository.restore());
     WidgetsBinding.instance.addObserver(this);
     _importDataModule.androidShareAdapter.setOnShareAvailable(
       _consumePendingAndroidShares,
@@ -137,6 +151,12 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
           ProfileDependencies(
             personalRecipeConfigRepository:
                 _recipeDataModule.personalRecipeConfigRepository,
+            authSessionRepository: _authSessionRepository,
+            signInWithApple: Platform.isIOS
+                ? () async =>
+                      (await _appleSignInCoordinator.signIn()).status ==
+                      KitchenNotesAppleSignInStatus.authenticated
+                : null,
             clearLocalData: () async {
               await _importDataModule.clearLocalData();
               await _recipeDataModule.clearLocalData();
@@ -156,6 +176,61 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
       ],
       child: const KitchenNotesApp(),
     );
+  }
+}
+
+/// 具体 Apple/手机号/微信网关接入前，恢复失败会清除无效凭证并回到失效状态。
+final class _UnconfiguredAuthGateway implements KitchenNotesAuthGateway {
+  Never _unconfigured() => throw StateError('auth_gateway_not_configured');
+
+  @override
+  Future<AuthSessionTokens> authenticate(VerifiedAuthIdentity identity) async =>
+      _unconfigured();
+
+  @override
+  Future<AuthSessionTokens> refresh(String refreshToken) async =>
+      _unconfigured();
+
+  @override
+  Future<void> signOutCurrent(String sessionId, String accessToken) async =>
+      _unconfigured();
+
+  @override
+  Future<void> signOutAll(String accessToken) async => _unconfigured();
+
+  @override
+  Future<void> deleteAccount(
+    String accessToken, {
+    required bool clearLocalData,
+  }) async => _unconfigured();
+
+  @override
+  Future<List<AuthIdentitySummary>> listIdentities(String accessToken) async =>
+      _unconfigured();
+
+  @override
+  Future<void> unbindIdentity(String accessToken, String identityId) async =>
+      _unconfigured();
+}
+
+final class _UnconfiguredAppleAuthGateway
+    implements KitchenNotesAppleAuthGateway {
+  @override
+  Future<void> begin({required String flowId, required String nonce}) async {
+    throw StateError('auth_gateway_not_configured');
+  }
+
+  @override
+  Future<AuthSessionTokens> exchange({
+    required String identityToken,
+    required String authorizationCode,
+    required String nonce,
+    required String flowId,
+    String? email,
+    String? givenName,
+    String? familyName,
+  }) async {
+    throw StateError('auth_gateway_not_configured');
   }
 }
 

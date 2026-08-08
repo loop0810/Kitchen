@@ -23,6 +23,7 @@ environment:
 
 workspace:
   - packages/kitchen_app_core
+  - packages/kitchen_auth_domain
   - packages/kitchen_design_system
   - packages/kitchen_home
   - packages/kitchen_import
@@ -58,6 +59,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
   go_router: ^17.3.0
   kitchen_app_core: ^0.1.0
+  kitchen_auth_domain: ^0.1.0
   kitchen_design_system: ^0.1.0
   kitchen_home: ^0.1.0
   kitchen_import: ^0.1.0
@@ -72,6 +74,9 @@ dependencies:
   # path_provider_foundation 间接使用该运行库。9.4.1 的旧 Native Asset 曾在
   # 启动时无法解析 Foundation 的 NSArray，因此显式保持已修复的新版本下限。
   objective_c: ^9.5.0
+  flutter_secure_storage: ^11.0.0
+  sign_in_with_apple: ^8.1.0
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

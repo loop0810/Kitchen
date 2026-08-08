@@ -24,14 +24,14 @@ lint:
 	$(UV) run ruff check .
 
 typecheck:
-	$(UV) run mypy src tests
+	$(UV) run python -m mypy src tests
 
 test:
-	$(UV) run pytest -m "not integration"
+	$(UV) run python -m pytest -m "not integration"
 
 integration-test:
 	docker compose up -d --wait postgres-test
-	APP_ENV=testing DATABASE_URL=$(TEST_DATABASE_URL) $(UV) run pytest -m integration
+	APP_ENV=testing DATABASE_URL=$(TEST_DATABASE_URL) $(UV) run python -m pytest -m integration
 
 verify: lock-check format-check typecheck test
 

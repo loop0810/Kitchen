@@ -12,6 +12,7 @@ dependencies:
     sdk: flutter
   flutter_riverpod: ^2.6.1
   kitchen_app_core: ^0.1.0
+  kitchen_auth_domain: ^0.1.0
   kitchen_design_system: ^0.1.0
   kitchen_recipe_domain: ^0.1.0
 
