@@ -28,6 +28,26 @@ void main() {
     expect(results.map((recipe) => recipe.title), contains('番茄炒蛋'));
   });
 
+  test('逻辑快照恢复菜谱关系且不携带设备路径或同步状态', () async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+
+    final snapshot = await database.exportLogicalData();
+    final configs = snapshot['personalRecipeConfigs'] as List<dynamic>;
+    expect(snapshot['recipes'], isNotEmpty);
+    expect(configs, isA<List<dynamic>>());
+    expect(snapshot.toString(), isNot(contains('kitchen_notes.sqlite')));
+
+    await database.clearLocalData();
+    expect(await database.select(database.recipes).get(), isEmpty);
+    await database.restoreLogicalData(snapshot);
+    expect(await database.select(database.recipes).get(), hasLength(3));
+    expect(
+      await database.select(database.recipeCollectionMembers).get(),
+      isEmpty,
+    );
+  });
+
   test('schema v1 菜谱迁移后获得模板字段并移除食材分组', () async {
     final directory = await Directory.systemTemp.createTemp(
       'kitchen_notes_migration_',
@@ -114,7 +134,7 @@ void main() {
       final version = await database
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.read<int>('user_version'), 7);
+      expect(version.read<int>('user_version'), 8);
       expect(recipe.importTaskId, isNull);
       expect(recipe.sourceOriginalText, isNull);
       expect(recipe.deletedAt, isNotNull);
@@ -142,6 +162,45 @@ void main() {
       await database.close();
       await directory.delete(recursive: true);
     }
+  });
+
+  test('schema v7 单例配置迁移到匿名本机且不保留 pending', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'kitchen_notes_config_migration_',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final file = File('${directory.path}/v7.sqlite');
+    final legacy = sqlite.sqlite3.open(file.path);
+    legacy.execute('''
+CREATE TABLE personal_recipe_config_cache (
+  id INTEGER NOT NULL PRIMARY KEY,
+  categories_json TEXT NOT NULL,
+  tags_json TEXT NOT NULL,
+  difficulties_json TEXT NOT NULL,
+  server_revision TEXT,
+  sync_pending INTEGER NOT NULL DEFAULT 0,
+  last_synced_at INTEGER,
+  updated_at INTEGER NOT NULL
+)
+''');
+    legacy.execute('''
+INSERT INTO personal_recipe_config_cache
+  (id, categories_json, tags_json, difficulties_json, server_revision,
+   sync_pending, updated_at)
+VALUES (1, '["旧分类"]', '[]', '["简单"]', 'old-revision', 1, 0)
+''');
+    legacy.execute('PRAGMA user_version = 7');
+    legacy.close();
+
+    final database = AppDatabase.forTesting(NativeDatabase(file));
+    addTearDown(database.close);
+    final row = await (database.select(
+      database.personalRecipeConfigCache,
+    )..where((item) => item.namespace.equals('device:anonymous'))).getSingle();
+
+    expect(row.categoriesJson, '["旧分类"]');
+    expect(row.serverRevision, isNull);
+    expect(row.syncPending, isFalse);
   });
 
   test('schema v5 迁移按旧视觉顺序生成连续成员位置', () async {

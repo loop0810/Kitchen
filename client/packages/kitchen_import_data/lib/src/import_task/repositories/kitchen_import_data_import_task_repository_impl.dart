@@ -538,6 +538,14 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
   }
 
   @override
+  Future<void> deleteAll() async {
+    final tasks = await _database.select(_database.importTasks).get();
+    for (final row in tasks) {
+      await delete(row.id);
+    }
+  }
+
+  @override
   Future<void> markSaved({required String taskId, required String recipeId}) {
     return _write(
       taskId,

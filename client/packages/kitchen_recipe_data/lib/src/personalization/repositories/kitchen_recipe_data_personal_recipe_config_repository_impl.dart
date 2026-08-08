@@ -7,9 +7,16 @@ import '../../database/kitchen_recipe_data_app_database.dart';
 
 class PersonalRecipeConfigRepositoryImpl
     implements PersonalRecipeConfigRepository {
-  PersonalRecipeConfigRepositoryImpl(this._database, {this.remoteGateway});
+  PersonalRecipeConfigRepositoryImpl(
+    this._database, {
+    this.namespace = PersonalRecipeConfigNamespace.anonymous,
+    this.remoteGateway,
+  });
 
   final AppDatabase _database;
+
+  /// 此实例绑定的目标命名空间；切换账号时由组合根创建新的实例。
+  final PersonalRecipeConfigNamespace namespace;
 
   /// 账号服务适配口；未配置时缓存仍可完整离线工作，但不会伪报同步成功。
   final PersonalRecipeConfigRemoteGateway? remoteGateway;
@@ -17,7 +24,7 @@ class PersonalRecipeConfigRepositoryImpl
   @override
   Stream<PersonalRecipeConfigEntity> watchCached() {
     return (_database.select(_database.personalRecipeConfigCache)
-          ..where((row) => row.id.equals(1)))
+          ..where((row) => row.namespace.equals(namespace.value)))
         .watchSingleOrNull()
         .map(_toDomainOrDefault);
   }
@@ -26,7 +33,7 @@ class PersonalRecipeConfigRepositoryImpl
   Future<PersonalRecipeConfigEntity> getCached() async {
     final row = await (_database.select(
       _database.personalRecipeConfigCache,
-    )..where((row) => row.id.equals(1))).getSingleOrNull();
+    )..where((row) => row.namespace.equals(namespace.value))).getSingleOrNull();
     return _toDomainOrDefault(row);
   }
 
@@ -72,7 +79,7 @@ class PersonalRecipeConfigRepositoryImpl
         .into(_database.personalRecipeConfigCache)
         .insertOnConflictUpdate(
           PersonalRecipeConfigCacheCompanion.insert(
-            id: const Value(1),
+            namespace: namespace.value,
             categoriesJson: jsonEncode(config.categories),
             tagsJson: jsonEncode(config.tags),
             difficultiesJson: jsonEncode(config.difficulties),

@@ -53,6 +53,22 @@ class RecipeDataModule {
   PersonalRecipeConfigRepository get personalRecipeConfigRepository =>
       _personalRecipeConfigRepository;
 
+  /// 按会话创建绑定命名空间的配置 Repository；菜谱 Repository 始终共享设备资料库。
+  PersonalRecipeConfigRepository personalRecipeConfigRepositoryFor(
+    PersonalRecipeConfigNamespace namespace,
+  ) => PersonalRecipeConfigRepositoryImpl(_database, namespace: namespace);
+
+  /// 清除菜谱、集合、导入配置等 Recipe Data 内的设备资料。
+  Future<void> clearLocalData() => _database.clearLocalData();
+
+  /// 导出不含设备绝对路径的菜谱逻辑快照。
+  Future<Map<String, dynamic>> exportLogicalData() =>
+      _database.exportLogicalData();
+
+  /// 用已验证的逻辑快照替换当前菜谱资料。
+  Future<void> restoreLogicalData(Map<String, dynamic> data) =>
+      _database.restoreLogicalData(data);
+
   /// 菜谱库与阅读器共享的中文优先标题顺序策略。
   RecipeReadingOrderPolicy get readingOrderPolicy => _readingOrderPolicy;
 

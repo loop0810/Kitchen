@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:kitchen_recipe_editor/kitchen_recipe_editor.dart';
 import 'package:kitchen_recipe_library/kitchen_recipe_library.dart';
 import 'package:kitchen_profile/kitchen_profile.dart';
+import 'package:kitchen_notes/src/backup/kitchen_notes_local_backup_service.dart';
 import 'package:kitchen_notes/src/kitchen_notes_app.dart';
 
 void main() {
@@ -33,6 +35,7 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
   late final RecipeDataModule _recipeDataModule;
   late final ImportDataModule _importDataModule;
   late final ImportPipeline _importPipeline;
+  late final KitchenNotesLocalBackupService _backupService;
   var _isConsumingAndroidShares = false;
 
   @override
@@ -45,6 +48,10 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
       localStructurer: const LocalRecipeStructurerService(),
       publicContentExtractor: _importDataModule.publicContentExtractor,
       ocrAdapter: _importDataModule.ocrAdapter,
+    );
+    _backupService = KitchenNotesLocalBackupService(
+      recipeDataModule: _recipeDataModule,
+      importDataModule: _importDataModule,
     );
     WidgetsBinding.instance.addObserver(this);
     _importDataModule.androidShareAdapter.setOnShareAvailable(
@@ -130,6 +137,13 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
           ProfileDependencies(
             personalRecipeConfigRepository:
                 _recipeDataModule.personalRecipeConfigRepository,
+            clearLocalData: () async {
+              await _importDataModule.clearLocalData();
+              await _recipeDataModule.clearLocalData();
+            },
+            exportBackup: () async =>
+                (await _backupService.exportBackup()).path,
+            restoreBackup: (path) => _backupService.restoreBackup(File(path)),
           ),
         ),
         importDependenciesProvider.overrideWithValue(

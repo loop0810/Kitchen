@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- 数据库与受控文件采用同一包含边界；认证信息不进入本地普通存储。 -->
+    <include domain="database" path="." />
+    <include domain="file" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="cache" path="." />
+</full-backup-content>

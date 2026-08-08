@@ -96,5 +96,8 @@ abstract interface class ImportTaskRepository {
 
   Future<void> delete(String taskId);
 
+  /// 删除全部导入任务并清理其受控媒体。
+  Future<void> deleteAll();
+
   Future<void> markSaved({required String taskId, required String recipeId});
 }

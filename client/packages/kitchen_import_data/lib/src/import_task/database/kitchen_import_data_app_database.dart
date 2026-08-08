@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -100,6 +101,94 @@ class ImportAppDatabase extends _$ImportAppDatabase {
 
   Future<void> deleteImportTask(String taskId) {
     return (delete(importTasks)..where((row) => row.id.equals(taskId))).go();
+  }
+
+  Future<List<Map<String, dynamic>>> exportLogicalData() async {
+    final rows = await select(importTasks).get();
+    return rows
+        .map(
+          (row) => {
+            'id': row.id,
+            'inputKind': row.inputKind,
+            'status': row.status,
+            'originalText': row.originalText,
+            'detectedPublicUrl': row.detectedPublicUrl,
+            'mediaJson': row.mediaJson,
+            'ocrText': row.ocrText,
+            'correctedOcrText': row.correctedOcrText,
+            'supplementalText': row.supplementalText,
+            'processingGeneration': row.processingGeneration,
+            'draftJson': row.draftJson,
+            'errorCode': row.errorCode,
+            'errorMessage': row.errorMessage,
+            'finalRecipeId': row.finalRecipeId,
+            'createdAt': row.createdAt.toIso8601String(),
+            'updatedAt': row.updatedAt.toIso8601String(),
+          },
+        )
+        .toList(growable: false);
+  }
+
+  Future<void> restoreLogicalData(
+    List<Map<String, dynamic>> rows,
+    Map<String, String> mediaPathByArchiveName,
+  ) async {
+    await transaction(() async {
+      await delete(importTasks).go();
+      for (final row in rows) {
+        final mediaJson = _restoreMediaPaths(
+          row['mediaJson'] as String,
+          mediaPathByArchiveName,
+        );
+        await into(importTasks).insert(
+          ImportTasksCompanion.insert(
+            id: row['id'] as String,
+            inputKind: row['inputKind'] as String,
+            status: row['status'] as String,
+            originalText: Value(row['originalText'] as String),
+            detectedPublicUrl: Value(row['detectedPublicUrl'] as String?),
+            mediaJson: Value(mediaJson),
+            ocrText: Value(row['ocrText'] as String?),
+            correctedOcrText: Value(row['correctedOcrText'] as String?),
+            supplementalText: Value(row['supplementalText'] as String),
+            processingGeneration: Value(row['processingGeneration'] as int),
+            draftJson: Value(row['draftJson'] as String?),
+            errorCode: Value(row['errorCode'] as String?),
+            errorMessage: Value(row['errorMessage'] as String?),
+            finalRecipeId: Value(row['finalRecipeId'] as String?),
+            createdAt: DateTime.parse(row['createdAt'] as String),
+            updatedAt: DateTime.parse(row['updatedAt'] as String),
+          ),
+        );
+      }
+    });
+  }
+
+  String _restoreMediaPaths(
+    String mediaJson,
+    Map<String, String> mediaPathByArchiveName,
+  ) {
+    final media = jsonDecode(mediaJson) as List<dynamic>;
+    for (final value in media) {
+      final item = value as Map<String, dynamic>;
+      final archiveName = item['backupArchiveName'] as String?;
+      if (archiveName != null) {
+        final restored = mediaPathByArchiveName[archiveName];
+        if (restored == null) throw StateError('备份缺少媒体文件：$archiveName');
+        item['localPath'] = restored;
+        final originalArchiveName =
+            item['backupOriginalArchiveName'] as String?;
+        item['originalLocalPath'] = originalArchiveName == null
+            ? restored
+            : mediaPathByArchiveName[originalArchiveName];
+        if (item['originalLocalPath'] == null) {
+          throw StateError('备份缺少原始媒体文件：$originalArchiveName');
+        }
+        item.remove('backupOriginalArchiveName');
+      }
+      item.remove('backupArchiveName');
+    }
+    return jsonEncode(media);
   }
 }
 

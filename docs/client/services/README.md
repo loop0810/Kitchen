@@ -41,7 +41,7 @@ Feature
 | 模板服务 | 模板注册、渲染、缓存和版本 | 当前核心 | `TEMPLATE_SERVICE.md` |
 | 搜索服务 | 本地索引与未来联合搜索 | 已开始 | `SEARCH_SERVICE.md` |
 | 权益与额度服务 | 未来 AI 付费权益和模板权益 | 后续 | `ENTITLEMENT_QUOTA_SERVICE.md` |
-| 备份与同步服务 | 导出、恢复、云备份和同步 | 后续 | `BACKUP_SYNC_SERVICE.md` |
+| 备份与同步服务 | 本地逻辑导出、覆盖恢复、云备份和同步 | 本地导出恢复首版已实现 | `BACKUP_SYNC_SERVICE.md` |
 
 ## 4. 通用服务约束
 

@@ -235,8 +235,8 @@ class RecipeLibrarySettings extends Table {
 /// UI 只监听本表，不直接读取远端响应；同步成功或本地编辑都通过 Repository
 /// 原子更新同一行，从而让所有 Feature 看到一致快照。
 class PersonalRecipeConfigCache extends Table {
-  /// 单例主键，固定为 1。
-  IntColumn get id => integer()();
+  /// 配置所属命名空间，如 `device:anonymous` 或 `account:<userId>`。
+  TextColumn get namespace => text()();
 
   /// 按用户顺序保存的分类 JSON 数组。
   TextColumn get categoriesJson => text()();
@@ -260,7 +260,7 @@ class PersonalRecipeConfigCache extends Table {
   DateTimeColumn get updatedAt => dateTime()();
 
   @override
-  Set<Column<Object>> get primaryKey => {id};
+  Set<Column<Object>> get primaryKey => {namespace};
 }
 
 class RecipeDetailData {
@@ -355,7 +355,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -433,9 +433,39 @@ SET position = (
 ''');
       }
       if (from < 7) {
-        // 个性化配置是独立单例缓存；新增空表不会改写现有菜谱内容，首次读取时
-        // Repository 会提供默认值，首次远端响应后再写入权威缓存。
+        // v7 的旧表使用整数单例主键。先按旧结构创建，下一段再统一迁移到
+        // 命名空间主键，确保从 v1～v6 升级时也能走同一条安全路径。
+        await customStatement('''
+CREATE TABLE personal_recipe_config_cache (
+  id INTEGER NOT NULL PRIMARY KEY,
+  categories_json TEXT NOT NULL,
+  tags_json TEXT NOT NULL,
+  difficulties_json TEXT NOT NULL,
+  server_revision TEXT,
+  sync_pending INTEGER NOT NULL DEFAULT 0,
+  last_synced_at INTEGER,
+  updated_at INTEGER NOT NULL
+)
+''');
+      }
+      if (from < 8) {
+        // v7 的单例配置无法判断历史账号归属，安全迁移到匿名本机命名空间。
+        // 旧 pending 也只能保留在本机，不能在首次登录时自动上传。
+        await customStatement(
+          'ALTER TABLE personal_recipe_config_cache '
+          'RENAME TO personal_recipe_config_cache_legacy',
+        );
         await migrator.createTable(personalRecipeConfigCache);
+        await customStatement('''
+INSERT INTO personal_recipe_config_cache
+  (namespace, categories_json, tags_json, difficulties_json,
+   server_revision, sync_pending, last_synced_at, updated_at)
+SELECT 'device:anonymous', categories_json, tags_json, difficulties_json,
+       NULL, 0, NULL, updated_at
+FROM personal_recipe_config_cache_legacy
+WHERE id = 1
+''');
+        await migrator.deleteTable('personal_recipe_config_cache_legacy');
       }
     },
     beforeOpen: (details) async {
@@ -1072,6 +1102,265 @@ SET position = (
           sortOrder: Value(value),
         ),
       );
+
+  /// 清除设备资料库；调用方负责在账号删除流程中再次确认后调用。
+  ///
+  /// 菜谱及其子表、集合、配置缓存全部在一个事务中删除，避免留下半份本地资料。
+  Future<void> clearLocalData() async {
+    await transaction(() async {
+      await delete(recipeTags).go();
+      await delete(recipeSteps).go();
+      await delete(ingredients).go();
+      await delete(recipeCollectionMembers).go();
+      await delete(recipeCollections).go();
+      await delete(recipes).go();
+      await delete(recipeLibrarySettings).go();
+      await delete(personalRecipeConfigCache).go();
+    });
+  }
+
+  /// 导出不含设备绝对路径的逻辑快照；封面文件由组合根单独收集。
+  Future<Map<String, dynamic>> exportLogicalData() async {
+    return transaction(() async {
+      final recipeRows = await select(recipes).get();
+      final ingredientRows = await select(ingredients).get();
+      final stepRows = await select(recipeSteps).get();
+      final tagRows = await select(recipeTags).get();
+      final collectionRows = await select(recipeCollections).get();
+      final memberRows = await select(recipeCollectionMembers).get();
+      final sortRow = await select(recipeLibrarySettings).getSingleOrNull();
+      final configRows = await select(personalRecipeConfigCache).get();
+      return {
+        'schemaVersion': schemaVersion,
+        'recipes': recipeRows.map(_recipeToBackup).toList(growable: false),
+        'ingredients': ingredientRows
+            .map(_ingredientToBackup)
+            .toList(growable: false),
+        'steps': stepRows.map(_stepToBackup).toList(growable: false),
+        'tags': tagRows.map(_tagToBackup).toList(growable: false),
+        'collections': collectionRows
+            .map(_collectionToBackup)
+            .toList(growable: false),
+        'collectionMembers': memberRows
+            .map(_memberToBackup)
+            .toList(growable: false),
+        'sortOrder': sortRow?.sortOrder,
+        // 只导出显示配置，不导出 serverRevision、pending 等同步元数据。
+        'personalRecipeConfigs': configRows
+            .map(
+              (row) => {
+                'namespace': row.namespace,
+                'categoriesJson': row.categoriesJson,
+                'tagsJson': row.tagsJson,
+                'difficultiesJson': row.difficultiesJson,
+              },
+            )
+            .toList(growable: false),
+      };
+    });
+  }
+
+  /// 将已验证的逻辑快照原子写入当前数据库。
+  Future<void> restoreLogicalData(Map<String, dynamic> data) async {
+    await transaction(() async {
+      await clearLocalData();
+      for (final value in (data['recipes'] as List<dynamic>)) {
+        final row = value as Map<String, dynamic>;
+        await into(recipes).insert(_recipeFromBackup(row));
+      }
+      for (final value in (data['ingredients'] as List<dynamic>)) {
+        await into(
+          ingredients,
+        ).insert(_ingredientFromBackup(value as Map<String, dynamic>));
+      }
+      for (final value in (data['steps'] as List<dynamic>)) {
+        await into(
+          recipeSteps,
+        ).insert(_stepFromBackup(value as Map<String, dynamic>));
+      }
+      for (final value in (data['tags'] as List<dynamic>)) {
+        await into(
+          recipeTags,
+        ).insert(_tagFromBackup(value as Map<String, dynamic>));
+      }
+      for (final value in (data['collections'] as List<dynamic>)) {
+        await into(
+          recipeCollections,
+        ).insert(_collectionFromBackup(value as Map<String, dynamic>));
+      }
+      for (final value in (data['collectionMembers'] as List<dynamic>)) {
+        await into(
+          recipeCollectionMembers,
+        ).insert(_memberFromBackup(value as Map<String, dynamic>));
+      }
+      final sortOrder = data['sortOrder'] as String?;
+      if (sortOrder != null) await saveSortOrder(sortOrder);
+      for (final value in (data['personalRecipeConfigs'] as List<dynamic>)) {
+        final row = value as Map<String, dynamic>;
+        await into(personalRecipeConfigCache).insert(
+          PersonalRecipeConfigCacheCompanion.insert(
+            namespace: row['namespace'] as String,
+            categoriesJson: row['categoriesJson'] as String,
+            tagsJson: row['tagsJson'] as String,
+            difficultiesJson: row['difficultiesJson'] as String,
+            syncPending: const Value(false),
+            serverRevision: const Value(null),
+            lastSyncedAt: const Value(null),
+            updatedAt: DateTime.now(),
+          ),
+        );
+      }
+    });
+  }
+
+  static String _date(DateTime value) => value.toIso8601String();
+  static DateTime _parseDate(Object? value) => DateTime.parse(value! as String);
+
+  static Map<String, dynamic> _recipeToBackup(Recipe row) => {
+    'id': row.id,
+    'title': row.title,
+    'summary': row.summary,
+    'category': row.category,
+    'servings': row.servings,
+    'prepMinutes': row.prepMinutes,
+    'cookMinutes': row.cookMinutes,
+    'difficulty': row.difficulty,
+    'presentationStyle': row.presentationStyle,
+    'templateId': row.templateId,
+    'templateVersion': row.templateVersion,
+    'isFavorite': row.isFavorite,
+    'status': row.status,
+    'deletedAt': row.deletedAt == null ? null : _date(row.deletedAt!),
+    'statusBeforeDeletion': row.statusBeforeDeletion,
+    'coverColor': row.coverColor,
+    'createdAt': _date(row.createdAt),
+    'updatedAt': _date(row.updatedAt),
+    'importTaskId': row.importTaskId,
+    'sourceOriginalText': row.sourceOriginalText,
+    'sourcePublicUrl': row.sourcePublicUrl,
+    'sourceTitle': row.sourceTitle,
+  };
+
+  static RecipesCompanion _recipeFromBackup(Map<String, dynamic> row) =>
+      RecipesCompanion.insert(
+        id: row['id'] as String,
+        title: row['title'] as String,
+        summary: Value(row['summary'] as String),
+        category: Value(row['category'] as String),
+        servings: Value(row['servings'] as int?),
+        prepMinutes: Value(row['prepMinutes'] as int?),
+        cookMinutes: Value(row['cookMinutes'] as int?),
+        difficulty: Value(row['difficulty'] as String),
+        presentationStyle: Value(row['presentationStyle'] as String),
+        templateId: Value(row['templateId'] as String),
+        templateVersion: Value(row['templateVersion'] as int),
+        isFavorite: Value(row['isFavorite'] as bool),
+        status: Value(row['status'] as String),
+        deletedAt: Value(
+          row['deletedAt'] == null ? null : _parseDate(row['deletedAt']),
+        ),
+        statusBeforeDeletion: Value(row['statusBeforeDeletion'] as String?),
+        coverColor: row['coverColor'] as int,
+        createdAt: _parseDate(row['createdAt']),
+        updatedAt: _parseDate(row['updatedAt']),
+        importTaskId: Value(row['importTaskId'] as String?),
+        sourceOriginalText: Value(row['sourceOriginalText'] as String?),
+        sourcePublicUrl: Value(row['sourcePublicUrl'] as String?),
+        sourceTitle: Value(row['sourceTitle'] as String?),
+      );
+
+  static Map<String, dynamic> _ingredientToBackup(Ingredient row) => {
+    'id': row.id,
+    'recipeId': row.recipeId,
+    'name': row.name,
+    'amountText': row.amountText,
+    'amountValue': row.amountValue,
+    'unit': row.unit,
+    'preparation': row.preparation,
+    'isOptional': row.isOptional,
+    'position': row.position,
+  };
+
+  static IngredientsCompanion _ingredientFromBackup(Map<String, dynamic> row) =>
+      IngredientsCompanion(
+        id: Value(row['id'] as String),
+        recipeId: Value(row['recipeId'] as String),
+        name: Value(row['name'] as String),
+        amountText: Value(row['amountText'] as String),
+        amountValue: Value((row['amountValue'] as num?)?.toDouble()),
+        unit: Value(row['unit'] as String?),
+        preparation: Value(row['preparation'] as String?),
+        isOptional: Value(row['isOptional'] as bool),
+        position: Value(row['position'] as int),
+      );
+
+  static Map<String, dynamic> _stepToBackup(RecipeStep row) => {
+    'id': row.id,
+    'recipeId': row.recipeId,
+    'position': row.position,
+    'title': row.title,
+    'instruction': row.instruction,
+    'durationMinutes': row.durationMinutes,
+    'heatLevel': row.heatLevel,
+  };
+
+  static RecipeStepsCompanion _stepFromBackup(Map<String, dynamic> row) =>
+      RecipeStepsCompanion(
+        id: Value(row['id'] as String),
+        recipeId: Value(row['recipeId'] as String),
+        position: Value(row['position'] as int),
+        title: Value(row['title'] as String?),
+        instruction: Value(row['instruction'] as String),
+        durationMinutes: Value(row['durationMinutes'] as int?),
+        heatLevel: Value(row['heatLevel'] as String?),
+      );
+
+  static Map<String, dynamic> _tagToBackup(RecipeTag row) => {
+    'recipeId': row.recipeId,
+    'tag': row.tag,
+  };
+
+  static RecipeTagsCompanion _tagFromBackup(Map<String, dynamic> row) =>
+      RecipeTagsCompanion(
+        recipeId: Value(row['recipeId'] as String),
+        tag: Value(row['tag'] as String),
+      );
+
+  static Map<String, dynamic> _collectionToBackup(RecipeCollection row) => {
+    'id': row.id,
+    'name': row.name,
+    'position': row.position,
+    'coverPath': row.coverPath,
+    'createdAt': _date(row.createdAt),
+    'updatedAt': _date(row.updatedAt),
+  };
+
+  static RecipeCollectionsCompanion _collectionFromBackup(
+    Map<String, dynamic> row,
+  ) => RecipeCollectionsCompanion(
+    id: Value(row['id'] as String),
+    name: Value(row['name'] as String),
+    position: Value(row['position'] as int),
+    coverPath: Value(row['coverPath'] as String?),
+    createdAt: Value(_parseDate(row['createdAt'])),
+    updatedAt: Value(_parseDate(row['updatedAt'])),
+  );
+
+  static Map<String, dynamic> _memberToBackup(RecipeCollectionMember row) => {
+    'collectionId': row.collectionId,
+    'recipeId': row.recipeId,
+    'addedAt': _date(row.addedAt),
+    'position': row.position,
+  };
+
+  static RecipeCollectionMembersCompanion _memberFromBackup(
+    Map<String, dynamic> row,
+  ) => RecipeCollectionMembersCompanion(
+    collectionId: Value(row['collectionId'] as String),
+    recipeId: Value(row['recipeId'] as String),
+    addedAt: Value(_parseDate(row['addedAt'])),
+    position: Value(row['position'] as int),
+  );
 
   Future<String?> recipeIdForImportTask(String importTaskId) async {
     final row =

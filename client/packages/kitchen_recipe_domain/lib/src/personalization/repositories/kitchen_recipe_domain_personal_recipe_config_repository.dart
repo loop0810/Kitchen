@@ -1,5 +1,27 @@
 import '../entities/kitchen_recipe_domain_personal_recipe_config_entity.dart';
 
+/// 个性化配置的本地命名空间。
+///
+/// 菜谱属于设备资料库，只有配置缓存需要区分匿名本机和登录账号。
+final class PersonalRecipeConfigNamespace {
+  const PersonalRecipeConfigNamespace._(this.value);
+
+  /// 未登录用户使用的稳定本机命名空间。
+  static const anonymous = PersonalRecipeConfigNamespace._('device:anonymous');
+
+  /// 为登录账号创建稳定命名空间。
+  factory PersonalRecipeConfigNamespace.account(String userId) {
+    final normalized = userId.trim();
+    if (normalized.isEmpty || normalized.contains(':')) {
+      throw ArgumentError.value(userId, 'userId', '账号标识不能为空且不能包含冒号。');
+    }
+    return PersonalRecipeConfigNamespace._('account:$normalized');
+  }
+
+  /// 持久化和比较使用的稳定字符串。
+  final String value;
+}
+
 abstract interface class PersonalRecipeConfigRepository {
   /// 持续输出本地缓存；缓存尚未建立时输出内置默认配置。
   Stream<PersonalRecipeConfigEntity> watchCached();

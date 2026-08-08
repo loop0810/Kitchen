@@ -3721,14 +3721,16 @@ class $PersonalRecipeConfigCacheTable extends PersonalRecipeConfigCache
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $PersonalRecipeConfigCacheTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  static const VerificationMeta _namespaceMeta = const VerificationMeta(
+    'namespace',
+  );
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
+  late final GeneratedColumn<String> namespace = GeneratedColumn<String>(
+    'namespace',
     aliasedName,
     false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _categoriesJsonMeta = const VerificationMeta(
     'categoriesJson',
@@ -3813,7 +3815,7 @@ class $PersonalRecipeConfigCacheTable extends PersonalRecipeConfigCache
   );
   @override
   List<GeneratedColumn> get $columns => [
-    id,
+    namespace,
     categoriesJson,
     tagsJson,
     difficultiesJson,
@@ -3834,8 +3836,13 @@ class $PersonalRecipeConfigCacheTable extends PersonalRecipeConfigCache
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    if (data.containsKey('namespace')) {
+      context.handle(
+        _namespaceMeta,
+        namespace.isAcceptableOrUnknown(data['namespace']!, _namespaceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_namespaceMeta);
     }
     if (data.containsKey('categories_json')) {
       context.handle(
@@ -3906,7 +3913,7 @@ class $PersonalRecipeConfigCacheTable extends PersonalRecipeConfigCache
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {namespace};
   @override
   PersonalRecipeConfigCacheData map(
     Map<String, dynamic> data, {
@@ -3914,9 +3921,9 @@ class $PersonalRecipeConfigCacheTable extends PersonalRecipeConfigCache
   }) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return PersonalRecipeConfigCacheData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
+      namespace: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}namespace'],
       )!,
       categoriesJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -3957,8 +3964,8 @@ class $PersonalRecipeConfigCacheTable extends PersonalRecipeConfigCache
 
 class PersonalRecipeConfigCacheData extends DataClass
     implements Insertable<PersonalRecipeConfigCacheData> {
-  /// 单例主键，固定为 1。
-  final int id;
+  /// 配置所属命名空间，如 `device:anonymous` 或 `account:<userId>`。
+  final String namespace;
 
   /// 按用户顺序保存的分类 JSON 数组。
   final String categoriesJson;
@@ -3981,7 +3988,7 @@ class PersonalRecipeConfigCacheData extends DataClass
   /// 缓存最近更新时间，用于诊断和备份合并。
   final DateTime updatedAt;
   const PersonalRecipeConfigCacheData({
-    required this.id,
+    required this.namespace,
     required this.categoriesJson,
     required this.tagsJson,
     required this.difficultiesJson,
@@ -3993,7 +4000,7 @@ class PersonalRecipeConfigCacheData extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
+    map['namespace'] = Variable<String>(namespace);
     map['categories_json'] = Variable<String>(categoriesJson);
     map['tags_json'] = Variable<String>(tagsJson);
     map['difficulties_json'] = Variable<String>(difficultiesJson);
@@ -4010,7 +4017,7 @@ class PersonalRecipeConfigCacheData extends DataClass
 
   PersonalRecipeConfigCacheCompanion toCompanion(bool nullToAbsent) {
     return PersonalRecipeConfigCacheCompanion(
-      id: Value(id),
+      namespace: Value(namespace),
       categoriesJson: Value(categoriesJson),
       tagsJson: Value(tagsJson),
       difficultiesJson: Value(difficultiesJson),
@@ -4031,7 +4038,7 @@ class PersonalRecipeConfigCacheData extends DataClass
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return PersonalRecipeConfigCacheData(
-      id: serializer.fromJson<int>(json['id']),
+      namespace: serializer.fromJson<String>(json['namespace']),
       categoriesJson: serializer.fromJson<String>(json['categoriesJson']),
       tagsJson: serializer.fromJson<String>(json['tagsJson']),
       difficultiesJson: serializer.fromJson<String>(json['difficultiesJson']),
@@ -4045,7 +4052,7 @@ class PersonalRecipeConfigCacheData extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
+      'namespace': serializer.toJson<String>(namespace),
       'categoriesJson': serializer.toJson<String>(categoriesJson),
       'tagsJson': serializer.toJson<String>(tagsJson),
       'difficultiesJson': serializer.toJson<String>(difficultiesJson),
@@ -4057,7 +4064,7 @@ class PersonalRecipeConfigCacheData extends DataClass
   }
 
   PersonalRecipeConfigCacheData copyWith({
-    int? id,
+    String? namespace,
     String? categoriesJson,
     String? tagsJson,
     String? difficultiesJson,
@@ -4066,7 +4073,7 @@ class PersonalRecipeConfigCacheData extends DataClass
     Value<DateTime?> lastSyncedAt = const Value.absent(),
     DateTime? updatedAt,
   }) => PersonalRecipeConfigCacheData(
-    id: id ?? this.id,
+    namespace: namespace ?? this.namespace,
     categoriesJson: categoriesJson ?? this.categoriesJson,
     tagsJson: tagsJson ?? this.tagsJson,
     difficultiesJson: difficultiesJson ?? this.difficultiesJson,
@@ -4081,7 +4088,7 @@ class PersonalRecipeConfigCacheData extends DataClass
     PersonalRecipeConfigCacheCompanion data,
   ) {
     return PersonalRecipeConfigCacheData(
-      id: data.id.present ? data.id.value : this.id,
+      namespace: data.namespace.present ? data.namespace.value : this.namespace,
       categoriesJson: data.categoriesJson.present
           ? data.categoriesJson.value
           : this.categoriesJson,
@@ -4105,7 +4112,7 @@ class PersonalRecipeConfigCacheData extends DataClass
   @override
   String toString() {
     return (StringBuffer('PersonalRecipeConfigCacheData(')
-          ..write('id: $id, ')
+          ..write('namespace: $namespace, ')
           ..write('categoriesJson: $categoriesJson, ')
           ..write('tagsJson: $tagsJson, ')
           ..write('difficultiesJson: $difficultiesJson, ')
@@ -4119,7 +4126,7 @@ class PersonalRecipeConfigCacheData extends DataClass
 
   @override
   int get hashCode => Object.hash(
-    id,
+    namespace,
     categoriesJson,
     tagsJson,
     difficultiesJson,
@@ -4132,7 +4139,7 @@ class PersonalRecipeConfigCacheData extends DataClass
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is PersonalRecipeConfigCacheData &&
-          other.id == this.id &&
+          other.namespace == this.namespace &&
           other.categoriesJson == this.categoriesJson &&
           other.tagsJson == this.tagsJson &&
           other.difficultiesJson == this.difficultiesJson &&
@@ -4144,7 +4151,7 @@ class PersonalRecipeConfigCacheData extends DataClass
 
 class PersonalRecipeConfigCacheCompanion
     extends UpdateCompanion<PersonalRecipeConfigCacheData> {
-  final Value<int> id;
+  final Value<String> namespace;
   final Value<String> categoriesJson;
   final Value<String> tagsJson;
   final Value<String> difficultiesJson;
@@ -4152,8 +4159,9 @@ class PersonalRecipeConfigCacheCompanion
   final Value<bool> syncPending;
   final Value<DateTime?> lastSyncedAt;
   final Value<DateTime> updatedAt;
+  final Value<int> rowid;
   const PersonalRecipeConfigCacheCompanion({
-    this.id = const Value.absent(),
+    this.namespace = const Value.absent(),
     this.categoriesJson = const Value.absent(),
     this.tagsJson = const Value.absent(),
     this.difficultiesJson = const Value.absent(),
@@ -4161,9 +4169,10 @@ class PersonalRecipeConfigCacheCompanion
     this.syncPending = const Value.absent(),
     this.lastSyncedAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   PersonalRecipeConfigCacheCompanion.insert({
-    this.id = const Value.absent(),
+    required String namespace,
     required String categoriesJson,
     required String tagsJson,
     required String difficultiesJson,
@@ -4171,12 +4180,14 @@ class PersonalRecipeConfigCacheCompanion
     this.syncPending = const Value.absent(),
     this.lastSyncedAt = const Value.absent(),
     required DateTime updatedAt,
-  }) : categoriesJson = Value(categoriesJson),
+    this.rowid = const Value.absent(),
+  }) : namespace = Value(namespace),
+       categoriesJson = Value(categoriesJson),
        tagsJson = Value(tagsJson),
        difficultiesJson = Value(difficultiesJson),
        updatedAt = Value(updatedAt);
   static Insertable<PersonalRecipeConfigCacheData> custom({
-    Expression<int>? id,
+    Expression<String>? namespace,
     Expression<String>? categoriesJson,
     Expression<String>? tagsJson,
     Expression<String>? difficultiesJson,
@@ -4184,9 +4195,10 @@ class PersonalRecipeConfigCacheCompanion
     Expression<bool>? syncPending,
     Expression<DateTime>? lastSyncedAt,
     Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (id != null) 'id': id,
+      if (namespace != null) 'namespace': namespace,
       if (categoriesJson != null) 'categories_json': categoriesJson,
       if (tagsJson != null) 'tags_json': tagsJson,
       if (difficultiesJson != null) 'difficulties_json': difficultiesJson,
@@ -4194,11 +4206,12 @@ class PersonalRecipeConfigCacheCompanion
       if (syncPending != null) 'sync_pending': syncPending,
       if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   PersonalRecipeConfigCacheCompanion copyWith({
-    Value<int>? id,
+    Value<String>? namespace,
     Value<String>? categoriesJson,
     Value<String>? tagsJson,
     Value<String>? difficultiesJson,
@@ -4206,9 +4219,10 @@ class PersonalRecipeConfigCacheCompanion
     Value<bool>? syncPending,
     Value<DateTime?>? lastSyncedAt,
     Value<DateTime>? updatedAt,
+    Value<int>? rowid,
   }) {
     return PersonalRecipeConfigCacheCompanion(
-      id: id ?? this.id,
+      namespace: namespace ?? this.namespace,
       categoriesJson: categoriesJson ?? this.categoriesJson,
       tagsJson: tagsJson ?? this.tagsJson,
       difficultiesJson: difficultiesJson ?? this.difficultiesJson,
@@ -4216,14 +4230,15 @@ class PersonalRecipeConfigCacheCompanion
       syncPending: syncPending ?? this.syncPending,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
+    if (namespace.present) {
+      map['namespace'] = Variable<String>(namespace.value);
     }
     if (categoriesJson.present) {
       map['categories_json'] = Variable<String>(categoriesJson.value);
@@ -4246,20 +4261,24 @@ class PersonalRecipeConfigCacheCompanion
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('PersonalRecipeConfigCacheCompanion(')
-          ..write('id: $id, ')
+          ..write('namespace: $namespace, ')
           ..write('categoriesJson: $categoriesJson, ')
           ..write('tagsJson: $tagsJson, ')
           ..write('difficultiesJson: $difficultiesJson, ')
           ..write('serverRevision: $serverRevision, ')
           ..write('syncPending: $syncPending, ')
           ..write('lastSyncedAt: $lastSyncedAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -7273,7 +7292,7 @@ typedef $$RecipeLibrarySettingsTableProcessedTableManager =
     >;
 typedef $$PersonalRecipeConfigCacheTableCreateCompanionBuilder =
     PersonalRecipeConfigCacheCompanion Function({
-      Value<int> id,
+      required String namespace,
       required String categoriesJson,
       required String tagsJson,
       required String difficultiesJson,
@@ -7281,10 +7300,11 @@ typedef $$PersonalRecipeConfigCacheTableCreateCompanionBuilder =
       Value<bool> syncPending,
       Value<DateTime?> lastSyncedAt,
       required DateTime updatedAt,
+      Value<int> rowid,
     });
 typedef $$PersonalRecipeConfigCacheTableUpdateCompanionBuilder =
     PersonalRecipeConfigCacheCompanion Function({
-      Value<int> id,
+      Value<String> namespace,
       Value<String> categoriesJson,
       Value<String> tagsJson,
       Value<String> difficultiesJson,
@@ -7292,6 +7312,7 @@ typedef $$PersonalRecipeConfigCacheTableUpdateCompanionBuilder =
       Value<bool> syncPending,
       Value<DateTime?> lastSyncedAt,
       Value<DateTime> updatedAt,
+      Value<int> rowid,
     });
 
 class $$PersonalRecipeConfigCacheTableFilterComposer
@@ -7303,8 +7324,8 @@ class $$PersonalRecipeConfigCacheTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
+  ColumnFilters<String> get namespace => $composableBuilder(
+    column: $table.namespace,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7353,8 +7374,8 @@ class $$PersonalRecipeConfigCacheTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
+  ColumnOrderings<String> get namespace => $composableBuilder(
+    column: $table.namespace,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7403,8 +7424,8 @@ class $$PersonalRecipeConfigCacheTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get namespace =>
+      $composableBuilder(column: $table.namespace, builder: (column) => column);
 
   GeneratedColumn<String> get categoriesJson => $composableBuilder(
     column: $table.categoriesJson,
@@ -7484,7 +7505,7 @@ class $$PersonalRecipeConfigCacheTableTableManager
               ),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                Value<String> namespace = const Value.absent(),
                 Value<String> categoriesJson = const Value.absent(),
                 Value<String> tagsJson = const Value.absent(),
                 Value<String> difficultiesJson = const Value.absent(),
@@ -7492,8 +7513,9 @@ class $$PersonalRecipeConfigCacheTableTableManager
                 Value<bool> syncPending = const Value.absent(),
                 Value<DateTime?> lastSyncedAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => PersonalRecipeConfigCacheCompanion(
-                id: id,
+                namespace: namespace,
                 categoriesJson: categoriesJson,
                 tagsJson: tagsJson,
                 difficultiesJson: difficultiesJson,
@@ -7501,10 +7523,11 @@ class $$PersonalRecipeConfigCacheTableTableManager
                 syncPending: syncPending,
                 lastSyncedAt: lastSyncedAt,
                 updatedAt: updatedAt,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                required String namespace,
                 required String categoriesJson,
                 required String tagsJson,
                 required String difficultiesJson,
@@ -7512,8 +7535,9 @@ class $$PersonalRecipeConfigCacheTableTableManager
                 Value<bool> syncPending = const Value.absent(),
                 Value<DateTime?> lastSyncedAt = const Value.absent(),
                 required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
               }) => PersonalRecipeConfigCacheCompanion.insert(
-                id: id,
+                namespace: namespace,
                 categoriesJson: categoriesJson,
                 tagsJson: tagsJson,
                 difficultiesJson: difficultiesJson,
@@ -7521,6 +7545,7 @@ class $$PersonalRecipeConfigCacheTableTableManager
                 syncPending: syncPending,
                 lastSyncedAt: lastSyncedAt,
                 updatedAt: updatedAt,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

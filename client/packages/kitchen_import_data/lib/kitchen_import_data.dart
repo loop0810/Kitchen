@@ -29,6 +29,19 @@ class ImportDataModule {
 
   ImportTaskRepository get importTaskRepository => _repository;
 
+  /// 清除导入任务、草稿和所有受控媒体；媒体删除失败由仓库的机会式清理重试。
+  Future<void> clearLocalData() => _repository.deleteAll();
+
+  /// 导出导入任务快照；媒体引用仍由组合根转换为备份包内相对名称。
+  Future<List<Map<String, dynamic>>> exportLogicalData() =>
+      _database.exportLogicalData();
+
+  /// 用已验证快照恢复导入任务和媒体引用。
+  Future<void> restoreLogicalData(
+    List<Map<String, dynamic>> rows,
+    Map<String, String> mediaPathByArchiveName,
+  ) => _database.restoreLogicalData(rows, mediaPathByArchiveName);
+
   PublicContentExtractor get publicContentExtractor =>
       const SafePublicContentExtractor();
 

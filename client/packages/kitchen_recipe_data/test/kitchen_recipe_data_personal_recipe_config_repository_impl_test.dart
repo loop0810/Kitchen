@@ -83,6 +83,27 @@ void main() {
     expect(cached.serverRevision, 'revision-2');
     expect(cached.syncPending, isFalse);
   });
+
+  test('不同命名空间的缓存和 pending 互不读取或上传', () async {
+    final accountA = PersonalRecipeConfigRepositoryImpl(
+      database,
+      namespace: PersonalRecipeConfigNamespace.account('user-a'),
+    );
+    final accountB = PersonalRecipeConfigRepositoryImpl(
+      database,
+      namespace: PersonalRecipeConfigNamespace.account('user-b'),
+    );
+
+    await accountA.save(
+      PersonalRecipeConfigEntity.defaults.copyWith(
+        categories: const ['账号 A 分类'],
+      ),
+    );
+
+    expect((await accountB.getCached()).categories, contains('家常菜'));
+    expect((await accountB.getCached()).categories, isNot(contains('账号 A 分类')));
+    expect((await accountA.getCached()).syncPending, isTrue);
+  });
 }
 
 class _FakeRemoteGateway implements PersonalRecipeConfigRemoteGateway {

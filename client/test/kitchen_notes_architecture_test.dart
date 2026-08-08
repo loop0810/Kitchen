@@ -71,6 +71,7 @@ void main() {
 
     expect(files, {
       'lib/main.dart',
+      'lib/src/backup/kitchen_notes_local_backup_service.dart',
       'lib/src/kitchen_notes_app.dart',
       'lib/src/navigation/kitchen_notes_app_router.dart',
       'lib/src/navigation/kitchen_notes_main_shell.dart',
