@@ -5,6 +5,7 @@ class OcrLayoutAnalysis {
     required this.normalizedText,
     required this.visibleLines,
     required this.removedChromeLineIds,
+    required this.removedDuplicateLineIds,
     required this.possibleMultipleRecipes,
   });
 
@@ -17,6 +18,9 @@ class OcrLayoutAnalysis {
   /// 被判定为跨页固定框架的文字行 ID。
   final Set<String> removedChromeLineIds;
 
+  /// 与前面页面重复、被去重的正文行 ID；用于诊断和来源追踪。
+  final Set<String> removedDuplicateLineIds;
+
   /// 同一页是否重复出现完整分区，提示可能包含多道菜或重复拼图。
   final bool possibleMultipleRecipes;
 }
@@ -27,19 +31,35 @@ class OcrLayoutAnalyzerService {
   OcrLayoutAnalysis analyze(OcrDocumentEntity document) {
     final repeatedEdgeKeys = _repeatedEdgeKeys(document);
     final removed = <String>{};
+    final removedDuplicates = <String>{};
+    final seenContentKeys = <String>{};
     final visible = <({int pageIndex, OcrLineEntity line})>[];
     final pageTexts = <String>[];
     var possibleMultipleRecipes = false;
 
     for (final page in document.pages) {
+      final pageContentKeys = <String>{};
       final lines = page.lines
           .where((line) {
+            final text = line.text.trim();
+            if (text.isEmpty || _isLikelyNoise(line)) return false;
             final key = _edgeKey(line);
             final isChrome = key != null && repeatedEdgeKeys.contains(key);
             if (isChrome) removed.add(line.id);
-            return !isChrome && line.text.trim().isNotEmpty;
+            if (isChrome) return false;
+
+            // 多图截图常有首尾重叠页或同一张图被重复选择。只对跨页的、
+            // 有足够正文长度的精确重复行去重；分区标题保留，避免破坏版面结构。
+            final contentKey = _contentKey(text);
+            if (contentKey != null && seenContentKeys.contains(contentKey)) {
+              removedDuplicates.add(line.id);
+              return false;
+            }
+            if (contentKey != null) pageContentKeys.add(contentKey);
+            return true;
           })
           .toList(growable: false);
+      seenContentKeys.addAll(pageContentKeys);
       for (final line in lines) {
         visible.add((pageIndex: page.pageIndex, line: line));
       }
@@ -61,9 +81,38 @@ class OcrLayoutAnalyzerService {
           .join('\n\n'),
       visibleLines: visible,
       removedChromeLineIds: removed,
+      removedDuplicateLineIds: removedDuplicates,
       possibleMultipleRecipes: possibleMultipleRecipes,
     );
   }
+
+  String? _contentKey(String value) {
+    if (_headingKind(value) != null) return null;
+    final normalized = value
+        .replaceAll(RegExp(r'\s+'), '')
+        .replaceAll(RegExp(r'[“”「」『』‘’。，、：:；;！!？?（）()【】\[\]{}]'), '')
+        .toLowerCase();
+    if (normalized.length < 4 ||
+        RegExp(r'^\d+$').hasMatch(normalized) ||
+        !_hasLetterOrNumber(normalized)) {
+      return null;
+    }
+    return normalized;
+  }
+
+  bool _isLikelyNoise(OcrLineEntity line) {
+    final text = line.text.trim();
+    if (text.isEmpty || !_hasLetterOrNumber(text)) return true;
+    if (line.confidence != null &&
+        line.confidence! <= 0.45 &&
+        (text.length <= 3 || RegExp(r'^[A-Za-z]{1,8}$').hasMatch(text))) {
+      return true;
+    }
+    return false;
+  }
+
+  bool _hasLetterOrNumber(String value) =>
+      RegExp(r'[\p{L}\p{N}]', unicode: true).hasMatch(value);
 
   String _pageText(List<OcrLineEntity> lines) {
     if (lines.isEmpty) return '';

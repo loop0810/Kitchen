@@ -37,6 +37,31 @@ void main() {
     });
   });
 
+  test('多图跨页重复正文只保留首次出现且过滤低置信噪声', () {
+    final document = OcrDocumentEntity(
+      pages: [
+        _page(0, [
+          _line('title-0', '番茄炒蛋', 0.08, 0.12, 0.50, 0.18),
+          _line('ingredient-0', '鸡蛋2个', 0.08, 0.30, 0.40, 0.35),
+        ]),
+        _page(1, [
+          _line('title-1', '番茄炒蛋', 0.08, 0.12, 0.50, 0.18),
+          _line('ingredient-1', '鸡蛋2个', 0.08, 0.30, 0.40, 0.35),
+          _lineWithConfidence('noise', 'x', 0.70, 0.50, 0.75, 0.53, 0.2),
+        ]),
+      ],
+    );
+
+    final analysis = const OcrLayoutAnalyzerService().analyze(document);
+
+    expect(analysis.normalizedText, '番茄炒蛋\n鸡蛋2个');
+    expect(analysis.removedDuplicateLineIds, {'title-1', 'ingredient-1'});
+    expect(analysis.visibleLines.map((item) => item.line.id), [
+      'title-0',
+      'ingredient-0',
+    ]);
+  });
+
   test('图片草稿保留字段证据并对所有自动结果要求确认', () {
     final document = OcrDocumentEntity(
       pages: [
@@ -253,6 +278,28 @@ OcrLineEntity _line(
     id: id,
     text: text,
     confidence: 0.95,
+    boundingBox: OcrRectValueObject(
+      left: left,
+      top: top,
+      right: right,
+      bottom: bottom,
+    ),
+  );
+}
+
+OcrLineEntity _lineWithConfidence(
+  String id,
+  String text,
+  double left,
+  double top,
+  double right,
+  double bottom,
+  double confidence,
+) {
+  return OcrLineEntity(
+    id: id,
+    text: text,
+    confidence: confidence,
     boundingBox: OcrRectValueObject(
       left: left,
       top: top,

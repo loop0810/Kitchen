@@ -139,11 +139,18 @@ class _ImportMediaWorkspaceWidgetState
       compressFormat: ImageCompressFormat.jpg,
       compressQuality: 92,
       uiSettings: [
-        AndroidUiSettings(toolbarTitle: '裁剪菜谱图片'),
+        AndroidUiSettings(
+          toolbarTitle: '裁剪菜谱图片',
+          // 菜谱原图比例不固定，允许用户分别拖动四条边和四个角。
+          lockAspectRatio: false,
+          initAspectRatio: CropAspectRatioPreset.original,
+        ),
         IOSUiSettings(
           title: '裁剪菜谱图片',
           doneButtonTitle: '完成',
           cancelButtonTitle: '取消',
+          aspectRatioLockEnabled: false,
+          resetAspectRatioEnabled: true,
         ),
       ],
     );

@@ -205,38 +205,17 @@ class _TaskBody extends ConsumerWidget {
   }
 
   Future<void> _editOcrText(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController(text: task.effectiveOcrText);
     final corrected = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('校对识别文字'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: TextField(
-            controller: controller,
-            autofocus: true,
-            minLines: 8,
-            maxLines: 16,
-            textInputAction: TextInputAction.newline,
-            decoration: const InputDecoration(
-              hintText: '按图片顺序检查菜名、食材和步骤',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('重新整理'),
-          ),
-        ],
+      builder: (_) => _ImportTextCorrectionDialog(
+        title: '校对识别文字',
+        initialText: task.effectiveOcrText,
+        hintText: '按图片顺序检查菜名、食材和步骤',
+        minLines: 8,
+        maxLines: 16,
+        submitLabel: '重新整理',
       ),
     );
-    controller.dispose();
     if (corrected == null || !context.mounted) return;
     try {
       await ref
@@ -256,39 +235,94 @@ class _TaskBody extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final controller = TextEditingController(text: task.supplementalText);
     final value = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('补充说明'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          minLines: 4,
-          maxLines: 10,
-          decoration: const InputDecoration(
-            hintText: '例如：少盐、用家里的小烤箱',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('保存并重新整理'),
-          ),
-        ],
+      builder: (_) => _ImportTextCorrectionDialog(
+        title: '补充说明',
+        initialText: task.supplementalText,
+        hintText: '例如：少盐、用家里的小烤箱',
+        minLines: 4,
+        maxLines: 10,
+        submitLabel: '保存并重新整理',
       ),
     );
-    controller.dispose();
     if (value == null || !context.mounted) return;
     final dependencies = ref.read(importDependenciesProvider);
     await dependencies.repository.saveSupplementalText(task.id, value);
     await dependencies.pipeline.process(task.id);
     ref.invalidate(importTaskProvider(task.id));
+  }
+}
+
+/// 让编辑控制器与弹框路由拥有相同生命周期，避免弹框退出动画期间提前销毁
+/// TextField 仍在使用的控制器，触发 Flutter framework 的 dependents 断言。
+class _ImportTextCorrectionDialog extends StatefulWidget {
+  const _ImportTextCorrectionDialog({
+    required this.title,
+    required this.initialText,
+    required this.hintText,
+    required this.minLines,
+    required this.maxLines,
+    required this.submitLabel,
+  });
+
+  final String title;
+  final String initialText;
+  final String hintText;
+  final int minLines;
+  final int maxLines;
+  final String submitLabel;
+
+  @override
+  State<_ImportTextCorrectionDialog> createState() =>
+      _ImportTextCorrectionDialogState();
+}
+
+class _ImportTextCorrectionDialogState
+    extends State<_ImportTextCorrectionDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: TextField(
+          controller: _controller,
+          autofocus: true,
+          minLines: widget.minLines,
+          maxLines: widget.maxLines,
+          textInputAction: TextInputAction.newline,
+          decoration: InputDecoration(
+            hintText: widget.hintText,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(widget.submitLabel),
+        ),
+      ],
+    );
   }
 }
 
