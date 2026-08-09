@@ -74,7 +74,9 @@ dependencies:
   # path_provider_foundation 间接使用该运行库。9.4.1 的旧 Native Asset 曾在
   # 启动时无法解析 Foundation 的 NSArray，因此显式保持已修复的新版本下限。
   objective_c: ^9.5.0
-  flutter_secure_storage: ^11.0.0
+  # V1 使用稳定版；11.x 要求 compileSdk 37，而当前 Android 工具链仅提供
+  # android-37.0，旧版 AGP 会将其错误解析为缺失的 android-37。
+  flutter_secure_storage: ^10.3.1
   sign_in_with_apple: ^8.1.0
   http: ^1.6.0
 

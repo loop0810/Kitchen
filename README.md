@@ -16,3 +16,10 @@
 - [Monorepo 约束](AGENTS.md)：先按任务范围选择最小阅读集。
 
 服务端框架初始化和腾讯云部署将分别通过后续 OpenSpec change 实施；当前 `server/` 只保存未来服务端工作的范围指令。
+
+## 当前 V1 实施队列
+
+`client-v1-android-core-scope` 是当前唯一的 V1 收口入口，主线为 Android 无网络、无需登录
+的菜谱导入、校对、保存、搜索、查看和编辑。`refocus-mvp-recipe-ocr` 作为 OCR 恢复与草稿
+确认的实现主线；iOS Share Extension、Apple/微信/手机号登录和本地备份恢复暂列为 V1 稳定
+后的延期队列，不作为当前发布前置条件。

@@ -71,6 +71,9 @@ void main() {
 
     expect(files, {
       'lib/main.dart',
+      'lib/src/auth/kitchen_notes_apple_sign_in.dart',
+      'lib/src/auth/kitchen_notes_auth_session_repository.dart',
+      'lib/src/auth/kitchen_notes_phone_sign_in.dart',
       'lib/src/backup/kitchen_notes_local_backup_service.dart',
       'lib/src/kitchen_notes_app.dart',
       'lib/src/navigation/kitchen_notes_app_router.dart',
