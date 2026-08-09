@@ -112,3 +112,50 @@ class IdempotencyRecord(Base):
     response_status: Mapped[int] = mapped_column(Integer, nullable=False)
     response_json: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class OtpChallengeRecord(Base):
+    """手机号验证码挑战, 只保存号码摘要和验证码摘要。"""
+
+    __tablename__ = "otp_challenges"
+    __table_args__ = (Index("ix_otp_challenge_phone_status", "phone_subject", "status"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    phone_subject: Mapped[str] = mapped_column(String(64), nullable=False)
+    otp_digest: Mapped[str] = mapped_column(String(128), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class SmsSendIntentRecord(Base):
+    """短信发送预算预占和供应商回执关联, 不保存 OTP 明文。"""
+
+    __tablename__ = "sms_send_intents"
+    __table_args__ = (Index("ix_sms_intent_status_created", "status", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    challenge_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("otp_challenges.id", ondelete="CASCADE"), nullable=False
+    )
+    phone_subject: Mapped[str] = mapped_column(String(64), nullable=False)
+    cost_units: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AuthSecurityEvent(Base):
+    """脱敏安全事件, 不允许写入完整手机号、OTP、令牌或供应商密钥。"""
+
+    __tablename__ = "auth_security_events"
+    __table_args__ = (Index("ix_auth_security_event_created", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    event: Mapped[str] = mapped_column(String(80), nullable=False)
+    rule: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    phone_masked: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    related_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

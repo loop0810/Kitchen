@@ -36,10 +36,10 @@ integration-test:
 verify: lock-check format-check typecheck test
 
 migrate:
-	$(UV) run alembic upgrade head
+	$(UV) run python -m alembic upgrade head
 
 run:
-	$(UV) run kitchen-server
+	$(UV) run python -m kitchen_server.main
 
 clean:
 	docker compose down --remove-orphans

@@ -96,6 +96,12 @@ class AuthError(Exception):
             "idempotency_conflict": "请求幂等键与原请求不一致",
             "account_deletion_in_progress": "账号正在删除处理中",
             "identity_revoked": "登录身份已撤销",
+            "phone_invalid": "请输入有效的中国大陆手机号",
+            "otp_invalid": "验证码错误或已失效",
+            "sms_unavailable": "验证码服务暂时不可用",
+            "sms_rate_limited": "请求过于频繁, 请稍后再试",
+            "sms_budget_exhausted": "验证码服务暂时不可用",
+            "captcha_invalid": "验证失败, 请重新操作",
         }
         return {
             "error": {

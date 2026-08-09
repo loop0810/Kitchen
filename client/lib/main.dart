@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_auth_domain/kitchen_auth_domain.dart';
@@ -16,6 +17,7 @@ import 'package:kitchen_notes/src/backup/kitchen_notes_local_backup_service.dart
 import 'package:kitchen_notes/src/kitchen_notes_app.dart';
 import 'package:kitchen_notes/src/auth/kitchen_notes_auth_session_repository.dart';
 import 'package:kitchen_notes/src/auth/kitchen_notes_apple_sign_in.dart';
+import 'package:kitchen_notes/src/auth/kitchen_notes_phone_sign_in.dart';
 
 void main() {
   // 数据库连接依赖 Flutter 插件提供的应用目录，因此要先初始化绑定。
@@ -41,6 +43,7 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
   late final KitchenNotesLocalBackupService _backupService;
   late final KitchenNotesAuthSessionRepository _authSessionRepository;
   late final KitchenNotesAppleSignInCoordinator _appleSignInCoordinator;
+  late final KitchenNotesPhoneSignInCoordinator _phoneSignInCoordinator;
   var _isConsumingAndroidShares = false;
 
   @override
@@ -65,6 +68,18 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
     _appleSignInCoordinator = KitchenNotesAppleSignInCoordinator(
       gateway: _UnconfiguredAppleAuthGateway(),
       sessionRepository: _authSessionRepository,
+    );
+    _phoneSignInCoordinator = KitchenNotesPhoneSignInCoordinator(
+      gateway: KitchenNotesPhoneHttpAuthGateway(
+        baseUri: Uri.parse(
+          const String.fromEnvironment(
+            'KITCHEN_NOTES_API_BASE_URL',
+            defaultValue: 'http://127.0.0.1:8080',
+          ),
+        ),
+      ),
+      sessionRepository: _authSessionRepository,
+      installationId: 'local-development-installation',
     );
     unawaited(_authSessionRepository.restore());
     WidgetsBinding.instance.addObserver(this);
@@ -156,6 +171,20 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
                 ? () async =>
                       (await _appleSignInCoordinator.signIn()).status ==
                       KitchenNotesAppleSignInStatus.authenticated
+                : null,
+            signInWithPhone:
+                (kDebugMode ||
+                    const bool.fromEnvironment(
+                      'KITCHEN_NOTES_ENABLE_MOCK_PHONE_AUTH',
+                      defaultValue: false,
+                    ))
+                ? (phone, code) async =>
+                      (await _phoneSignInCoordinator.signIn(
+                        phone: phone,
+                        captchaToken: 'local-captcha-ok',
+                        code: code,
+                      )).status ==
+                      KitchenNotesPhoneSignInStatus.authenticated
                 : null,
             clearLocalData: () async {
               await _importDataModule.clearLocalData();

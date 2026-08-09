@@ -54,6 +54,68 @@ void main() {
 
     expect(repository.current.categories, contains('低脂餐'));
   });
+
+  testWidgets('模拟手机号登录校验通过后调用回调', (tester) async {
+    String? phone;
+    String? code;
+    final repository = _MemoryPersonalRecipeConfigRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          profileDependenciesProvider.overrideWithValue(
+            ProfileDependencies(
+              personalRecipeConfigRepository: repository,
+              signInWithPhone: (value, verificationCode) async {
+                phone = value;
+                code = verificationCode;
+                return true;
+              },
+            ),
+          ),
+        ],
+        child: const MaterialApp(home: ProfilePage()),
+      ),
+    );
+
+    await tester.tap(find.text('模拟手机号登录'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '13800138000');
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+
+    expect(phone, '13800138000');
+    expect(code, '111111');
+  });
+
+  testWidgets('模拟手机号登录拒绝无效手机号且不调用回调', (tester) async {
+    var called = false;
+    final repository = _MemoryPersonalRecipeConfigRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          profileDependenciesProvider.overrideWithValue(
+            ProfileDependencies(
+              personalRecipeConfigRepository: repository,
+              signInWithPhone: (_, _) async {
+                called = true;
+                return true;
+              },
+            ),
+          ),
+        ],
+        child: const MaterialApp(home: ProfilePage()),
+      ),
+    );
+
+    await tester.tap(find.text('模拟手机号登录'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '01012345678');
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+
+    expect(called, isFalse);
+    expect(find.text('请输入有效的中国大陆手机号。'), findsOneWidget);
+  });
 }
 
 class _MemoryPersonalRecipeConfigRepository

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Mapping
 from enum import StrEnum
 from typing import Literal
@@ -50,6 +51,23 @@ class Settings(BaseSettings):
         le=31_536_000,
         validation_alias="REFRESH_TOKEN_TTL_SECONDS",
     )
+    phone_otp_pepper: SecretStr = Field(
+        default=SecretStr("development-only-phone-otp-pepper"),
+        validation_alias="PHONE_OTP_PEPPER",
+    )
+    phone_auth_mode: Literal["disabled", "mock", "live"] = Field(
+        default="disabled", validation_alias="PHONE_AUTH_MODE"
+    )
+    phone_mock_otp: str = Field(default="111111", validation_alias="PHONE_MOCK_OTP")
+    phone_mock_captcha_token: SecretStr = Field(
+        default=SecretStr("local-captcha-ok"), validation_alias="PHONE_MOCK_CAPTCHA_TOKEN"
+    )
+    phone_daily_send_limit: int = Field(
+        default=100, ge=1, le=1_000_000, validation_alias="PHONE_DAILY_SEND_LIMIT"
+    )
+    phone_daily_budget_units: int = Field(
+        default=100, ge=1, le=1_000_000, validation_alias="PHONE_DAILY_BUDGET_UNITS"
+    )
     apple_client_id: str | None = Field(default=None, validation_alias="APPLE_CLIENT_ID")
     apple_issuer: str = Field(default="https://appleid.apple.com", validation_alias="APPLE_ISSUER")
 
@@ -63,6 +81,13 @@ class Settings(BaseSettings):
             raise ValueError("database_url_invalid")
         if parsed.hostname is None or not unquote(parsed.path).strip("/"):
             raise ValueError("database_url_invalid")
+        return value
+
+    @field_validator("phone_mock_otp")
+    @classmethod
+    def validate_phone_mock_otp(cls, value: str) -> str:
+        if re.fullmatch(r"\d{6}", value) is None:
+            raise ValueError("phone_mock_otp_invalid")
         return value
 
     @model_validator(mode="after")

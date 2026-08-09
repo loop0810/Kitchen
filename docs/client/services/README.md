@@ -43,6 +43,7 @@ Feature
 | 权益与额度服务 | 未来 AI 付费权益和模板权益 | 后续 | `ENTITLEMENT_QUOTA_SERVICE.md` |
 | 备份与同步服务 | 本地逻辑导出、覆盖恢复、云备份和同步 | 本地导出恢复首版已实现 | `BACKUP_SYNC_SERVICE.md` |
 | 会话服务 | 安全存储、会话恢复、刷新和设备退出 | 端口已建立 | `SESSION_SERVICE.md` |
+| 手机号登录服务 | 模拟 challenge、OTP 校验和共享会话接入 | 模拟模式已建立，真实供应商待接入 | `PHONE_LOGIN_SERVICE.md` |
 
 ## 4. 通用服务约束
 

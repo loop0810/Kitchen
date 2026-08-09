@@ -7,6 +7,7 @@ class ProfileDependencies {
     required this.personalRecipeConfigRepository,
     this.authSessionRepository,
     this.signInWithApple,
+    this.signInWithPhone,
     this.clearLocalData,
     this.exportBackup,
     this.restoreBackup,
@@ -19,6 +20,9 @@ class ProfileDependencies {
 
   /// iOS Apple 登录入口；认证服务未装配时为空，匿名本地功能仍完整可用。
   final Future<bool> Function()? signInWithApple;
+
+  /// Debug 构建默认装配模拟入口；Release 构建需显式开启编译开关。
+  final Future<bool> Function(String phone, String code)? signInWithPhone;
 
   /// 清除设备资料库的组合根回调；账号删除由未来会话流程单独确认后调用。
   final Future<void> Function()? clearLocalData;

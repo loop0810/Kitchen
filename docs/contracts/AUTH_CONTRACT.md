@@ -37,7 +37,7 @@
 }
 ```
 
-稳定错误码至少包括：`invalid_request`、`invalid_credentials`、`invalid_session`、`session_replay_detected`、`identity_conflict`、`recent_auth_required`、`idempotency_conflict`、`account_deletion_in_progress` 和 `internal_error`。错误不得说明另一个账号是否存在。
+稳定错误码至少包括：`invalid_request`、`invalid_credentials`、`invalid_session`、`session_replay_detected`、`identity_conflict`、`recent_auth_required`、`idempotency_conflict`、`account_deletion_in_progress`、`phone_invalid`、`captcha_invalid`、`otp_invalid`、`sms_unavailable`、`sms_rate_limited`、`sms_budget_exhausted` 和 `internal_error`。错误不得说明另一个账号是否存在。
 
 可能产生副作用的请求必须携带 `Idempotency-Key`。同一操作、同一账号和同一幂等键必须返回原结果；同一键对应不同请求体返回 `idempotency_conflict`。
 
@@ -67,3 +67,11 @@
 - `GET /v1/auth/identities` 只返回当前 access token 对应账号的身份摘要：`id`、`provider`、`status` 和可选邮箱；不得返回 provider subject。
 - `DELETE /v1/auth/identities/{id}` 需要有效的当前设备会话和近期认证；服务端必须确认身份属于当前账号，并拒绝解绑最后一个身份。
 - 解绑单个 Apple 身份不等同于删除账号；删除账号仍使用本契约第 5 节的近期重新认证、撤销全部会话和可重试清理流程。
+
+## 9. 中国大陆手机号身份边界
+
+- 手机号登录只接受规范化后的中国大陆移动号码，身份 provider subject 使用服务端生成的号码摘要，不把完整号码写入日志或响应。
+- 发送验证码前必须通过一次性 CAPTCHA、服务端多维限额和预算预检；客户端倒计时不是安全控制，预检失败不得调用短信供应商。
+- OTP challenge 使用短有效期、六位安全随机值、服务端 HMAC 摘要、错误尝试上限和成功单次使用；新 challenge 使同一号码的旧 challenge 失效。
+- 发送和验证错误不得透露手机号是否已注册；验证成功后复用共享身份断言自动建号或找回账号。
+- Redis、CAPTCHA、预算或远端开关无法给出可信结果时停止发送；已经创建且未过期的 challenge 仍可限次验证。

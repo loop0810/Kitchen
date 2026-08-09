@@ -122,6 +122,21 @@ async def exercise_auth(database_url: str) -> None:
             second = await service.authenticate(session, assertion, device_name="模拟器")
         assert first.user_id == second.user_id
 
+        phone_assertion = VerifiedIdentityAssertion(
+            "phone",
+            "phone-subject-test",
+            "phone:cn",
+        )
+        async with database.session() as session:
+            phone_first = await service.authenticate(
+                session, phone_assertion, device_name="模拟手机号设备"
+            )
+        async with database.session() as session:
+            phone_second = await service.authenticate(
+                session, phone_assertion, device_name="模拟手机号设备"
+            )
+        assert phone_first.user_id == phone_second.user_id
+
         other_assertion = VerifiedIdentityAssertion("test", "subject-2", "integration")
         async with database.session() as session:
             other = await service.authenticate(session, other_assertion, device_name="另一台设备")

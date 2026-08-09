@@ -47,6 +47,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             session: session,
             repository: authRepository,
             signInWithApple: signInWithApple,
+            signInWithPhone: dependencies?.signInWithPhone,
           ),
           const SizedBox(height: AppSpacing.s12),
           Card(
@@ -363,11 +364,13 @@ class _AccountCard extends StatelessWidget {
     required this.session,
     required this.repository,
     required this.signInWithApple,
+    required this.signInWithPhone,
   });
 
   final AsyncValue<AuthSessionState> session;
   final AuthSessionRepository? repository;
   final Future<bool> Function()? signInWithApple;
+  final Future<bool> Function(String phone, String code)? signInWithPhone;
 
   @override
   Widget build(BuildContext context) {
@@ -415,6 +418,14 @@ class _AccountCard extends StatelessWidget {
                 ),
               ),
             ),
+          if (signInWithPhone != null &&
+              status != AuthSessionStatus.authenticated)
+            ListTile(
+              leading: const Icon(Icons.sms_outlined),
+              title: const Text('模拟手机号登录'),
+              subtitle: const Text('开发模式验证码：111111'),
+              onTap: () => _showMockPhoneDialog(context),
+            ),
           if (repository != null &&
               status == AuthSessionStatus.authenticated) ...[
             const Divider(height: AppSpacing.s1, indent: AppSpacing.s56),
@@ -439,6 +450,96 @@ class _AccountCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+
+  Future<void> _showMockPhoneDialog(BuildContext context) async {
+    final values = await showDialog<({String phone, String code})>(
+      context: context,
+      builder: (_) => const _MockPhoneLoginDialog(),
+    );
+    if (values == null || !context.mounted) return;
+    final phone = values.phone;
+    final code = values.code;
+    if (!_isValidCnPhone(phone)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请输入有效的中国大陆手机号。')));
+      return;
+    }
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请输入 6 位验证码。')));
+      return;
+    }
+    final success = await signInWithPhone!(phone, code);
+    if (!context.mounted || success) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('模拟手机号登录失败，本地功能仍可继续使用。')));
+  }
+
+  bool _isValidCnPhone(String value) {
+    final compact = value.replaceAll(RegExp(r'[\s()-]'), '');
+    final local = compact.startsWith('+86')
+        ? compact.substring(3)
+        : compact.startsWith('0086')
+        ? compact.substring(4)
+        : compact;
+    return RegExp(r'^1[3-9]\d{9}$').hasMatch(local);
+  }
+}
+
+class _MockPhoneLoginDialog extends StatefulWidget {
+  const _MockPhoneLoginDialog();
+
+  @override
+  State<_MockPhoneLoginDialog> createState() => _MockPhoneLoginDialogState();
+}
+
+class _MockPhoneLoginDialogState extends State<_MockPhoneLoginDialog> {
+  final _phoneController = TextEditingController();
+  final _codeController = TextEditingController(text: '111111');
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('模拟手机号登录'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(labelText: '中国大陆手机号'),
+          ),
+          TextField(
+            controller: _codeController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: '验证码（111111）'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(
+            context,
+          ).pop((phone: _phoneController.text, code: _codeController.text)),
+          child: const Text('登录'),
+        ),
+      ],
     );
   }
 }

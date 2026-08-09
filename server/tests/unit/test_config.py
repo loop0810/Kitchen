@@ -56,3 +56,14 @@ def test_production_defaults_to_info_logging() -> None:
     )
 
     assert settings.resolved_log_level == "info"
+
+
+def test_mock_phone_otp_must_be_six_digits() -> None:
+    with pytest.raises(RuntimeConfigurationError):
+        load_settings(
+            {
+                "PHONE_AUTH_MODE": "mock",
+                "PHONE_MOCK_OTP": "12345",
+                "DATABASE_URL": "postgresql://kitchen:secret@localhost/kitchen_dev",
+            }
+        )

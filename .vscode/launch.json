@@ -1,0 +1,289 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    
+        {
+            "name": "client",
+            "cwd": "client",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "client (profile mode)",
+            "cwd": "client",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "client (release mode)",
+            "cwd": "client",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_app_core",
+            "cwd": "client/packages/kitchen_app_core",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_app_core (profile mode)",
+            "cwd": "client/packages/kitchen_app_core",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_app_core (release mode)",
+            "cwd": "client/packages/kitchen_app_core",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_auth_domain",
+            "cwd": "client/packages/kitchen_auth_domain",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_auth_domain (profile mode)",
+            "cwd": "client/packages/kitchen_auth_domain",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_auth_domain (release mode)",
+            "cwd": "client/packages/kitchen_auth_domain",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_design_system",
+            "cwd": "client/packages/kitchen_design_system",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_design_system (profile mode)",
+            "cwd": "client/packages/kitchen_design_system",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_design_system (release mode)",
+            "cwd": "client/packages/kitchen_design_system",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_home",
+            "cwd": "client/packages/kitchen_home",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_home (profile mode)",
+            "cwd": "client/packages/kitchen_home",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_home (release mode)",
+            "cwd": "client/packages/kitchen_home",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_import",
+            "cwd": "client/packages/kitchen_import",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_import (profile mode)",
+            "cwd": "client/packages/kitchen_import",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_import (release mode)",
+            "cwd": "client/packages/kitchen_import",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_import_data",
+            "cwd": "client/packages/kitchen_import_data",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_import_data (profile mode)",
+            "cwd": "client/packages/kitchen_import_data",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_import_data (release mode)",
+            "cwd": "client/packages/kitchen_import_data",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_import_domain",
+            "cwd": "client/packages/kitchen_import_domain",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_import_domain (profile mode)",
+            "cwd": "client/packages/kitchen_import_domain",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_import_domain (release mode)",
+            "cwd": "client/packages/kitchen_import_domain",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_profile",
+            "cwd": "client/packages/kitchen_profile",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_profile (profile mode)",
+            "cwd": "client/packages/kitchen_profile",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_profile (release mode)",
+            "cwd": "client/packages/kitchen_profile",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_recipe_data",
+            "cwd": "client/packages/kitchen_recipe_data",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_recipe_data (profile mode)",
+            "cwd": "client/packages/kitchen_recipe_data",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_recipe_data (release mode)",
+            "cwd": "client/packages/kitchen_recipe_data",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_recipe_domain",
+            "cwd": "client/packages/kitchen_recipe_domain",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_recipe_domain (profile mode)",
+            "cwd": "client/packages/kitchen_recipe_domain",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_recipe_domain (release mode)",
+            "cwd": "client/packages/kitchen_recipe_domain",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_recipe_editor",
+            "cwd": "client/packages/kitchen_recipe_editor",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_recipe_editor (profile mode)",
+            "cwd": "client/packages/kitchen_recipe_editor",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_recipe_editor (release mode)",
+            "cwd": "client/packages/kitchen_recipe_editor",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_recipe_library",
+            "cwd": "client/packages/kitchen_recipe_library",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_recipe_library (profile mode)",
+            "cwd": "client/packages/kitchen_recipe_library",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_recipe_library (release mode)",
+            "cwd": "client/packages/kitchen_recipe_library",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "kitchen_recipe_template",
+            "cwd": "client/packages/kitchen_recipe_template",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "kitchen_recipe_template (profile mode)",
+            "cwd": "client/packages/kitchen_recipe_template",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "kitchen_recipe_template (release mode)",
+            "cwd": "client/packages/kitchen_recipe_template",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

@@ -14,6 +14,15 @@ from kitchen_server.auth.apple import (
     AppleVerifierConfig,
     InMemoryAppleAuthorizationStateStore,
 )
+from kitchen_server.auth.phone import (
+    InMemoryCaptchaVerifier,
+    InMemoryOtpChallengeStore,
+    InMemoryRiskPreflight,
+    OtpService,
+    PhoneMockRuntime,
+    RecordingSmsSender,
+)
+from kitchen_server.auth.phone_routes import router as phone_auth_router
 from kitchen_server.auth.routes import account_router
 from kitchen_server.auth.routes import router as apple_auth_router
 from kitchen_server.auth.service import AuthError
@@ -38,6 +47,22 @@ def create_app(
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.settings = runtime_settings
         app.state.database = database
+        app.state.phone_runtime = PhoneMockRuntime(
+            otp=OtpService(
+                InMemoryOtpChallengeStore(),
+                pepper=runtime_settings.phone_otp_pepper.get_secret_value(),
+            ),
+            captcha=InMemoryCaptchaVerifier(
+                runtime_settings.phone_mock_captcha_token.get_secret_value(),
+                reusable=True,
+            ),
+            risk=InMemoryRiskPreflight(
+                max_total=runtime_settings.phone_daily_send_limit,
+                cost_limit=runtime_settings.phone_daily_budget_units,
+            ),
+            sender=RecordingSmsSender(),
+            idempotency={},
+        )
         state_store = InMemoryAppleAuthorizationStateStore()
         app.state.apple_state_store = state_store
         app.state.apple_verifier = AppleIdentityVerifier(
@@ -64,6 +89,7 @@ def create_app(
     app.add_middleware(RequestIDMiddleware)
     app.include_router(apple_auth_router)
     app.include_router(account_router)
+    app.include_router(phone_auth_router)
 
     @app.exception_handler(AuthError)
     async def auth_error(request: Request, error: AuthError) -> JSONResponse:
