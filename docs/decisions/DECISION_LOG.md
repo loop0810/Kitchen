@@ -205,8 +205,9 @@
 - 原因：第三方 Content URI 的读取授权可能随 Activity 或进程结束而失效，直接
   把 URI 交给异步 OCR 会造成冷启动和中断恢复时丢失原始输入。
 - 影响：Android 冷启动与前台分享使用同一消费流程；文字与图片可保存在同一
-  ImportTask，图片 OCR 与分享文案随后统一进入结构化流程。iOS 仍需独立的
-  Share Extension 与 App Group 清单实现。
+  ImportTask，图片 OCR 与分享文案随后统一进入结构化流程。iOS 设计使用独立
+  Share Extension 与 App Group 清单实现，但当前因 Personal Team 不支持相关签名能力暂时
+  关闭，待开发者团队可用后恢复。
 
 ### D-023 菜谱整理使用分段菜谱集入口
 

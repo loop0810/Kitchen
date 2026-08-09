@@ -14,7 +14,11 @@ abstract interface class ImportTaskRepository {
   Future<String> createSharedTask({
     required String originalText,
     required List<String> controlledLocalPaths,
+    String? sourceShareId,
   });
+
+  /// 按外部系统分享 ID 查找已经创建的导入任务，用于重复接管幂等处理。
+  Future<String?> findSharedTask(String sourceShareId);
 
   Future<void> updateStatus(
     String taskId,

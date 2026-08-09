@@ -44,6 +44,17 @@ void main() {
     expect(task.detectedPublicUrl, Uri.parse('https://xhslink.cn/o/example'));
   });
 
+  test('系统分享 ID 可以阻止重复创建导入任务', () async {
+    final firstTaskId = await repository.createSharedTask(
+      originalText: '第一次分享',
+      controlledLocalPaths: const [],
+      sourceShareId: 'share-1',
+    );
+
+    expect(await repository.findSharedTask('share-1'), firstTaskId);
+    expect(await repository.findSharedTask('share-unknown'), isNull);
+  });
+
   test('草稿和任务状态可以恢复', () async {
     final taskId = await repository.createTextTask('番茄炒蛋');
     final draft = const LocalRecipeStructurerService().structure(

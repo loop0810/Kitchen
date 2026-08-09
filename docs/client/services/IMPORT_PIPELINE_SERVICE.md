@@ -138,6 +138,10 @@ OCR 结果按页保存 `pending / processing / succeeded / failed` 状态。多�
 - iOS Share Extension 与 Android Share Intent 只负责安全接收和持久化。
 - Android 分享先把文字元数据和媒体复制到应用私有暂存区，并原子写入版本化清单；
   主应用确认 ImportTask 已落库后才删除清单。
+- iOS Share Extension 使用 App Group 暂存文字、HTTPS 链接和图片，并以版本化
+  manifest 交给主 App；主 App 校验文件路径、大小和 SHA-256 后再创建 ImportTask。
+- iOS 与 Android 分享都以 `sourceShareId` 作为本地幂等键；任务已经落库但原生
+  暂存清理失败时，下一次启动只重试确认清理，不重复创建任务。
 - 重型 OCR 处理在主应用或允许的后台能力中执行。
 - 不要求分享操作强制打开主应用。
 - 不绕过第三方平台验证、反爬或版权保护。

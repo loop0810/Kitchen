@@ -45,6 +45,10 @@ Feature
 | 会话服务 | 安全存储、会话恢复、刷新和设备退出 | 端口已建立 | `SESSION_SERVICE.md` |
 | 手机号登录服务 | 模拟 challenge、OTP 校验和共享会话接入 | 模拟模式已建立，真实供应商待接入 | `PHONE_LOGIN_SERVICE.md` |
 
+系统分享由 `ImportPipelineService` 负责统一接管：当前 Android 使用 Share Intent；iOS
+Share Extension 代码已保留，但因当前 Personal Team 不支持 App Groups 签名而暂时关闭。
+恢复 iOS 能力后，两端均先本地暂存，再由主 App 创建可恢复的 ImportTask。
+
 ## 4. 通用服务约束
 
 - Feature 依赖抽象，不直接依赖平台或远端 SDK。

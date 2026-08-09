@@ -24,6 +24,9 @@ class ImportTasks extends Table {
   /// 用户粘贴或分享的完整原始文字；无文字时为空字符串。
   TextColumn get originalText => text().withDefault(const Constant(''))();
 
+  /// iOS 或 Android 系统分享的稳定 ID；手动创建的任务为空。
+  TextColumn get sourceShareId => text().nullable()();
+
   /// 从原文识别出的公开 HTTPS 地址；未识别时为空。
   TextColumn get detectedPublicUrl => text().nullable()();
 
@@ -72,7 +75,7 @@ class ImportAppDatabase extends _$ImportAppDatabase {
   ImportAppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -83,6 +86,10 @@ class ImportAppDatabase extends _$ImportAppDatabase {
         await migrator.addColumn(importTasks, importTasks.correctedOcrText);
         await migrator.addColumn(importTasks, importTasks.supplementalText);
         await migrator.addColumn(importTasks, importTasks.processingGeneration);
+      }
+      if (from < 3) {
+        // 外部分享 ID 只用于重复接管幂等，不改变旧任务的本地内容语义。
+        await migrator.addColumn(importTasks, importTasks.sourceShareId);
       }
     },
   );
@@ -112,6 +119,7 @@ class ImportAppDatabase extends _$ImportAppDatabase {
             'inputKind': row.inputKind,
             'status': row.status,
             'originalText': row.originalText,
+            'sourceShareId': row.sourceShareId,
             'detectedPublicUrl': row.detectedPublicUrl,
             'mediaJson': row.mediaJson,
             'ocrText': row.ocrText,
@@ -146,6 +154,7 @@ class ImportAppDatabase extends _$ImportAppDatabase {
             inputKind: row['inputKind'] as String,
             status: row['status'] as String,
             originalText: Value(row['originalText'] as String),
+            sourceShareId: Value(row['sourceShareId'] as String?),
             detectedPublicUrl: Value(row['detectedPublicUrl'] as String?),
             mediaJson: Value(mediaJson),
             ocrText: Value(row['ocrText'] as String?),

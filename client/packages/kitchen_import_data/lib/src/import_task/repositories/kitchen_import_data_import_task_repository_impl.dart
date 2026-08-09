@@ -102,6 +102,7 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
   Future<String> createSharedTask({
     required String originalText,
     required List<String> controlledLocalPaths,
+    String? sourceShareId,
   }) async {
     final normalized = originalText.trim();
     if (normalized.isEmpty && controlledLocalPaths.isEmpty) {
@@ -128,6 +129,7 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
                 : ImportInputKind.sharedImages.name,
             status: ImportTaskStatus.queued.name,
             originalText: Value(normalized),
+            sourceShareId: Value(sourceShareId),
             detectedPublicUrl: Value(
               _detectedPublicUrl(normalized)?.toString(),
             ),
@@ -137,6 +139,14 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
           ),
         );
     return id;
+  }
+
+  @override
+  Future<String?> findSharedTask(String sourceShareId) async {
+    final row = await (_database.select(_database.importTasks)
+          ..where((task) => task.sourceShareId.equals(sourceShareId)))
+        .getSingleOrNull();
+    return row?.id;
   }
 
   Uri? _detectedPublicUrl(String text) {

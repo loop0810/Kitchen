@@ -1,6 +1,9 @@
 # 客户端 Apple 登录
 
-Apple 授权只在 iOS 入口展示；“不登录继续使用”始终保留。`KitchenNotesAppleSignInCoordinator` 为每次授权生成高熵 nonce，传入 Apple 原生授权请求，并将 identity token、授权码、nonce、流程 ID 和可选资料交给服务端网关。客户端 `userIdentifier`、邮箱和姓名不作为认证依据。
+Apple 授权只在 iOS 入口展示；“不登录继续使用”始终保留。当前因 Personal Team 不支持
+Sign in with Apple，入口暂时关闭；获得 Apple Developer 团队后恢复。`KitchenNotesAppleSignInCoordinator`
+为每次授权生成高熵 nonce，传入 Apple 原生授权请求，并将 identity token、授权码、nonce、流程 ID
+和可选资料交给服务端网关。客户端 `userIdentifier`、邮箱和姓名不作为认证依据。
 
 取消授权返回 `cancelled`，不显示账号错误、不创建会话，也不影响本地菜谱。姓名和邮箱可能只在首次授权返回，客户端不要求手机号补充；服务端负责保存已验证的可选资料。
 

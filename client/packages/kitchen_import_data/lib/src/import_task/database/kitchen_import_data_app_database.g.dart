@@ -50,6 +50,17 @@ class $ImportTasksTable extends ImportTasks
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _sourceShareIdMeta = const VerificationMeta(
+    'sourceShareId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceShareId = GeneratedColumn<String>(
+    'source_share_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _detectedPublicUrlMeta = const VerificationMeta(
     'detectedPublicUrl',
   );
@@ -191,6 +202,7 @@ class $ImportTasksTable extends ImportTasks
     inputKind,
     status,
     originalText,
+    sourceShareId,
     detectedPublicUrl,
     mediaJson,
     ocrText,
@@ -243,6 +255,15 @@ class $ImportTasksTable extends ImportTasks
         originalText.isAcceptableOrUnknown(
           data['original_text']!,
           _originalTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_share_id')) {
+      context.handle(
+        _sourceShareIdMeta,
+        sourceShareId.isAcceptableOrUnknown(
+          data['source_share_id']!,
+          _sourceShareIdMeta,
         ),
       );
     }
@@ -365,6 +386,10 @@ class $ImportTasksTable extends ImportTasks
         DriftSqlType.string,
         data['${effectivePrefix}original_text'],
       )!,
+      sourceShareId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_share_id'],
+      ),
       detectedPublicUrl: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}detected_public_url'],
@@ -435,6 +460,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
   /// 用户粘贴或分享的完整原始文字；无文字时为空字符串。
   final String originalText;
 
+  /// iOS 或 Android 系统分享的稳定 ID；手动创建的任务为空。
+  final String? sourceShareId;
+
   /// 从原文识别出的公开 HTTPS 地址；未识别时为空。
   final String? detectedPublicUrl;
 
@@ -475,6 +503,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     required this.inputKind,
     required this.status,
     required this.originalText,
+    this.sourceShareId,
     this.detectedPublicUrl,
     required this.mediaJson,
     this.ocrText,
@@ -495,6 +524,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     map['input_kind'] = Variable<String>(inputKind);
     map['status'] = Variable<String>(status);
     map['original_text'] = Variable<String>(originalText);
+    if (!nullToAbsent || sourceShareId != null) {
+      map['source_share_id'] = Variable<String>(sourceShareId);
+    }
     if (!nullToAbsent || detectedPublicUrl != null) {
       map['detected_public_url'] = Variable<String>(detectedPublicUrl);
     }
@@ -530,6 +562,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
       inputKind: Value(inputKind),
       status: Value(status),
       originalText: Value(originalText),
+      sourceShareId: sourceShareId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceShareId),
       detectedPublicUrl: detectedPublicUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(detectedPublicUrl),
@@ -569,6 +604,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
       inputKind: serializer.fromJson<String>(json['inputKind']),
       status: serializer.fromJson<String>(json['status']),
       originalText: serializer.fromJson<String>(json['originalText']),
+      sourceShareId: serializer.fromJson<String?>(json['sourceShareId']),
       detectedPublicUrl: serializer.fromJson<String?>(
         json['detectedPublicUrl'],
       ),
@@ -595,6 +631,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
       'inputKind': serializer.toJson<String>(inputKind),
       'status': serializer.toJson<String>(status),
       'originalText': serializer.toJson<String>(originalText),
+      'sourceShareId': serializer.toJson<String?>(sourceShareId),
       'detectedPublicUrl': serializer.toJson<String?>(detectedPublicUrl),
       'mediaJson': serializer.toJson<String>(mediaJson),
       'ocrText': serializer.toJson<String?>(ocrText),
@@ -615,6 +652,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     String? inputKind,
     String? status,
     String? originalText,
+    Value<String?> sourceShareId = const Value.absent(),
     Value<String?> detectedPublicUrl = const Value.absent(),
     String? mediaJson,
     Value<String?> ocrText = const Value.absent(),
@@ -632,6 +670,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     inputKind: inputKind ?? this.inputKind,
     status: status ?? this.status,
     originalText: originalText ?? this.originalText,
+    sourceShareId: sourceShareId.present
+        ? sourceShareId.value
+        : this.sourceShareId,
     detectedPublicUrl: detectedPublicUrl.present
         ? detectedPublicUrl.value
         : this.detectedPublicUrl,
@@ -659,6 +700,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
       originalText: data.originalText.present
           ? data.originalText.value
           : this.originalText,
+      sourceShareId: data.sourceShareId.present
+          ? data.sourceShareId.value
+          : this.sourceShareId,
       detectedPublicUrl: data.detectedPublicUrl.present
           ? data.detectedPublicUrl.value
           : this.detectedPublicUrl,
@@ -693,6 +737,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
           ..write('inputKind: $inputKind, ')
           ..write('status: $status, ')
           ..write('originalText: $originalText, ')
+          ..write('sourceShareId: $sourceShareId, ')
           ..write('detectedPublicUrl: $detectedPublicUrl, ')
           ..write('mediaJson: $mediaJson, ')
           ..write('ocrText: $ocrText, ')
@@ -715,6 +760,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     inputKind,
     status,
     originalText,
+    sourceShareId,
     detectedPublicUrl,
     mediaJson,
     ocrText,
@@ -736,6 +782,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
           other.inputKind == this.inputKind &&
           other.status == this.status &&
           other.originalText == this.originalText &&
+          other.sourceShareId == this.sourceShareId &&
           other.detectedPublicUrl == this.detectedPublicUrl &&
           other.mediaJson == this.mediaJson &&
           other.ocrText == this.ocrText &&
@@ -755,6 +802,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
   final Value<String> inputKind;
   final Value<String> status;
   final Value<String> originalText;
+  final Value<String?> sourceShareId;
   final Value<String?> detectedPublicUrl;
   final Value<String> mediaJson;
   final Value<String?> ocrText;
@@ -773,6 +821,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     this.inputKind = const Value.absent(),
     this.status = const Value.absent(),
     this.originalText = const Value.absent(),
+    this.sourceShareId = const Value.absent(),
     this.detectedPublicUrl = const Value.absent(),
     this.mediaJson = const Value.absent(),
     this.ocrText = const Value.absent(),
@@ -792,6 +841,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     required String inputKind,
     required String status,
     this.originalText = const Value.absent(),
+    this.sourceShareId = const Value.absent(),
     this.detectedPublicUrl = const Value.absent(),
     this.mediaJson = const Value.absent(),
     this.ocrText = const Value.absent(),
@@ -815,6 +865,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     Expression<String>? inputKind,
     Expression<String>? status,
     Expression<String>? originalText,
+    Expression<String>? sourceShareId,
     Expression<String>? detectedPublicUrl,
     Expression<String>? mediaJson,
     Expression<String>? ocrText,
@@ -834,6 +885,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
       if (inputKind != null) 'input_kind': inputKind,
       if (status != null) 'status': status,
       if (originalText != null) 'original_text': originalText,
+      if (sourceShareId != null) 'source_share_id': sourceShareId,
       if (detectedPublicUrl != null) 'detected_public_url': detectedPublicUrl,
       if (mediaJson != null) 'media_json': mediaJson,
       if (ocrText != null) 'ocr_text': ocrText,
@@ -856,6 +908,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     Value<String>? inputKind,
     Value<String>? status,
     Value<String>? originalText,
+    Value<String?>? sourceShareId,
     Value<String?>? detectedPublicUrl,
     Value<String>? mediaJson,
     Value<String?>? ocrText,
@@ -875,6 +928,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
       inputKind: inputKind ?? this.inputKind,
       status: status ?? this.status,
       originalText: originalText ?? this.originalText,
+      sourceShareId: sourceShareId ?? this.sourceShareId,
       detectedPublicUrl: detectedPublicUrl ?? this.detectedPublicUrl,
       mediaJson: mediaJson ?? this.mediaJson,
       ocrText: ocrText ?? this.ocrText,
@@ -905,6 +959,9 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     }
     if (originalText.present) {
       map['original_text'] = Variable<String>(originalText.value);
+    }
+    if (sourceShareId.present) {
+      map['source_share_id'] = Variable<String>(sourceShareId.value);
     }
     if (detectedPublicUrl.present) {
       map['detected_public_url'] = Variable<String>(detectedPublicUrl.value);
@@ -955,6 +1012,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
           ..write('inputKind: $inputKind, ')
           ..write('status: $status, ')
           ..write('originalText: $originalText, ')
+          ..write('sourceShareId: $sourceShareId, ')
           ..write('detectedPublicUrl: $detectedPublicUrl, ')
           ..write('mediaJson: $mediaJson, ')
           ..write('ocrText: $ocrText, ')
@@ -990,6 +1048,7 @@ typedef $$ImportTasksTableCreateCompanionBuilder =
       required String inputKind,
       required String status,
       Value<String> originalText,
+      Value<String?> sourceShareId,
       Value<String?> detectedPublicUrl,
       Value<String> mediaJson,
       Value<String?> ocrText,
@@ -1010,6 +1069,7 @@ typedef $$ImportTasksTableUpdateCompanionBuilder =
       Value<String> inputKind,
       Value<String> status,
       Value<String> originalText,
+      Value<String?> sourceShareId,
       Value<String?> detectedPublicUrl,
       Value<String> mediaJson,
       Value<String?> ocrText,
@@ -1051,6 +1111,11 @@ class $$ImportTasksTableFilterComposer
 
   ColumnFilters<String> get originalText => $composableBuilder(
     column: $table.originalText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceShareId => $composableBuilder(
+    column: $table.sourceShareId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1144,6 +1209,11 @@ class $$ImportTasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get sourceShareId => $composableBuilder(
+    column: $table.sourceShareId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get detectedPublicUrl => $composableBuilder(
     column: $table.detectedPublicUrl,
     builder: (column) => ColumnOrderings(column),
@@ -1225,6 +1295,11 @@ class $$ImportTasksTableAnnotationComposer
 
   GeneratedColumn<String> get originalText => $composableBuilder(
     column: $table.originalText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceShareId => $composableBuilder(
+    column: $table.sourceShareId,
     builder: (column) => column,
   );
 
@@ -1314,6 +1389,7 @@ class $$ImportTasksTableTableManager
                 Value<String> inputKind = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String> originalText = const Value.absent(),
+                Value<String?> sourceShareId = const Value.absent(),
                 Value<String?> detectedPublicUrl = const Value.absent(),
                 Value<String> mediaJson = const Value.absent(),
                 Value<String?> ocrText = const Value.absent(),
@@ -1332,6 +1408,7 @@ class $$ImportTasksTableTableManager
                 inputKind: inputKind,
                 status: status,
                 originalText: originalText,
+                sourceShareId: sourceShareId,
                 detectedPublicUrl: detectedPublicUrl,
                 mediaJson: mediaJson,
                 ocrText: ocrText,
@@ -1352,6 +1429,7 @@ class $$ImportTasksTableTableManager
                 required String inputKind,
                 required String status,
                 Value<String> originalText = const Value.absent(),
+                Value<String?> sourceShareId = const Value.absent(),
                 Value<String?> detectedPublicUrl = const Value.absent(),
                 Value<String> mediaJson = const Value.absent(),
                 Value<String?> ocrText = const Value.absent(),
@@ -1370,6 +1448,7 @@ class $$ImportTasksTableTableManager
                 inputKind: inputKind,
                 status: status,
                 originalText: originalText,
+                sourceShareId: sourceShareId,
                 detectedPublicUrl: detectedPublicUrl,
                 mediaJson: mediaJson,
                 ocrText: ocrText,

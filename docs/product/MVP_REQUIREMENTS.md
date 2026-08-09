@@ -694,7 +694,7 @@ FederatedSearchCoordinator
 | 统一创建与手动创建 | 已实现三选项面板、空白创建和跨页面复用 |
 | 文章或链接导入 | 已实现原文先持久化、公开 HTTPS 安全提取、本地规则草稿和用户确认 |
 | 图片导入 | 已实现相册多选、受控目录持久化、结构化离线 OCR、版面分析和保守解析 |
-| 系统分享 | Android 已接入文字、链接、单图及多图；iOS Share Extension 待接入 |
+| 系统分享 | Android 已接入文字、链接、单图及多图；iOS Share Extension 代码已保留但因 Personal Team 签名能力暂时关闭 |
 | 完整菜谱详情 | 基础实现 |
 | 极简 / 手账主题切换 | 基础实现 |
 | 菜谱完整编辑 | 核心编辑闭环已实现，扩展字段和草稿恢复待完成 |
@@ -716,7 +716,7 @@ FederatedSearchCoordinator
 2. 完成菜谱编辑能力。
 3. 完成图片重排、裁剪旋转、替换、忽略和分页失败降级。
 4. 完成带字段证据、可信等级和用户编辑保护的草稿确认。
-5. 接入 iOS Share Extension；Android Share Intent 已完成。
+5. Android Share Intent 已完成；获得 Apple Developer 团队后再恢复 iOS Share Extension。
 6. 用真实多平台截图持续完善结构化 OCR、通用版面分析和保守解析测试集。
 7. 完成隐私、数据导出和发布准备。
 8. MVP 稳定后单独设计并评审未来付费 AI 辅助。

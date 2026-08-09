@@ -16,7 +16,6 @@ import 'package:kitchen_profile/kitchen_profile.dart';
 import 'package:kitchen_notes/src/backup/kitchen_notes_local_backup_service.dart';
 import 'package:kitchen_notes/src/kitchen_notes_app.dart';
 import 'package:kitchen_notes/src/auth/kitchen_notes_auth_session_repository.dart';
-import 'package:kitchen_notes/src/auth/kitchen_notes_apple_sign_in.dart';
 import 'package:kitchen_notes/src/auth/kitchen_notes_phone_sign_in.dart';
 
 void main() {
@@ -42,7 +41,6 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
   late final ImportPipeline _importPipeline;
   late final KitchenNotesLocalBackupService _backupService;
   late final KitchenNotesAuthSessionRepository _authSessionRepository;
-  late final KitchenNotesAppleSignInCoordinator _appleSignInCoordinator;
   late final KitchenNotesPhoneSignInCoordinator _phoneSignInCoordinator;
   var _isConsumingAndroidShares = false;
 
@@ -64,10 +62,6 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
     _authSessionRepository = KitchenNotesAuthSessionRepository(
       secureStore: FlutterSecureRefreshTokenStore(),
       gateway: _UnconfiguredAuthGateway(),
-    );
-    _appleSignInCoordinator = KitchenNotesAppleSignInCoordinator(
-      gateway: _UnconfiguredAppleAuthGateway(),
-      sessionRepository: _authSessionRepository,
     );
     _phoneSignInCoordinator = KitchenNotesPhoneSignInCoordinator(
       gateway: KitchenNotesPhoneHttpAuthGateway(
@@ -129,6 +123,13 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
           .listPendingShares();
       for (final share in shares) {
         try {
+          final existingTaskId = await _importDataModule.importTaskRepository
+              .findSharedTask(share.id);
+          if (existingTaskId != null) {
+            await _importDataModule.androidShareAdapter.acknowledge(share.id);
+            unawaited(_importPipeline.process(existingTaskId));
+            continue;
+          }
           final controlledPaths = share.localPaths.isEmpty
               ? const <String>[]
               : await _importDataModule.persistPickedImages(share.localPaths);
@@ -136,6 +137,7 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
               .createSharedTask(
                 originalText: share.combinedText,
                 controlledLocalPaths: controlledPaths,
+                sourceShareId: share.id,
               );
           // ImportTask 已持久化后才删除原生清单，进程在此前终止时仍可重新消费。
           await _importDataModule.androidShareAdapter.acknowledge(share.id);
@@ -167,11 +169,8 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
             personalRecipeConfigRepository:
                 _recipeDataModule.personalRecipeConfigRepository,
             authSessionRepository: _authSessionRepository,
-            signInWithApple: Platform.isIOS
-                ? () async =>
-                      (await _appleSignInCoordinator.signIn()).status ==
-                      KitchenNotesAppleSignInStatus.authenticated
-                : null,
+            // 暂无 Apple Developer 付费团队，暂时关闭需要签名能力的 Apple 登录。
+            signInWithApple: null,
             signInWithPhone:
                 (kDebugMode ||
                     const bool.fromEnvironment(
@@ -240,27 +239,6 @@ final class _UnconfiguredAuthGateway implements KitchenNotesAuthGateway {
   @override
   Future<void> unbindIdentity(String accessToken, String identityId) async =>
       _unconfigured();
-}
-
-final class _UnconfiguredAppleAuthGateway
-    implements KitchenNotesAppleAuthGateway {
-  @override
-  Future<void> begin({required String flowId, required String nonce}) async {
-    throw StateError('auth_gateway_not_configured');
-  }
-
-  @override
-  Future<AuthSessionTokens> exchange({
-    required String identityToken,
-    required String authorizationCode,
-    required String nonce,
-    required String flowId,
-    String? email,
-    String? givenName,
-    String? familyName,
-  }) async {
-    throw StateError('auth_gateway_not_configured');
-  }
 }
 
 List<Override> buildRecipeFeatureOverrides(
