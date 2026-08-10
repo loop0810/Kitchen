@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -143,9 +144,10 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
 
   @override
   Future<String?> findSharedTask(String sourceShareId) async {
-    final row = await (_database.select(_database.importTasks)
-          ..where((task) => task.sourceShareId.equals(sourceShareId)))
-        .getSingleOrNull();
+    final row =
+        await (_database.select(_database.importTasks)
+              ..where((task) => task.sourceShareId.equals(sourceShareId)))
+            .getSingleOrNull();
     return row?.id;
   }
 
@@ -726,8 +728,15 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
           await parent.list().isEmpty) {
         await parent.delete();
       }
-    } catch (_) {
-      // 删除记录已经成功；清理失败留给下一次机会式孤立文件清理。
+    } on FileSystemException catch (error, stackTrace) {
+      // 删除记录已经成功；清理失败留给下一次机会式孤立文件清理，但只屏蔽
+      // 文件系统错误并保留诊断日志。
+      developer.log(
+        'controlled_media_delete_failed',
+        name: 'kitchen_import_data',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 

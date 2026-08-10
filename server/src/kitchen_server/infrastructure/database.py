@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -14,6 +15,8 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from kitchen_server.infrastructure.config import Settings
+
+_logger = logging.getLogger("kitchen_server")
 
 
 def to_async_database_url(database_url: str) -> URL:
@@ -53,7 +56,13 @@ class Database:
                     text("SELECT schema_version FROM runtime_metadata WHERE id = 1")
                 )
             return bool(schema_version == 1)
-        except SQLAlchemyError:
+        except SQLAlchemyError as error:
+            # Readiness only exposes a boolean, so the failure cause has to reach the
+            # log; the exception type is a stable, payload-free category.
+            _logger.error(
+                "database_readiness_failed",
+                extra={"error_category": type(error).__name__},
+            )
             return False
 
     async def dispose(self) -> None:

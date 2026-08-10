@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,12 +41,31 @@ class _PasteArticlePageState extends ConsumerState<PasteArticlePage> {
       final dependencies = ref.read(importDependenciesProvider);
       // 只有 Repository 完成原文持久化并返回 taskId 后，才启动后续解析。
       final taskId = await dependencies.repository.createTextTask(text);
-      unawaited(dependencies.pipeline.process(taskId));
+      // 后续解析在后台推进，失败状态由导入任务页展示；这里只负责不丢错误。
+      unawaited(
+        dependencies.pipeline
+            .process(taskId)
+            .then<void>(
+              (_) {},
+              onError: (Object error, StackTrace stackTrace) => developer.log(
+                'process_text_import_failed',
+                name: 'kitchen_import',
+                error: error,
+                stackTrace: stackTrace,
+              ),
+            ),
+      );
       if (mounted) {
         _allowPop = true;
         context.replaceWithImportTask(taskId);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      developer.log(
+        'create_text_import_task_failed',
+        name: 'kitchen_import',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         setState(() => _errorText = '原始内容保存失败，请重试');
       }

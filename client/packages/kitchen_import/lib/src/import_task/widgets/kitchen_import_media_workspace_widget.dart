@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -192,8 +193,28 @@ class _ImportMediaWorkspaceWidgetState
       if (!mounted) return;
       final dependencies = ref.read(importDependenciesProvider);
       ref.invalidate(importTaskProvider(widget.taskId));
-      unawaited(dependencies.pipeline.process(widget.taskId));
-    } catch (_) {
+      // 重新整理在后台继续，但失败不能变成无人认领的异步错误；任务状态本身
+      // 由流水线回写，因此这里只需保留诊断日志。
+      unawaited(
+        dependencies.pipeline
+            .process(widget.taskId)
+            .then<void>(
+              (_) {},
+              onError: (Object error, StackTrace stackTrace) => developer.log(
+                'media_operation_reprocess_failed',
+                name: 'kitchen_import',
+                error: error,
+                stackTrace: stackTrace,
+              ),
+            ),
+      );
+    } catch (error, stackTrace) {
+      developer.log(
+        'media_operation_failed',
+        name: 'kitchen_import',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,

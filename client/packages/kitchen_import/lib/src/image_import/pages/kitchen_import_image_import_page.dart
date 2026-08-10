@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,11 +47,30 @@ class _ImageImportPageState extends ConsumerState<ImageImportPage> {
       final taskId = await dependencies.repository.createImageTask(
         controlledPaths,
       );
-      unawaited(dependencies.pipeline.process(taskId));
+      // OCR 与结构化在后台推进，失败状态由导入任务页展示并可重试。
+      unawaited(
+        dependencies.pipeline
+            .process(taskId)
+            .then<void>(
+              (_) {},
+              onError: (Object error, StackTrace stackTrace) => developer.log(
+                'process_image_import_failed',
+                name: 'kitchen_import',
+                error: error,
+                stackTrace: stackTrace,
+              ),
+            ),
+      );
       if (mounted) {
         context.replaceWithImportTask(taskId);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      developer.log(
+        'create_image_import_task_failed',
+        name: 'kitchen_import',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) setState(() => _error = '图片保存失败，请重新选择');
     } finally {
       if (mounted) setState(() => _picking = false);

@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import '../../import_task/entities/kitchen_import_domain_import_task_entity.dart';
 import '../../import_task/repositories/kitchen_import_domain_import_task_repository.dart';
 import '../../ocr/entities/kitchen_import_domain_ocr_document_entity.dart';
@@ -99,9 +101,31 @@ class ImportPipeline {
               expectedGeneration: generation,
             );
             pages.add(page);
-          } catch (_) {
+          } on ImportPipelineException catch (error, stackTrace) {
             // 单页失败不丢弃已成功页；页面级错误会驱动
             // 替换、旋转、裁剪或仅重试该页的恢复操作。
+            // 适配层已给出稳定错误码和用户指引时必须原样传递，否则
+            // “平台不支持识别”会被错当成“这张图片不清”。
+            developer.log(
+              'media_ocr_failed',
+              name: 'kitchen_import_domain',
+              error: error,
+              stackTrace: stackTrace,
+            );
+            await _repository.saveMediaOcrFailure(
+              taskId: taskId,
+              mediaId: media.id,
+              code: error.code,
+              message: error.message,
+              expectedGeneration: generation,
+            );
+          } catch (error, stackTrace) {
+            developer.log(
+              'media_ocr_failed',
+              name: 'kitchen_import_domain',
+              error: error,
+              stackTrace: stackTrace,
+            );
             await _repository.saveMediaOcrFailure(
               taskId: taskId,
               mediaId: media.id,
@@ -191,7 +215,14 @@ class ImportPipeline {
         error.message,
         expectedGeneration: generation,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // 非预期异常只能降级为可重试的任务失败，但原始原因必须可观测。
+      developer.log(
+        'import_task_processing_failed',
+        name: 'kitchen_import_domain',
+        error: error,
+        stackTrace: stackTrace,
+      );
       await _failIfPresent(
         taskId,
         'processingFailed',
@@ -261,7 +292,18 @@ class ImportPipeline {
         ImportTaskStatus.structuring,
       }.contains(task.status),
     )) {
-      await process(task.id);
+      // 单个任务恢复失败不能中断其余待处理任务，也不能变成无人处理的
+      // 异步错误；失败任务保留原有状态等待用户重试。
+      try {
+        await process(task.id);
+      } catch (error, stackTrace) {
+        developer.log(
+          'import_task_resume_failed',
+          name: 'kitchen_import_domain',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     }
   }
 

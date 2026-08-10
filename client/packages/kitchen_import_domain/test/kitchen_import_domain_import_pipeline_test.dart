@@ -138,6 +138,101 @@ void main() {
     expect(repository.task.media.last.ocrStatus, ImportMediaOcrStatus.failed);
     expect(repository.task.draft!.title.value, '番茄炒蛋');
   });
+
+  test('适配层给出稳定错误码时按原样记录到失败页而不降级为通用文案', () async {
+    final repository = _MemoryImportTaskRepository(
+      media: const [
+        ImportMediaReference(id: 'ok', localPath: '1.jpg', position: 0),
+        ImportMediaReference(id: 'failed', localPath: '2.jpg', position: 1),
+      ],
+    );
+    final pipeline = ImportPipeline(
+      repository: repository,
+      localStructurer: const LocalRecipeStructurerService(),
+      ocrAdapter: const _TypedFailureOcrAdapter(),
+    );
+
+    await pipeline.process('task-1');
+
+    expect(repository.task.media.last.ocrErrorCode, 'ocrUnavailable');
+    expect(repository.task.media.last.ocrErrorMessage, contains('尚不可用'));
+  });
+
+  test('单个待处理任务恢复失败不影响其余任务继续恢复', () async {
+    final repository = _MultiTaskImportTaskRepository();
+    final pipeline = ImportPipeline(
+      repository: repository,
+      localStructurer: const LocalRecipeStructurerService(),
+    );
+
+    await pipeline.resumePending();
+
+    expect(repository.processedTaskIds, ['task-1', 'task-2']);
+  });
+}
+
+class _TypedFailureOcrAdapter implements OcrAdapter {
+  const _TypedFailureOcrAdapter();
+
+  @override
+  Future<OcrPageEntity> recognize(ImportMediaReference media) async {
+    if (media.id == 'failed') {
+      throw const ImportPipelineException(
+        'ocrUnavailable',
+        '当前设备的离线文字识别尚不可用，可稍后重试或手动整理。',
+      );
+    }
+    return OcrPageEntity.fromPlainText(
+      pageIndex: media.position,
+      text: '番茄炒蛋\n食材\n番茄 2个\n步骤\n番茄切块',
+    );
+  }
+}
+
+/// 只覆盖 resumePending 需要的读取与状态回写，用于验证失败隔离。
+class _MultiTaskImportTaskRepository implements ImportTaskRepository {
+  final processedTaskIds = <String>[];
+
+  ImportTaskEntity _task(String id) => ImportTaskEntity(
+    id: id,
+    inputKind: ImportInputKind.pastedText,
+    status: ImportTaskStatus.queued,
+    originalText: '番茄炒蛋\n食材\n番茄 2个\n步骤\n番茄切块',
+    media: const [],
+    createdAt: DateTime(2026),
+    updatedAt: DateTime(2026),
+  );
+
+  @override
+  Stream<List<ImportTaskEntity>> watchTasks() =>
+      Stream.value([_task('task-1'), _task('task-2')]);
+
+  @override
+  Future<ImportTaskEntity?> getTask(String taskId) async => _task(taskId);
+
+  @override
+  Future<void> updateStatus(
+    String taskId,
+    ImportTaskStatus status, {
+    int? expectedGeneration,
+  }) async {
+    processedTaskIds.add(taskId);
+    // 第一个任务在状态推进阶段抛出非预期异常，验证后续任务仍会恢复。
+    if (taskId == 'task-1') throw StateError('unexpected');
+  }
+
+  @override
+  Future<void> fail({
+    required String taskId,
+    required String code,
+    required String message,
+    int? expectedGeneration,
+  }) async {
+    throw StateError('unexpected');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _MappedOcrAdapter implements OcrAdapter {

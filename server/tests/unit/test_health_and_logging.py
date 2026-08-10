@@ -71,6 +71,31 @@ def test_ready_succeeds_when_dependency_is_ready(test_settings: Settings) -> Non
     assert response.json() == {"status": "ok"}
 
 
+def test_ready_records_diagnostic_when_readiness_check_raises(
+    test_settings: Settings,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    @dataclass
+    class RaisingReadinessChecker:
+        async def is_ready(self) -> bool:
+            raise RuntimeError("connection refused")
+
+    app = create_app(
+        test_settings,
+        readiness_checker=RaisingReadinessChecker(),
+        event_recorder=MemoryEventRecorder(),
+    )
+
+    with caplog.at_level(logging.ERROR, logger="kitchen_server"), TestClient(app) as client:
+        response = client.get("/health/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {"status": "unavailable"}
+    records = [record for record in caplog.records if record.msg == "readiness_check_failed"]
+    assert [record.__dict__["error_category"] for record in records] == ["RuntimeError"]
+    assert "connection refused" not in caplog.text
+
+
 def test_apple_flow_is_registered_without_exposing_credentials(test_settings: Settings) -> None:
     with TestClient(make_app(test_settings)) as client:
         response = client.post(

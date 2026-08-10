@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
@@ -19,8 +20,19 @@ export 'src/share/adapters/kitchen_import_data_ios_share_adapter.dart';
 class ImportDataModule {
   ImportDataModule._(this._database)
     : _repository = ImportTaskRepositoryImpl(_database) {
-    // 受控媒体清理失败不阻断导入箱启动，后续启动会再次尝试。
-    unawaited(_repository.cleanupOrphanedMedia().catchError((_) {}));
+    // 受控媒体清理失败不阻断导入箱启动，后续启动会再次尝试；失败原因仍写入
+    // 诊断日志，避免受控媒体目录异常长期无声堆积。
+    unawaited(
+      _repository.cleanupOrphanedMedia().then<void>(
+        (_) {},
+        onError: (Object error, StackTrace stackTrace) => developer.log(
+          'cleanup_orphaned_media_failed',
+          name: 'kitchen_import_data',
+          error: error,
+          stackTrace: stackTrace,
+        ),
+      ),
+    );
   }
 
   factory ImportDataModule() => ImportDataModule._(ImportAppDatabase());
