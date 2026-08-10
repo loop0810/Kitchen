@@ -82,32 +82,17 @@ class _RecipeTrashPageState extends ConsumerState<RecipeTrashPage> {
   Future<void> _restore(String id) async {
     await ref.read(recipeLibraryDependenciesProvider).restoreRecipe?.call(id);
     ref.invalidate(recipesProvider);
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('菜谱已恢复')));
-    }
+    if (mounted) showKitchenMessage(context, '菜谱已恢复');
   }
 
   Future<void> _permanentlyDelete(RecipeEntity recipe) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('永久删除菜谱？'),
-        content: Text('“${recipe.title}”将被永久删除，此操作无法恢复。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('永久删除'),
-          ),
-        ],
-      ),
+    final confirmed = await showKitchenConfirmDialog(
+      context,
+      title: '永久删除菜谱？',
+      message: '“${recipe.title}”将被永久删除，此操作无法恢复。',
+      confirmLabel: '永久删除',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     await ref
         .read(recipeLibraryDependenciesProvider)
         .permanentlyDeleteRecipe

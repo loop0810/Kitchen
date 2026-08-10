@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
 from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, Header, Request
@@ -15,10 +13,14 @@ from kitchen_server.auth.phone import (
     normalize_cn_mobile,
     phone_subject,
 )
+from kitchen_server.auth.responses import (
+    replayed_response,
+    request_fingerprint,
+    token_response,
+)
 from kitchen_server.auth.service import (
     AuthError,
     AuthService,
-    SessionTokens,
     VerifiedIdentityAssertion,
 )
 from kitchen_server.infrastructure.config import Settings
@@ -50,14 +52,10 @@ async def create_phone_challenge(
         raise AuthError("invalid_request", 400)
     normalized = normalize_cn_mobile(body.phone)
     runtime = request.app.state.phone_runtime
-    request_hash = hashlib.sha256(
-        json.dumps(body.model_dump(by_alias=True), sort_keys=True).encode()
-    ).hexdigest()
-    previous = runtime.idempotency.get(idempotency_key)
-    if previous is not None:
-        if previous[0] != request_hash:
-            raise AuthError("idempotency_conflict", 409)
-        return cast(dict[str, object], previous[1])
+    request_hash = request_fingerprint(body)
+    replayed = replayed_response(runtime.idempotency, idempotency_key, request_hash)
+    if replayed is not None:
+        return replayed
     captcha_ok = await runtime.captcha.verify_once(body.captcha_token, "sms_send")
     if not captcha_ok:
         raise AuthError("captcha_invalid", 400)
@@ -98,14 +96,10 @@ async def verify_phone_challenge(
     if idempotency_key is None or len(idempotency_key) < 16:
         raise AuthError("invalid_request", 400)
     runtime = request.app.state.phone_runtime
-    request_hash = hashlib.sha256(
-        json.dumps(body.model_dump(by_alias=True), sort_keys=True).encode()
-    ).hexdigest()
-    previous = runtime.idempotency.get(idempotency_key)
-    if previous is not None:
-        if previous[0] != request_hash:
-            raise AuthError("idempotency_conflict", 409)
-        return cast(dict[str, object], previous[1])
+    request_hash = request_fingerprint(body)
+    replayed = replayed_response(runtime.idempotency, idempotency_key, request_hash)
+    if replayed is not None:
+        return replayed
     challenge = await runtime.otp.verify(body.challenge_id, body.code)
     assertion = VerifiedIdentityAssertion(
         provider="phone",
@@ -118,7 +112,7 @@ async def verify_phone_challenge(
         device_name="手机号登录设备",
         idempotency_key=idempotency_key,
     )
-    response: dict[str, object] = {"tokens": _token_response(tokens)}
+    response: dict[str, object] = {"tokens": token_response(tokens)}
     runtime.idempotency[idempotency_key] = (request_hash, response)
     return response
 
@@ -126,14 +120,3 @@ async def verify_phone_challenge(
 def _network_prefix(ip: str) -> str:
     parts = ip.split(".")
     return ".".join(parts[:3]) + ".0/24" if len(parts) == 4 else ip
-
-
-def _token_response(tokens: SessionTokens) -> dict[str, object]:
-    return {
-        "userId": tokens.user_id,
-        "sessionId": tokens.session_id,
-        "accessToken": tokens.access_token,
-        "refreshToken": tokens.refresh_token,
-        "accessExpiresAt": tokens.access_expires_at.isoformat(),
-        "refreshExpiresAt": tokens.refresh_expires_at.isoformat(),
-    }

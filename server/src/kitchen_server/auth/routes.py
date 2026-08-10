@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, cast
@@ -17,6 +16,7 @@ from kitchen_server.auth.apple import (
     AppleIdentityVerifier,
 )
 from kitchen_server.auth.models import DeviceSession, User
+from kitchen_server.auth.responses import request_fingerprint, token_response
 from kitchen_server.auth.service import AuthError, AuthService, verify_access_token
 from kitchen_server.infrastructure.config import Settings
 
@@ -53,9 +53,7 @@ async def exchange_apple(
 ) -> dict[str, object] | JSONResponse:
     if idempotency_key != body.flow_id:
         raise AuthError("invalid_request", 400)
-    request_hash = hashlib.sha256(
-        json.dumps(body.model_dump(by_alias=True), sort_keys=True).encode()
-    ).hexdigest()
+    request_hash = request_fingerprint(body)
     settings = cast(Settings, request.app.state.settings)
     service = AuthService(settings)
     existing = await service.get_idempotency_by_operation(
@@ -86,16 +84,7 @@ async def exchange_apple(
         device_name="Apple 登录设备",
         idempotency_key=idempotency_key,
     )
-    response_body: dict[str, object] = {
-        "tokens": {
-            "userId": tokens.user_id,
-            "sessionId": tokens.session_id,
-            "accessToken": tokens.access_token,
-            "refreshToken": tokens.refresh_token,
-            "accessExpiresAt": tokens.access_expires_at.isoformat(),
-            "refreshExpiresAt": tokens.refresh_expires_at.isoformat(),
-        }
-    }
+    response_body: dict[str, object] = {"tokens": token_response(tokens)}
     await service.save_idempotency(
         session,
         user_id=tokens.user_id,

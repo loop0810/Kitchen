@@ -190,11 +190,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         await ref.read(profileDependenciesProvider).clearLocalData?.call();
       }
     } catch (_) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('账号删除请求失败，请稍后重试。')));
-      }
+      if (context.mounted) showKitchenMessage(context, '账号删除请求失败，请稍后重试。');
     }
   }
 
@@ -219,41 +215,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             FilledButton.tonal(
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (confirmContext) => AlertDialog(
-                    title: const Text('清除本机全部资料？'),
-                    content: const Text(
+                final confirmed = await showKitchenConfirmDialog(
+                  context,
+                  title: '清除本机全部资料？',
+                  message:
                       '这会删除本机菜谱、菜谱集、导入草稿和受控图片，且不会删除服务端账号。此操作不可撤销，请先确认已有备份。',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(confirmContext).pop(false),
-                        child: const Text('取消'),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.of(confirmContext).pop(true),
-                        child: const Text('确认清除'),
-                      ),
-                    ],
-                  ),
+                  confirmLabel: '确认清除',
                 );
-                if (confirmed != true || !context.mounted) return;
-                try {
-                  await clearLocalData();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('本机资料已清除。')));
-                  }
-                } catch (_) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('本机资料未完全清除，请稍后重试。')),
-                    );
-                  }
-                }
+                if (!confirmed || !context.mounted) return;
+                await _reportLocalDataResult(
+                  context,
+                  clearLocalData,
+                  successMessage: (_) => '本机资料已清除。',
+                  failureMessage: '本机资料未完全清除，请稍后重试。',
+                );
               },
               child: const Text('清除本机资料'),
             ),
@@ -261,20 +236,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             FilledButton(
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                try {
-                  final path = await dependencies.exportBackup!();
-                  if (mounted) setState(() => _lastExportPath = path);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('备份已生成：$path')));
-                  }
-                } catch (_) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('备份生成失败，请检查本机空间。')),
-                    );
-                  }
+                final path = await _reportLocalDataResult(
+                  context,
+                  dependencies.exportBackup!,
+                  successMessage: (path) => '备份已生成：$path',
+                  failureMessage: '备份生成失败，请检查本机空间。',
+                );
+                if (path != null && mounted) {
+                  setState(() => _lastExportPath = path);
                 }
               },
               child: const Text('导出本机备份'),
@@ -310,47 +279,43 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 );
                 controller.dispose();
                 if (path == null || path.isEmpty || !context.mounted) return;
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (confirmContext) => AlertDialog(
-                    title: const Text('确认覆盖本机资料？'),
-                    content: const Text(
-                      '恢复会替换当前菜谱、菜谱集、导入草稿和图片。损坏或不兼容的备份不会修改当前资料。',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(confirmContext).pop(false),
-                        child: const Text('取消'),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.of(confirmContext).pop(true),
-                        child: const Text('确认覆盖'),
-                      ),
-                    ],
-                  ),
+                final confirmed = await showKitchenConfirmDialog(
+                  context,
+                  title: '确认覆盖本机资料？',
+                  message: '恢复会替换当前菜谱、菜谱集、导入草稿和图片。损坏或不兼容的备份不会修改当前资料。',
+                  confirmLabel: '确认覆盖',
                 );
-                if (confirmed != true || !context.mounted) return;
-                try {
-                  await dependencies.restoreBackup!(path);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('本机备份已恢复。')));
-                  }
-                } catch (_) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('恢复失败，当前资料保持不变。')),
-                    );
-                  }
-                }
+                if (!confirmed || !context.mounted) return;
+                await _reportLocalDataResult(
+                  context,
+                  () => dependencies.restoreBackup!(path),
+                  successMessage: (_) => '本机备份已恢复。',
+                  failureMessage: '恢复失败，当前资料保持不变。',
+                );
               },
               child: const Text('覆盖恢复'),
             ),
         ],
       ),
     );
+  }
+}
+
+/// 本机备份与清除共用的执行包装：统一在异步返回后检查 context 生命周期，
+/// 成功与失败都只通过 SnackBar 反馈，失败时返回 `null` 让调用方跳过后续副作用。
+Future<T?> _reportLocalDataResult<T>(
+  BuildContext context,
+  Future<T> Function() action, {
+  required String Function(T value) successMessage,
+  required String failureMessage,
+}) async {
+  try {
+    final value = await action();
+    if (context.mounted) showKitchenMessage(context, successMessage(value));
+    return value;
+  } catch (_) {
+    if (context.mounted) showKitchenMessage(context, failureMessage);
+    return null;
   }
 }
 
@@ -408,11 +373,7 @@ class _AccountCard extends StatelessWidget {
                     final success = await signInWithApple!();
                     if (!context.mounted || success) return;
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Apple 登录未完成，本地功能仍可继续使用。'),
-                        ),
-                      );
+                      showKitchenMessage(context, 'Apple 登录未完成，本地功能仍可继续使用。');
                     }
                   },
                 ),
@@ -462,22 +423,16 @@ class _AccountCard extends StatelessWidget {
     final phone = values.phone;
     final code = values.code;
     if (!_isValidCnPhone(phone)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请输入有效的中国大陆手机号。')));
+      showKitchenMessage(context, '请输入有效的中国大陆手机号。');
       return;
     }
     if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请输入 6 位验证码。')));
+      showKitchenMessage(context, '请输入 6 位验证码。');
       return;
     }
     final success = await signInWithPhone!(phone, code);
     if (!context.mounted || success) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('模拟手机号登录失败，本地功能仍可继续使用。')));
+    showKitchenMessage(context, '模拟手机号登录失败，本地功能仍可继续使用。');
   }
 
   bool _isValidCnPhone(String value) {
@@ -594,36 +549,21 @@ class _AppleIdentitySectionState extends State<_AppleIdentitySection> {
     BuildContext context,
     AuthIdentitySummary identity,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('解绑 Apple 登录？'),
-        content: const Text('解绑后不能再使用当前 Apple 身份登录。若这是账号最后一个登录身份，服务端会拒绝解绑。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('确认解绑'),
-          ),
-        ],
-      ),
+    final confirmed = await showKitchenConfirmDialog(
+      context,
+      title: '解绑 Apple 登录？',
+      message: '解绑后不能再使用当前 Apple 身份登录。若这是账号最后一个登录身份，服务端会拒绝解绑。',
+      confirmLabel: '确认解绑',
     );
-    if (confirmed != true || !context.mounted) return;
+    if (!confirmed || !context.mounted) return;
     try {
       await widget.repository.unbindIdentity(identity.id);
       if (!mounted) return;
       setState(() => _identities = widget.repository.listIdentities());
-      ScaffoldMessenger.of(
-        this.context,
-      ).showSnackBar(const SnackBar(content: Text('Apple 登录已解绑。')));
+      showKitchenMessage(this.context, 'Apple 登录已解绑。');
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('解绑失败，可能需要近期重新登录或保留至少一个登录身份。')),
-      );
+      showKitchenMessage(context, '解绑失败，可能需要近期重新登录或保留至少一个登录身份。');
     }
   }
 }

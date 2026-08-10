@@ -1,3 +1,5 @@
+export 'src/feedback/kitchen_design_confirm_dialog.dart';
+export 'src/feedback/kitchen_design_message_snack_bar.dart';
 export 'src/foundation/kitchen_design_app_color.dart';
 export 'src/foundation/kitchen_design_app_radius.dart';
 export 'src/foundation/kitchen_design_app_size.dart';

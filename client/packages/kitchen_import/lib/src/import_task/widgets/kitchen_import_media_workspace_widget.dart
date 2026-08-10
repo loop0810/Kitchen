@@ -195,9 +195,7 @@ class _ImportMediaWorkspaceWidgetState
       unawaited(dependencies.pipeline.process(widget.taskId));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('图片操作失败，原内容已保留，请重试。')));
+      showKitchenMessage(context, '图片操作失败，原内容已保留，请重试。');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

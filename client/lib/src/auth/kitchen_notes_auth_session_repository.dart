@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:kitchen_auth_domain/kitchen_auth_domain.dart';
 
 /// 平台安全存储端口。生产适配器必须映射到 iOS Keychain / Android Keystore，
@@ -190,4 +192,78 @@ final class KitchenNotesAuthSessionRepository implements AuthSessionRepository {
       _controller.add(value);
     }
   }
+}
+
+/// Apple 与手机号网关共用的认证 HTTP 调用封装：统一 JSON 头、幂等键和状态码校验。
+///
+/// 失败一律抛出调用方给出的稳定错误码，避免把 identity token、验证码或手机号
+/// 等敏感内容带入异常信息、日志与埋点。
+final class KitchenNotesAuthEndpointClient {
+  KitchenNotesAuthEndpointClient({required this._baseUri, http.Client? client})
+    : _client = client ?? http.Client();
+
+  final Uri _baseUri;
+  final http.Client _client;
+
+  /// 仅校验响应状态的请求，例如 Apple 授权流程的预登记。
+  Future<void> post(
+    String path, {
+    required String idempotencyKey,
+    required Map<String, Object?> body,
+    required String failureCode,
+    int? expectedStatus,
+  }) async {
+    final response = await _send(path, idempotencyKey, body);
+    final accepted = expectedStatus == null
+        ? _isSuccess(response.statusCode)
+        : response.statusCode == expectedStatus;
+    if (!accepted) throw StateError(failureCode);
+  }
+
+  /// 期望返回 JSON 对象的请求；状态码或响应结构不符合契约时抛出对应错误码。
+  Future<Map<String, Object?>> postJson(
+    String path, {
+    required String idempotencyKey,
+    required Map<String, Object?> body,
+    required String failureCode,
+    required String invalidResponseCode,
+  }) async {
+    final response = await _send(path, idempotencyKey, body);
+    if (!_isSuccess(response.statusCode)) throw StateError(failureCode);
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) throw StateError(invalidResponseCode);
+    return decoded.cast<String, Object?>();
+  }
+
+  Future<http.Response> _send(
+    String path,
+    String idempotencyKey,
+    Map<String, Object?> body,
+  ) => _client.post(
+    _baseUri.resolve(path),
+    headers: {
+      'content-type': 'application/json',
+      'idempotency-key': idempotencyKey,
+    },
+    body: jsonEncode(body),
+  );
+
+  static bool _isSuccess(int statusCode) =>
+      statusCode >= 200 && statusCode < 300;
+}
+
+/// 按共享契约解析 `tokens` 负载；缺少字段或类型不符时抛出 [invalidResponseCode]。
+AuthSessionTokens parseAuthSessionTokens(
+  Map<String, Object?> body, {
+  required String invalidResponseCode,
+}) {
+  final tokens = body['tokens'];
+  if (tokens is! Map<String, dynamic>) throw StateError(invalidResponseCode);
+  return AuthSessionTokens(
+    userId: tokens['userId'] as String,
+    sessionId: tokens['sessionId'] as String,
+    accessToken: tokens['accessToken'] as String,
+    refreshToken: tokens['refreshToken'] as String,
+    accessTokenExpiresAt: DateTime.parse(tokens['accessExpiresAt'] as String),
+  );
 }
