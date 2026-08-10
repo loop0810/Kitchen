@@ -362,24 +362,13 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
   }
 
   Future<void> _deleteCollection(RecipeCollectionEntity collection) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('删除菜谱集？'),
-        content: Text('只会删除“${collection.name}”及其成员关系，不会删除其中的菜谱。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+    final confirmed = await showKitchenConfirmDialog(
+      context,
+      title: '删除菜谱集？',
+      message: '只会删除“${collection.name}”及其成员关系，不会删除其中的菜谱。',
+      confirmLabel: '删除',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     await ref
         .read(recipeLibraryDependenciesProvider)
         .deleteCollection
@@ -507,41 +496,22 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
       recipeId: recipeId,
       collectionIds: selected,
     );
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('菜谱集已更新')));
-    }
+    if (mounted) showKitchenMessage(context, '菜谱集已更新');
   }
 
   Future<void> _moveRecipeToTrash(RecipeEntity recipe) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('移入回收站？'),
-        content: Text('“${recipe.title}”会保留 30 天，期间可以从回收站恢复。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('移入回收站'),
-          ),
-        ],
-      ),
+    final confirmed = await showKitchenConfirmDialog(
+      context,
+      title: '移入回收站？',
+      message: '“${recipe.title}”会保留 30 天，期间可以从回收站恢复。',
+      confirmLabel: '移入回收站',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     await ref
         .read(recipeLibraryDependenciesProvider)
         .moveToTrash
         ?.call(recipe.id);
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('菜谱已移入回收站')));
-    }
+    if (mounted) showKitchenMessage(context, '菜谱已移入回收站');
   }
 }
 

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:http/http.dart' as http;
@@ -32,13 +31,13 @@ abstract interface class KitchenNotesPhoneAuthGateway {
 /// HTTP 适配器只传验证码和挑战 ID，不保存或记录手机号验证码明文。
 final class KitchenNotesPhoneHttpAuthGateway
     implements KitchenNotesPhoneAuthGateway {
-  KitchenNotesPhoneHttpAuthGateway({
-    required this._baseUri,
-    http.Client? client,
-  }) : _client = client ?? http.Client();
+  KitchenNotesPhoneHttpAuthGateway({required Uri baseUri, http.Client? client})
+    : _endpoints = KitchenNotesAuthEndpointClient(
+        baseUri: baseUri,
+        client: client,
+      );
 
-  final Uri _baseUri;
-  final http.Client _client;
+  final KitchenNotesAuthEndpointClient _endpoints;
 
   @override
   Future<String> requestChallenge({
@@ -47,26 +46,22 @@ final class KitchenNotesPhoneHttpAuthGateway
     required String installationId,
     required String idempotencyKey,
   }) async {
-    final response = await _client.post(
-      _baseUri.resolve('/v1/auth/phone/challenge'),
-      headers: {
-        'content-type': 'application/json',
-        'idempotency-key': idempotencyKey,
-      },
-      body: jsonEncode({
+    final body = await _endpoints.postJson(
+      '/v1/auth/phone/challenge',
+      idempotencyKey: idempotencyKey,
+      body: {
         'phone': phone,
         'captchaToken': captchaToken,
         'installationId': installationId,
-      }),
+      },
+      failureCode: 'phone_challenge_failed',
+      invalidResponseCode: 'phone_challenge_invalid_response',
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw StateError('phone_challenge_failed');
-    }
-    final body = jsonDecode(response.body);
-    if (body is! Map || body['challengeId'] is! String) {
+    final challengeId = body['challengeId'];
+    if (challengeId is! String) {
       throw StateError('phone_challenge_invalid_response');
     }
-    return body['challengeId'] as String;
+    return challengeId;
   }
 
   @override
@@ -75,28 +70,16 @@ final class KitchenNotesPhoneHttpAuthGateway
     required String code,
     required String idempotencyKey,
   }) async {
-    final response = await _client.post(
-      _baseUri.resolve('/v1/auth/phone/verify'),
-      headers: {
-        'content-type': 'application/json',
-        'idempotency-key': idempotencyKey,
-      },
-      body: jsonEncode({'challengeId': challengeId, 'code': code}),
+    final body = await _endpoints.postJson(
+      '/v1/auth/phone/verify',
+      idempotencyKey: idempotencyKey,
+      body: {'challengeId': challengeId, 'code': code},
+      failureCode: 'phone_verify_failed',
+      invalidResponseCode: 'phone_verify_invalid_response',
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw StateError('phone_verify_failed');
-    }
-    final body = jsonDecode(response.body);
-    final tokens = body is Map ? body['tokens'] : null;
-    if (tokens is! Map<String, dynamic>) {
-      throw StateError('phone_verify_invalid_response');
-    }
-    return AuthSessionTokens(
-      userId: tokens['userId'] as String,
-      sessionId: tokens['sessionId'] as String,
-      accessToken: tokens['accessToken'] as String,
-      refreshToken: tokens['refreshToken'] as String,
-      accessTokenExpiresAt: DateTime.parse(tokens['accessExpiresAt'] as String),
+    return parseAuthSessionTokens(
+      body,
+      invalidResponseCode: 'phone_verify_invalid_response',
     );
   }
 }

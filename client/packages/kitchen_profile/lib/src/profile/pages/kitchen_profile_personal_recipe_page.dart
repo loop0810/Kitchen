@@ -200,9 +200,7 @@ class PersonalRecipeOptionListPage extends ConsumerWidget {
     if (config == null || normalized.isEmpty) return;
     final options = [..._options(config)];
     if (options.contains(normalized) && normalized != original) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('“$normalized”已存在')));
+      showKitchenMessage(context, '“$normalized”已存在');
       return;
     }
     if (original == null) {
@@ -222,29 +220,16 @@ class PersonalRecipeOptionListPage extends ConsumerWidget {
     if (config == null) return;
     final options = [..._options(config)];
     if (kind != PersonalRecipeOptionKind.tag && options.length == 1) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('至少保留一个$_title')));
+      showKitchenMessage(context, '至少保留一个$_title');
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('删除“$option”？'),
-        content: const Text('已有菜谱中的原值会保留。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+    final confirmed = await showKitchenConfirmDialog(
+      context,
+      title: '删除“$option”？',
+      message: '已有菜谱中的原值会保留。',
+      confirmLabel: '删除',
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     options.remove(option);
     await _save(ref, config, options);
   }

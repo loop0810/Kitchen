@@ -179,9 +179,7 @@ class _RecipeEditorFormWidgetState
       if (mounted) _applyValidationFailure(failure);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_isEditing ? '更新失败，请稍后重试' : '保存失败，请稍后重试')),
-        );
+        showKitchenMessage(context, _isEditing ? '更新失败，请稍后重试' : '保存失败，请稍后重试');
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -194,31 +192,19 @@ class _RecipeEditorFormWidgetState
       _categoryError = failure.errorFor(CreateRecipeValidationField.category);
       _templateError = failure.errorFor(CreateRecipeValidationField.template);
     });
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(failure.firstError)));
+    showKitchenMessage(context, failure.firstError, replaceCurrent: true);
   }
 
   Future<void> _confirmDiscard() async {
     if (_saving) return;
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('放弃未保存的修改？'),
-        content: const Text('当前输入尚未保存，离开后将无法恢复。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('继续编辑'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('放弃修改'),
-          ),
-        ],
-      ),
+    final discard = await showKitchenConfirmDialog(
+      context,
+      title: '放弃未保存的修改？',
+      message: '当前输入尚未保存，离开后将无法恢复。',
+      cancelLabel: '继续编辑',
+      confirmLabel: '放弃修改',
     );
-    if (discard == true && mounted) {
+    if (discard && mounted) {
       setState(() => _allowPop = true);
       Navigator.of(context).pop();
     }

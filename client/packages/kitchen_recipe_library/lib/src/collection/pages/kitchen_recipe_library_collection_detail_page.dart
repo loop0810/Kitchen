@@ -193,22 +193,21 @@ class _CollectionMemberContentState
           ) ??
           member.position;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('已从菜谱集移除“${member.recipe.recipe.title}”'),
-          action: SnackBarAction(
-            label: '撤销',
-            onPressed: () async {
-              await dependencies.restoreRecipeToCollection?.call(
-                collectionId: widget.detail.collection.id,
-                recipeId: recipeId,
-                position: originalPosition,
-              );
-              ref.invalidate(
-                recipeCollectionDetailProvider(widget.detail.collection.id),
-              );
-            },
-          ),
+      showKitchenMessage(
+        context,
+        '已从菜谱集移除“${member.recipe.recipe.title}”',
+        action: SnackBarAction(
+          label: '撤销',
+          onPressed: () async {
+            await dependencies.restoreRecipeToCollection?.call(
+              collectionId: widget.detail.collection.id,
+              recipeId: recipeId,
+              position: originalPosition,
+            );
+            ref.invalidate(
+              recipeCollectionDetailProvider(widget.detail.collection.id),
+            );
+          },
         ),
       );
     } catch (_) {

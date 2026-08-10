@@ -82,36 +82,24 @@ Future<Set<String>?> showRecipeSelectionDialog(
         title: Text(title),
         content: SizedBox(
           width: double.maxFinite,
-          child: recipes.isEmpty
-              ? const Text('还没有可添加的菜谱')
-              : ListView(
-                  shrinkWrap: true,
-                  children: recipes
-                      .map(
-                        (item) => CheckboxListTile(
-                          value: selected.contains(item.recipe.id),
-                          title: Text(item.recipe.title),
-                          subtitle: Text(item.recipe.category),
-                          onChanged: (value) => setState(() {
-                            value == true
-                                ? selected.add(item.recipe.id)
-                                : selected.remove(item.recipe.id);
-                          }),
-                        ),
-                      )
-                      .toList(),
-                ),
+          child: _SelectableList(
+            emptyText: '还没有可添加的菜谱',
+            entries: recipes
+                .map(
+                  (item) => _SelectableEntry(
+                    id: item.recipe.id,
+                    title: item.recipe.title,
+                    subtitle: item.recipe.category,
+                  ),
+                )
+                .toList(growable: false),
+            selected: selected,
+            onToggle: (id, isSelected) => setState(
+              () => isSelected ? selected.add(id) : selected.remove(id),
+            ),
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, selected),
-            child: const Text('保存'),
-          ),
-        ],
+        actions: _selectionDialogActions(context, selected),
       ),
     ),
   );
@@ -152,40 +140,90 @@ Future<Set<String>?> showCollectionSelectionDialog(
                 ),
               ),
               Flexible(
-                child: available.isEmpty
-                    ? const Text('还没有菜谱集，可以先新建一个')
-                    : ListView(
-                        shrinkWrap: true,
-                        children: available
-                            .map(
-                              (item) => CheckboxListTile(
-                                value: selected.contains(item.id),
-                                title: Text(item.name),
-                                subtitle: Text('${item.memberCount} 道菜谱'),
-                                onChanged: (value) => setState(() {
-                                  value == true
-                                      ? selected.add(item.id)
-                                      : selected.remove(item.id);
-                                }),
-                              ),
-                            )
-                            .toList(),
-                      ),
+                child: _SelectableList(
+                  emptyText: '还没有菜谱集，可以先新建一个',
+                  entries: available
+                      .map(
+                        (item) => _SelectableEntry(
+                          id: item.id,
+                          title: item.name,
+                          subtitle: '${item.memberCount} 道菜谱',
+                        ),
+                      )
+                      .toList(growable: false),
+                  selected: selected,
+                  onToggle: (id, isSelected) => setState(
+                    () => isSelected ? selected.add(id) : selected.remove(id),
+                  ),
+                ),
               ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, selected),
-            child: const Text('保存'),
-          ),
-        ],
+        actions: _selectionDialogActions(context, selected),
       ),
     ),
   );
 }
+
+/// 多选弹窗共用的行模型，让菜谱与菜谱集两种实体共用同一套勾选列表。
+class _SelectableEntry {
+  const _SelectableEntry({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+  });
+
+  /// 选中集合中使用的唯一标识。
+  final String id;
+
+  /// 列表主标题。
+  final String title;
+
+  /// 列表副标题，例如菜谱分类或菜谱集成员数。
+  final String subtitle;
+}
+
+class _SelectableList extends StatelessWidget {
+  const _SelectableList({
+    required this.entries,
+    required this.selected,
+    required this.onToggle,
+    required this.emptyText,
+  });
+
+  final List<_SelectableEntry> entries;
+  final Set<String> selected;
+  final void Function(String id, bool isSelected) onToggle;
+  final String emptyText;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) return Text(emptyText);
+    return ListView(
+      shrinkWrap: true,
+      children: entries
+          .map(
+            (entry) => CheckboxListTile(
+              value: selected.contains(entry.id),
+              title: Text(entry.title),
+              subtitle: Text(entry.subtitle),
+              onChanged: (value) => onToggle(entry.id, value == true),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+}
+
+/// 多选弹窗统一的底部按钮：取消返回 `null`，保存返回当前选中集合。
+List<Widget> _selectionDialogActions(
+  BuildContext context,
+  Set<String> selected,
+) => [
+  TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+  FilledButton(
+    onPressed: () => Navigator.pop(context, selected),
+    child: const Text('保存'),
+  ),
+];

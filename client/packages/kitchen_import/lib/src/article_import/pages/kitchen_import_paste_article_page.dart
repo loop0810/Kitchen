@@ -55,24 +55,14 @@ class _PasteArticlePageState extends ConsumerState<PasteArticlePage> {
   }
 
   Future<void> _confirmDiscard() async {
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('放弃未保存的内容？'),
-        content: const Text('当前文章或链接尚未保存到导入箱。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('继续编辑'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('放弃'),
-          ),
-        ],
-      ),
+    final discard = await showKitchenConfirmDialog(
+      context,
+      title: '放弃未保存的内容？',
+      message: '当前文章或链接尚未保存到导入箱。',
+      cancelLabel: '继续编辑',
+      confirmLabel: '放弃',
     );
-    if (discard == true && mounted) {
+    if (discard && mounted) {
       setState(() => _allowPop = true);
       Navigator.pop(context);
     }

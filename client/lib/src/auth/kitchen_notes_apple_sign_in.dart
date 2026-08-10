@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:kitchen_notes/src/auth/kitchen_notes_auth_session_repository.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -32,25 +30,23 @@ abstract interface class KitchenNotesAppleAuthGateway {
 /// 认证 exchange 的正式 HTTP 适配器，不把 Apple identity token 写入日志或埋点。
 final class KitchenNotesAppleHttpAuthGateway
     implements KitchenNotesAppleAuthGateway {
-  KitchenNotesAppleHttpAuthGateway({
-    required this._baseUri,
-    http.Client? client,
-  }) : _client = client ?? http.Client();
+  KitchenNotesAppleHttpAuthGateway({required Uri baseUri, http.Client? client})
+    : _endpoints = KitchenNotesAuthEndpointClient(
+        baseUri: baseUri,
+        client: client,
+      );
 
-  final Uri _baseUri;
-  final http.Client _client;
+  final KitchenNotesAuthEndpointClient _endpoints;
 
   @override
-  Future<void> begin({required String flowId, required String nonce}) async {
-    final response = await _client.post(
-      _baseUri.resolve('/v1/auth/apple/flow'),
-      headers: {'content-type': 'application/json', 'idempotency-key': flowId},
-      body: jsonEncode({'flowId': flowId, 'nonce': nonce}),
-    );
-    if (response.statusCode != 204) {
-      throw StateError('apple_flow_failed');
-    }
-  }
+  Future<void> begin({required String flowId, required String nonce}) =>
+      _endpoints.post(
+        '/v1/auth/apple/flow',
+        idempotencyKey: flowId,
+        body: {'flowId': flowId, 'nonce': nonce},
+        failureCode: 'apple_flow_failed',
+        expectedStatus: 204,
+      );
 
   @override
   Future<AuthSessionTokens> exchange({
@@ -62,10 +58,10 @@ final class KitchenNotesAppleHttpAuthGateway
     String? givenName,
     String? familyName,
   }) async {
-    final response = await _client.post(
-      _baseUri.resolve('/v1/auth/apple/exchange'),
-      headers: {'content-type': 'application/json', 'idempotency-key': flowId},
-      body: jsonEncode({
+    final body = await _endpoints.postJson(
+      '/v1/auth/apple/exchange',
+      idempotencyKey: flowId,
+      body: {
         'identityToken': identityToken,
         'authorizationCode': authorizationCode,
         'nonce': nonce,
@@ -73,24 +69,13 @@ final class KitchenNotesAppleHttpAuthGateway
         ...?email == null ? null : {'email': email},
         ...?givenName == null ? null : {'givenName': givenName},
         ...?familyName == null ? null : {'familyName': familyName},
-      }),
+      },
+      failureCode: 'apple_exchange_failed',
+      invalidResponseCode: 'apple_exchange_invalid_response',
     );
-    final body = jsonDecode(response.body);
-    if (response.statusCode < 200 ||
-        response.statusCode >= 300 ||
-        body is! Map) {
-      throw StateError('apple_exchange_failed');
-    }
-    final tokens = body['tokens'];
-    if (tokens is! Map<String, dynamic>) {
-      throw StateError('apple_exchange_invalid_response');
-    }
-    return AuthSessionTokens(
-      userId: tokens['userId'] as String,
-      sessionId: tokens['sessionId'] as String,
-      accessToken: tokens['accessToken'] as String,
-      refreshToken: tokens['refreshToken'] as String,
-      accessTokenExpiresAt: DateTime.parse(tokens['accessExpiresAt'] as String),
+    return parseAuthSessionTokens(
+      body,
+      invalidResponseCode: 'apple_exchange_invalid_response',
     );
   }
 }

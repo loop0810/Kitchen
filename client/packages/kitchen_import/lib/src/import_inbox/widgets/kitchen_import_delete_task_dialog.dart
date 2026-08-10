@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kitchen_design_system/kitchen_design_system.dart';
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
 import '../../shared/providers/kitchen_import_dependencies.dart';
@@ -24,24 +25,14 @@ Future<bool> confirmAndDeleteImportTask(
     ImportTaskStatus.structuring => '正在进行的处理会停止，原始内容、中间结果和受控图片会一并删除。',
     _ => '原始内容、中间结果和受控图片会一并删除。',
   };
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('删除导入任务？'),
-      content: Text(description),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('保留'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('删除'),
-        ),
-      ],
-    ),
+  final confirmed = await showKitchenConfirmDialog(
+    context,
+    title: '删除导入任务？',
+    message: description,
+    cancelLabel: '保留',
+    confirmLabel: '删除',
   );
-  if (confirmed != true) return false;
+  if (!confirmed) return false;
   if (_isProcessing(task.status)) {
     try {
       await dependencies.repository.cancel(task.id);

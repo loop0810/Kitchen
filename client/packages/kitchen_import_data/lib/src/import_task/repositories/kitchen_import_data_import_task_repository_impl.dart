@@ -74,15 +74,7 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     }
     final id = _uuid.v4();
     final now = DateTime.now();
-    final media = controlledLocalPaths.indexed
-        .map(
-          (item) => ImportMediaReference(
-            id: _uuid.v4(),
-            localPath: item.$2,
-            position: item.$1,
-          ),
-        )
-        .toList(growable: false);
+    final media = _newMediaReferences(controlledLocalPaths);
     await _database
         .into(_database.importTasks)
         .insert(
@@ -110,15 +102,7 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     }
     final id = _uuid.v4();
     final now = DateTime.now();
-    final media = controlledLocalPaths.indexed
-        .map(
-          (item) => ImportMediaReference(
-            id: _uuid.v4(),
-            localPath: item.$2,
-            position: item.$1,
-          ),
-        )
-        .toList(growable: false);
+    final media = _newMediaReferences(controlledLocalPaths);
     await _database
         .into(_database.importTasks)
         .insert(
@@ -143,11 +127,25 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
 
   @override
   Future<String?> findSharedTask(String sourceShareId) async {
-    final row = await (_database.select(_database.importTasks)
-          ..where((task) => task.sourceShareId.equals(sourceShareId)))
-        .getSingleOrNull();
+    final row =
+        await (_database.select(_database.importTasks)
+              ..where((task) => task.sourceShareId.equals(sourceShareId)))
+            .getSingleOrNull();
     return row?.id;
   }
+
+  /// 受控图片路径按传入顺序生成媒体引用，position 决定后续 OCR 与阅读顺序。
+  List<ImportMediaReference> _newMediaReferences(
+    List<String> controlledLocalPaths,
+  ) => controlledLocalPaths.indexed
+      .map(
+        (item) => ImportMediaReference(
+          id: _uuid.v4(),
+          localPath: item.$2,
+          position: item.$1,
+        ),
+      )
+      .toList(growable: false);
 
   Uri? _detectedPublicUrl(String text) {
     final value = _publicUrl.firstMatch(text)?.group(0);
@@ -196,67 +194,30 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     required String mediaId,
     required OcrPageEntity page,
     int? expectedGeneration,
-  }) async {
-    final task = await getTask(taskId);
-    if (task == null) throw StateError('Import task $taskId does not exist.');
-    if (expectedGeneration != null &&
-        task.processingGeneration != expectedGeneration) {
-      return;
-    }
-    final media = task.media
-        .map(
-          (item) => item.id == mediaId
-              ? ImportMediaReference(
-                  id: item.id,
-                  localPath: item.localPath,
-                  originalLocalPath: item.originalLocalPath,
-                  contentRevision: item.contentRevision,
-                  position: item.position,
-                  rotationQuarterTurns: item.rotationQuarterTurns,
-                  ignored: item.ignored,
-                  ocrText: page.plainText,
-                  ocrPage: page,
-                  ocrStatus: ImportMediaOcrStatus.succeeded,
-                )
-              : item,
-        )
-        .toList(growable: false);
-    await _write(
-      taskId,
-      ImportTasksCompanion(
-        mediaJson: Value(ImportTaskMapper.encodeMedia(media)),
-      ),
-      expectedGeneration: expectedGeneration,
-    );
-  }
+  }) => _writeMediaEntry(
+    taskId: taskId,
+    mediaId: mediaId,
+    expectedGeneration: expectedGeneration,
+    transform: (item) => _copyMedia(
+      item,
+      ocrText: page.plainText,
+      ocrPage: page,
+      ocrStatus: ImportMediaOcrStatus.succeeded,
+    ),
+  );
 
   @override
   Future<void> markMediaOcrProcessing({
     required String taskId,
     required String mediaId,
     int? expectedGeneration,
-  }) async {
-    final task = await getTask(taskId);
-    if (task == null) throw StateError('Import task $taskId does not exist.');
-    if (expectedGeneration != null &&
-        task.processingGeneration != expectedGeneration) {
-      return;
-    }
-    final media = task.media
-        .map(
-          (item) => item.id == mediaId
-              ? _copyMedia(item, ocrStatus: ImportMediaOcrStatus.processing)
-              : item,
-        )
-        .toList(growable: false);
-    await _write(
-      taskId,
-      ImportTasksCompanion(
-        mediaJson: Value(ImportTaskMapper.encodeMedia(media)),
-      ),
-      expectedGeneration: expectedGeneration,
-    );
-  }
+  }) => _writeMediaEntry(
+    taskId: taskId,
+    mediaId: mediaId,
+    expectedGeneration: expectedGeneration,
+    transform: (item) =>
+        _copyMedia(item, ocrStatus: ImportMediaOcrStatus.processing),
+  );
 
   @override
   Future<void> saveMediaOcrFailure({
@@ -265,33 +226,17 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     required String code,
     required String message,
     int? expectedGeneration,
-  }) async {
-    final task = await getTask(taskId);
-    if (task == null) throw StateError('Import task $taskId does not exist.');
-    if (expectedGeneration != null &&
-        task.processingGeneration != expectedGeneration) {
-      return;
-    }
-    final media = task.media
-        .map(
-          (item) => item.id == mediaId
-              ? _copyMedia(
-                  item,
-                  ocrStatus: ImportMediaOcrStatus.failed,
-                  ocrErrorCode: code,
-                  ocrErrorMessage: message,
-                )
-              : item,
-        )
-        .toList(growable: false);
-    await _write(
-      taskId,
-      ImportTasksCompanion(
-        mediaJson: Value(ImportTaskMapper.encodeMedia(media)),
-      ),
-      expectedGeneration: expectedGeneration,
-    );
-  }
+  }) => _writeMediaEntry(
+    taskId: taskId,
+    mediaId: mediaId,
+    expectedGeneration: expectedGeneration,
+    transform: (item) => _copyMedia(
+      item,
+      ocrStatus: ImportMediaOcrStatus.failed,
+      ocrErrorCode: code,
+      ocrErrorMessage: message,
+    ),
+  );
 
   @override
   Future<void> saveDraft(
@@ -489,17 +434,8 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
       taskId,
       (task) => task.media
           .map(
-            (item) => item.id == mediaId
-                ? ImportMediaReference(
-                    id: item.id,
-                    localPath: item.localPath,
-                    originalLocalPath: item.originalLocalPath,
-                    contentRevision: item.contentRevision,
-                    position: item.position,
-                    rotationQuarterTurns: item.rotationQuarterTurns,
-                    ignored: item.ignored,
-                  )
-                : item,
+            (item) =>
+                item.id == mediaId ? _copyMedia(item, resetOcr: true) : item,
           )
           .toList(growable: false),
     );
@@ -632,12 +568,7 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
   Future<void> cleanupOrphanedMedia() async {
     final root = await _mediaDirectoryProvider();
     if (!await root.exists()) return;
-    final referenced = (await _database.select(_database.importTasks).get())
-        .map(ImportTaskMapper.toDomain)
-        .expand((task) => task.media)
-        .expand((media) => [media.originalLocalPath, media.localPath])
-        .map(p.normalize)
-        .toSet();
+    final referenced = await _referencedMediaPaths();
     final staleBefore = DateTime.now().subtract(const Duration(days: 1));
     await for (final entity in root.list(recursive: true, followLinks: false)) {
       if (entity is File && !referenced.contains(p.normalize(entity.path))) {
@@ -650,14 +581,20 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
   }
 
   Future<void> _deleteMediaIfUnreferenced(String candidatePath) async {
-    final referenced = (await _database.select(_database.importTasks).get())
-        .map(ImportTaskMapper.toDomain)
-        .expand((task) => task.media)
-        .expand((media) => [media.originalLocalPath, media.localPath])
-        .map(p.normalize)
-        .contains(p.normalize(candidatePath));
-    if (!referenced) await _deleteControlledMedia(candidatePath);
+    final referenced = await _referencedMediaPaths();
+    if (!referenced.contains(p.normalize(candidatePath))) {
+      await _deleteControlledMedia(candidatePath);
+    }
   }
+
+  /// 任务表中仍被引用的受控图片路径（含裁剪前原图），统一归一化后比对。
+  Future<Set<String>> _referencedMediaPaths() async =>
+      (await _database.select(_database.importTasks).get())
+          .map(ImportTaskMapper.toDomain)
+          .expand((task) => task.media)
+          .expand((media) => [media.originalLocalPath, media.localPath])
+          .map(p.normalize)
+          .toSet();
 
   Future<void> _assertControlledMedia(String candidatePath) async {
     final root = await _mediaDirectoryProvider();
@@ -680,13 +617,18 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     }
   }
 
+  /// 媒体引用的写时复制；[resetOcr] 为 `true` 时丢弃全部 OCR 结果与错误，
+  /// 用于重试识别前把单张图片恢复到未识别状态。
   static ImportMediaReference _copyMedia(
     ImportMediaReference item, {
     int? position,
     bool? ignored,
+    String? ocrText,
+    OcrPageEntity? ocrPage,
     ImportMediaOcrStatus? ocrStatus,
     String? ocrErrorCode,
     String? ocrErrorMessage,
+    bool resetOcr = false,
   }) {
     return ImportMediaReference(
       id: item.id,
@@ -696,11 +638,41 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
       position: position ?? item.position,
       rotationQuarterTurns: item.rotationQuarterTurns,
       ignored: ignored ?? item.ignored,
-      ocrText: item.ocrText,
-      ocrPage: item.ocrPage,
-      ocrStatus: ocrStatus ?? item.ocrStatus,
-      ocrErrorCode: ocrErrorCode ?? item.ocrErrorCode,
-      ocrErrorMessage: ocrErrorMessage ?? item.ocrErrorMessage,
+      ocrText: resetOcr ? null : ocrText ?? item.ocrText,
+      ocrPage: resetOcr ? null : ocrPage ?? item.ocrPage,
+      ocrStatus: resetOcr
+          ? ImportMediaOcrStatus.pending
+          : ocrStatus ?? item.ocrStatus,
+      ocrErrorCode: resetOcr ? null : ocrErrorCode ?? item.ocrErrorCode,
+      ocrErrorMessage: resetOcr
+          ? null
+          : ocrErrorMessage ?? item.ocrErrorMessage,
+    );
+  }
+
+  /// 只替换单个媒体条目的写入路径；代际不匹配说明已有新一轮处理，
+  /// 丢弃本次过期结果以免覆盖最新状态。
+  Future<void> _writeMediaEntry({
+    required String taskId,
+    required String mediaId,
+    required ImportMediaReference Function(ImportMediaReference item) transform,
+    int? expectedGeneration,
+  }) async {
+    final task = await getTask(taskId);
+    if (task == null) throw StateError('Import task $taskId does not exist.');
+    if (expectedGeneration != null &&
+        task.processingGeneration != expectedGeneration) {
+      return;
+    }
+    final media = task.media
+        .map((item) => item.id == mediaId ? transform(item) : item)
+        .toList(growable: false);
+    await _write(
+      taskId,
+      ImportTasksCompanion(
+        mediaJson: Value(ImportTaskMapper.encodeMedia(media)),
+      ),
+      expectedGeneration: expectedGeneration,
     );
   }
 

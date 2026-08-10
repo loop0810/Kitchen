@@ -225,9 +225,7 @@ class _TaskBody extends ConsumerWidget {
       ref.invalidate(importTaskProvider(task.id));
     } on ImportPipelineException catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      showKitchenMessage(context, error.message);
     }
   }
 
