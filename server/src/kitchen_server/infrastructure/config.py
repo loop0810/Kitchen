@@ -21,6 +21,19 @@ class RuntimeConfigurationError(RuntimeError):
     """Stable configuration failure that never includes input values."""
 
 
+DEVELOPMENT_AUTH_SIGNING_SECRET = "development-only-auth-signing-secret"
+DEVELOPMENT_PHONE_OTP_PEPPER = "development-only-phone-otp-pepper"
+DEVELOPMENT_PHONE_MOCK_CAPTCHA_TOKEN = "local-captcha-ok"
+_DEVELOPMENT_ONLY_SECRETS = frozenset(
+    {
+        DEVELOPMENT_AUTH_SIGNING_SECRET,
+        DEVELOPMENT_PHONE_OTP_PEPPER,
+        DEVELOPMENT_PHONE_MOCK_CAPTCHA_TOKEN,
+    }
+)
+_MINIMUM_PRODUCTION_SECRET_LENGTH = 32
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore", frozen=True)
 
@@ -36,7 +49,7 @@ class Settings(BaseSettings):
         validation_alias="LOG_LEVEL",
     )
     auth_signing_secret: SecretStr = Field(
-        default=SecretStr("development-only-auth-signing-secret"),
+        default=SecretStr(DEVELOPMENT_AUTH_SIGNING_SECRET),
         validation_alias="AUTH_SIGNING_SECRET",
     )
     access_token_ttl_seconds: int = Field(
@@ -52,7 +65,7 @@ class Settings(BaseSettings):
         validation_alias="REFRESH_TOKEN_TTL_SECONDS",
     )
     phone_otp_pepper: SecretStr = Field(
-        default=SecretStr("development-only-phone-otp-pepper"),
+        default=SecretStr(DEVELOPMENT_PHONE_OTP_PEPPER),
         validation_alias="PHONE_OTP_PEPPER",
     )
     phone_auth_mode: Literal["disabled", "mock", "live"] = Field(
@@ -60,7 +73,8 @@ class Settings(BaseSettings):
     )
     phone_mock_otp: str = Field(default="111111", validation_alias="PHONE_MOCK_OTP")
     phone_mock_captcha_token: SecretStr = Field(
-        default=SecretStr("local-captcha-ok"), validation_alias="PHONE_MOCK_CAPTCHA_TOKEN"
+        default=SecretStr(DEVELOPMENT_PHONE_MOCK_CAPTCHA_TOKEN),
+        validation_alias="PHONE_MOCK_CAPTCHA_TOKEN",
     )
     phone_daily_send_limit: int = Field(
         default=100, ge=1, le=1_000_000, validation_alias="PHONE_DAILY_SEND_LIMIT"
@@ -89,6 +103,26 @@ class Settings(BaseSettings):
         if re.fullmatch(r"\d{6}", value) is None:
             raise ValueError("phone_mock_otp_invalid")
         return value
+
+    @field_validator("apple_client_id")
+    @classmethod
+    def normalize_apple_client_id(cls, value: str | None) -> str | None:
+        """空字符串按未配置处理, 避免用空 audience 校验 Apple 身份令牌。"""
+        normalized = value.strip() if value is not None else None
+        return normalized or None
+
+    @model_validator(mode="after")
+    def require_production_secrets(self) -> Settings:
+        """生产环境必须显式注入长随机密钥, 且不能启用本地模拟登录。"""
+        if self.app_env is not AppEnvironment.PRODUCTION:
+            return self
+        for secret in (self.auth_signing_secret, self.phone_otp_pepper):
+            value = secret.get_secret_value()
+            if value in _DEVELOPMENT_ONLY_SECRETS or len(value) < _MINIMUM_PRODUCTION_SECRET_LENGTH:
+                raise ValueError("production_secret_required")
+        if self.phone_auth_mode == "mock":
+            raise ValueError("phone_mock_mode_forbidden")
+        return self
 
     @model_validator(mode="after")
     def protect_test_database(self) -> Settings:

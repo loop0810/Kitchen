@@ -113,7 +113,7 @@ async def _current_user(
     authorization: str | None,
     session: AsyncSession,
     settings: Settings,
-) -> tuple[str, dict[str, object]]:
+) -> tuple[str, DeviceSession]:
     if authorization is None or not authorization.startswith("Bearer "):
         raise AuthError("invalid_session", 401)
     payload = verify_access_token(settings, authorization[7:])
@@ -127,11 +127,12 @@ async def _current_user(
         device_session is None
         or device_session.user_id != user_id
         or device_session.status != "active"
+        or device_session.expires_at <= datetime.now(UTC)
         or user is None
         or user.status != "active"
     ):
         raise AuthError("invalid_session", 401)
-    return user_id, payload
+    return user_id, device_session
 
 
 @account_router.get("/identities")
@@ -164,11 +165,11 @@ async def unbind_auth_identity(
     authorization: Annotated[str | None, Header()] = None,
 ) -> Response:
     settings = cast(Settings, request.app.state.settings)
-    user_id, payload = await _current_user(authorization, session, settings)
-    issued_at = payload.get("iat")
-    recently_reauthenticated = isinstance(issued_at, int) and (
-        datetime.now(UTC) - datetime.fromtimestamp(issued_at, UTC)
-        <= timedelta(minutes=10)
+    user_id, device_session = await _current_user(authorization, session, settings)
+    # 近期重新认证以会话建立时间为准; 访问令牌的 iat 每次刷新都会前移,
+    # 用它判断等于让长期会话随时通过敏感操作校验。
+    recently_reauthenticated = datetime.now(UTC) - device_session.created_at <= timedelta(
+        minutes=10
     )
     await AuthService(settings).unbind_identity(
         session,
