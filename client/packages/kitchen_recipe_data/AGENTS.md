@@ -31,5 +31,5 @@
 ```sh
 cd packages/kitchen_recipe_data
 dart run build_runner build
-flutter test
+./tool/kitchen_flutter.sh test
 ```

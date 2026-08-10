@@ -62,9 +62,9 @@ kitchen_notes
 
 ```sh
 dart format --output=none --set-exit-if-changed .
-flutter analyze
-flutter test
-flutter test packages/*/test
+./tool/kitchen_flutter.sh analyze
+./tool/kitchen_flutter.sh test
+./tool/kitchen_flutter.sh test packages/*/test
 ```
 
 组件专项验证以对应子级 `AGENTS.md` 为准。

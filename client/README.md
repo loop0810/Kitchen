@@ -104,10 +104,20 @@ dart run build_runner build
 全量验证：
 
 ```sh
+./tool/kitchen_flutter.sh pub get
+./tool/kitchen_flutter.sh analyze
+./tool/kitchen_flutter.sh test
+./tool/kitchen_flutter.sh test packages/*/test
 dart format --output=none --set-exit-if-changed .
-flutter analyze
-flutter test
-flutter test packages/*/test
+```
+
+本机如果设置了 HTTP、HTTPS 或 SOCKS 代理，Flutter 的 VM Service 仍必须直连
+`127.0.0.1`。`tool/kitchen_flutter.sh` 会自动为 `127.0.0.1`、`localhost` 和
+`::1` 设置 `NO_PROXY`，用于避免测试、热重载和调试启动时报
+`Connection closed before full header was received`。日常运行客户端也建议使用：
+
+```sh
+./tool/kitchen_flutter.sh run
 ```
 
 ## 当前环境说明

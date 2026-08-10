@@ -18,5 +18,5 @@
 ## 验证
 
 ```sh
-flutter test packages/kitchen_recipe_domain/test
+./tool/kitchen_flutter.sh test packages/kitchen_recipe_domain/test
 ```
