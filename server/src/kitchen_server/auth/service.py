@@ -143,6 +143,8 @@ class AuthService:
         idempotency_key: str | None = None,
         now: datetime | None = None,
     ) -> SessionTokens:
+        # 第三方登录先在各自 verifier 中完成签名/nonce 等校验，AuthService 只处理
+        # 已验证的身份断言：查找或幂等创建本地账号，再在同一事务中签发设备会话。
         current = now or datetime.now(UTC)
         identity = await session.scalar(
             select(AuthIdentity).where(
@@ -170,6 +172,8 @@ class AuthService:
                 last_authenticated_at=current,
             )
             try:
+                # 并发首次登录可能同时发现“没有身份”。唯一约束负责裁决，
+                # 竞争失败的一方重新读取已创建的身份，而不是创建第二个账号。
                 async with session.begin_nested():
                     session.add(user)
                     session.add(identity)
@@ -380,6 +384,8 @@ class AuthService:
         *,
         now: datetime | None = None,
     ) -> SessionTokens:
+        # refresh token 采用轮换：当前摘要匹配才允许刷新；再次使用旧摘要视为
+        # 重放攻击，并撤销整个 token family，而不是只拒绝这一次请求。
         current = now or datetime.now(UTC)
         digest = _digest(refresh_token)
         family = await session.scalar(

@@ -84,12 +84,15 @@ final class KitchenNotesAuthSessionRepository implements AuthSessionRepository {
 
   @override
   Stream<AuthSessionState> watch() async* {
+    // 先发当前快照，再发后续事件，避免订阅者必须等待一次网络或存储操作才能绘制 UI。
     yield _state;
     yield* _controller.stream;
   }
 
   @override
   Future<void> restore() async {
+    // 启动恢复只依赖安全存储中的 refresh token；access token 短期且不落盘，
+    // 所以每次启动都通过网关刷新，失败则降级为匿名而不影响本地菜谱功能。
     _set(const AuthSessionState.authenticating());
     _refreshToken = await _secureStore.read();
     if (_refreshToken == null) {

@@ -37,6 +37,8 @@ def create_app(
     readiness_checker: RuntimeReadinessChecker | None = None,
     event_recorder: SafeEventRecorder | None = None,
 ) -> FastAPI:
+    # 工厂负责“组装”运行时依赖，路由只从 app.state 或 Depends 获取它们。
+    # 测试可以注入 readiness_checker/event_recorder，从而不必启动真实数据库或日志系统。
     runtime_settings = settings or load_settings()
     database = Database(runtime_settings) if readiness_checker is None else None
     checker = readiness_checker or database
@@ -45,6 +47,8 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        # lifespan 是应用级依赖的生命周期边界：启动时创建，退出时释放数据库连接池。
+        # 认证适配器目前使用内存替身，明确隔离了本地/测试能力与生产供应商。
         app.state.settings = runtime_settings
         app.state.database = database
         app.state.phone_runtime = PhoneMockRuntime(
@@ -101,10 +105,13 @@ def create_app(
 
     @app.get("/health/live")
     async def live() -> dict[str, str]:
+        # live 只回答进程是否活着，不检查数据库；否则数据库短暂故障会导致
+        # 容器被错误重启，掩盖真正的依赖故障。
         return {"status": "ok"}
 
     @app.get("/health/ready")
     async def ready(response: Response) -> dict[str, str]:
+        # ready 才检查数据库等运行依赖，供负载均衡器决定是否把流量交给实例。
         try:
             is_ready = await checker.is_ready()
         except Exception:

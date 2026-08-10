@@ -61,8 +61,8 @@ final class IosSharedImportPayload {
         final path = rawFile is String
             ? rawFile
             : rawFile is Map
-                ? rawFile['path']
-                : null;
+            ? rawFile['path']
+            : null;
         if (path is String && path.trim().isNotEmpty) {
           paths.add(path);
         }
@@ -97,13 +97,15 @@ final class IosSharedImportPayload {
   }
 
   String get combinedText {
-    return <String>[title.trim(), subject.trim(), text.trim()]
-        .where((part) => part.isNotEmpty)
-        .toSet()
-        .join('\n');
+    return <String>[
+      title.trim(),
+      subject.trim(),
+      text.trim(),
+    ].where((part) => part.isNotEmpty).toSet().join('\n');
   }
 
-  static String _canonicalize(String path) => File(path).resolveSymbolicLinksSync();
+  static String _canonicalize(String path) =>
+      File(path).resolveSymbolicLinksSync();
 }
 
 /// 主 App 读取和确认 iOS Share Extension 暂存清单的原生适配器。

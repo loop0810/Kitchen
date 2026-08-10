@@ -27,6 +27,7 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
 
   @override
   Stream<List<ImportTaskEntity>> watchTasks() {
+    // UI 订阅的是领域实体流，不接触 Drift Row；数据库变化会自动推动导入箱刷新。
     return _database.watchImportTasks().map(
       (rows) => rows.map(ImportTaskMapper.toDomain).toList(growable: false),
     );
@@ -83,6 +84,8 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
           ),
         )
         .toList(growable: false);
+    // 这里只保存应用受控目录中的路径。系统相册返回的临时引用必须先复制到
+    // 受控目录，否则应用重启或系统清理临时文件后，任务会变成“有记录但无图片”。
     await _database
         .into(_database.importTasks)
         .insert(
@@ -143,9 +146,10 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
 
   @override
   Future<String?> findSharedTask(String sourceShareId) async {
-    final row = await (_database.select(_database.importTasks)
-          ..where((task) => task.sourceShareId.equals(sourceShareId)))
-        .getSingleOrNull();
+    final row =
+        await (_database.select(_database.importTasks)
+              ..where((task) => task.sourceShareId.equals(sourceShareId)))
+            .getSingleOrNull();
     return row?.id;
   }
 
@@ -201,6 +205,7 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     if (task == null) throw StateError('Import task $taskId does not exist.');
     if (expectedGeneration != null &&
         task.processingGeneration != expectedGeneration) {
+      // 旧处理批次的结果静默丢弃：这是并发 OCR 的关键防线，避免旧图片结果覆盖新图片。
       return;
     }
     final media = task.media

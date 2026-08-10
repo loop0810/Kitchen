@@ -40,6 +40,20 @@ kitchen_notes
 - 核心导入、浏览、编辑和查阅必须离线可用。
 - 默认使用中文文案，并考虑语义标签、Tooltip 和系统文字缩放。
 
+## 路由约束
+
+- 全局 GoRouter 只在根壳工程 `lib/src/navigation/kitchen_notes_app_router.dart` 注册。
+- Feature 生产代码禁止直接使用 `context.go('/...')`、`context.push('/...')`、
+  `context.goNamed(...)` 或 `context.pushNamed(...)` 进行全局页面跳转。
+- Feature 统一使用 `kitchen_app_core` 提供的 `AppNavigationExtension`，例如
+  `context.pushRecipeDetail(recipeId)`；路径、route name 及参数键名只在导航契约和
+  壳工程注册处维护。
+- 新增全局页面时必须同步更新 `AppRouteNames`、`AppNavigationExtension` 和壳工程
+  `GoRoute` 注册。
+- 对话框、表单返回和页面内部临时流程可以使用 `Navigator.pop` 或局部
+  `Navigator.push`；这不属于全局路由跳转。
+- 可运行 `./tool/check_navigation_boundaries.sh` 检查 Feature 生产代码是否绕过路由契约。
+
 ## 中文注释
 
 - 生产代码默认使用中文注释。注释重点解释设计原因、架构边界、数据流、生命周期、

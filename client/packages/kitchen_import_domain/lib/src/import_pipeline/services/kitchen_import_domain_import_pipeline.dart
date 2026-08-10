@@ -21,6 +21,12 @@ abstract interface class RecipeStructurer {
 }
 
 class ImportPipeline {
+  /// 导入流程的编排器：把“输入材料”逐步变成可审核的菜谱草稿。
+  ///
+  /// 这里故意只依赖接口（Repository、OCR、网页提取和本地结构化器），
+  /// 因此流程本身不知道图片来自相册、系统分享还是哪个平台，也不会直接
+  /// 访问数据库或网络。学习这段代码时，可以把它看成一个状态机的执行器：
+  /// `queued -> extracting/recognizingImages -> structuring -> draft`。
   factory ImportPipeline({
     required ImportTaskRepository repository,
     required RecipeStructurer localStructurer,
@@ -52,11 +58,15 @@ class ImportPipeline {
   Future<void> process(String taskId) async {
     final task = await _repository.getTask(taskId);
     if (task == null || task.status == ImportTaskStatus.cancelled) return;
+    // generation 是一次处理快照的版本号。用户在后台处理期间修改图片、排序
+    // 或删除任务时会递增它；后续写回必须带上旧版本，Repository 才能拒绝过期结果。
     final generation = task.processingGeneration;
     try {
       var text = task.originalText;
       OcrDocumentEntity? ocrDocument;
       if (task.media.isNotEmpty) {
+        // 图片导入按页增量处理：已成功的页直接复用，失败页单独记录，
+        // 这样一张坏图不会让整批图片失去可恢复性。
         final adapter = _ocrAdapter;
         if (adapter == null) {
           throw const ImportPipelineException(
@@ -132,6 +142,8 @@ class ImportPipeline {
         ].where((part) => part.isNotEmpty).join('\n\n');
       } else if (task.detectedPublicUrl != null &&
           _publicContentExtractor != null) {
+        // 网页提取只在输入中检测到公开链接时触发；提取失败会保留原始分享文字，
+        // 让用户仍能手动整理，而不是把导入任务变成不可用的黑盒失败。
         await _repository.updateStatus(
           taskId,
           ImportTaskStatus.extracting,
@@ -161,6 +173,8 @@ class ImportPipeline {
         ImportTaskStatus.structuring,
         expectedGeneration: generation,
       );
+      // 结构化阶段统一消费文字和 OCR 证据，输出领域草稿；已有草稿要经过合并，
+      // 以保护用户已经编辑或确认的字段不被新的自动结果覆盖。
       final source = SourceSnapshot(
         originalText: task.originalText,
         publicUrl: task.detectedPublicUrl,

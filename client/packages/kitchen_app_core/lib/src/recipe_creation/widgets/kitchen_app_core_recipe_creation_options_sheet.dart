@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../navigation/models/kitchen_app_core_app_route_names.dart';
+import '../../navigation/extensions/kitchen_app_core_app_navigation_extension.dart';
 
 enum RecipeCreationOption { manual, paste, images }
 
@@ -66,11 +65,11 @@ Future<void> showRecipeCreationOptionsSheet(BuildContext context) async {
   if (!context.mounted || option == null) return;
   switch (option) {
     case RecipeCreationOption.manual:
-      await context.pushNamed(AppRouteNames.createRecipe);
+      await context.pushCreateRecipe<void>();
     case RecipeCreationOption.paste:
-      await context.pushNamed(AppRouteNames.pasteImport);
+      await context.pushPasteImport<void>();
     case RecipeCreationOption.images:
-      await context.pushNamed(AppRouteNames.imageImport);
+      await context.pushImageImport<void>();
   }
 }
 

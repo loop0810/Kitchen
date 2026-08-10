@@ -47,8 +47,11 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
   @override
   void initState() {
     super.initState();
+    // 创建菜谱数据库和菜谱 Repository
     _recipeDataModule = RecipeDataModule();
+    // 创建导入数据库、OCR、图片存储等能力
     _importDataModule = ImportDataModule();
+    // 组织导入流程
     _importPipeline = ImportPipeline(
       repository: _importDataModule.importTaskRepository,
       localStructurer: const LocalRecipeStructurerService(),
@@ -153,8 +156,10 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
 
   @override
   Widget build(BuildContext context) {
+    // 把真实实现注入到各个 Feature
     return ProviderScope(
       overrides: [
+        // 注入菜谱 Feature 需要的依赖
         ...buildRecipeFeatureOverrides(
           _recipeDataModule.recipeRepository,
           collectionRepository: _recipeDataModule.collectionRepository,
@@ -164,6 +169,7 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
           personalRecipeConfigRepository:
               _recipeDataModule.personalRecipeConfigRepository,
         ),
+        // 注入个人中心需要的依赖
         profileDependenciesProvider.overrideWithValue(
           ProfileDependencies(
             personalRecipeConfigRepository:
@@ -194,6 +200,7 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
             restoreBackup: (path) => _backupService.restoreBackup(File(path)),
           ),
         ),
+        // 注入导入 Feature 需要的依赖
         importDependenciesProvider.overrideWithValue(
           ImportDependencies(
             repository: _importDataModule.importTaskRepository,

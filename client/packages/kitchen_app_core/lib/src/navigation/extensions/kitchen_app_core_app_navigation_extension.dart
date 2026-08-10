@@ -5,6 +5,8 @@ import '../models/kitchen_app_core_app_route_names.dart';
 import '../../recipe_creation/widgets/kitchen_app_core_recipe_creation_options_sheet.dart';
 
 extension AppNavigationExtension on BuildContext {
+  // 全局页面跳转统一从这里进入。Feature 不直接书写 path、route name 或参数键名，
+  // 这样路由注册仍由壳工程负责，但页面只依赖稳定的业务语义 API。
   void goToRecipes() => goNamed(AppRouteNames.recipes);
   void goToImportInbox() => goNamed(AppRouteNames.importInbox);
 
@@ -14,6 +16,14 @@ extension AppNavigationExtension on BuildContext {
 
   Future<T?> pushCreateRecipe<T>() {
     return pushNamed<T>(AppRouteNames.createRecipe);
+  }
+
+  Future<T?> pushPasteImport<T>() {
+    return pushNamed<T>(AppRouteNames.pasteImport);
+  }
+
+  Future<T?> pushImageImport<T>() {
+    return pushNamed<T>(AppRouteNames.imageImport);
   }
 
   Future<void> showRecipeCreationOptions() {
