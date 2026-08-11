@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "id": "android-mlkit-landscape-multi-column",
+  "capture": {
+    "platform": "android",
+    "engine": "mlKit",
+    "deviceKind": "physical",
+    "capturedAt": "2026-08-11",
+    "sourceKind": "captured",
+    "orientation": "landscape",
+    "traits": [
+      "landscape",
+      "multiColumn"
+    ],
+    "originalImageIncluded": false
+  },
+  "pages": [
+    {
+      "status": "succeeded",
+      "page": {
+        "pageIndex": 0,
+        "pixelWidth": 1380,
+        "pixelHeight": 1080,
+        "lines": [
+          {
+            "id": "line-0",
+            "text": "小贴士:大义快炒更脆嫩",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.021014492753623187,
+              "top": 0.325,
+              "right": 0.0536231884057971,
+              "bottom": 0.7111111111111111
+            }
+          },
+          {
+            "id": "line-1",
+            "text": "可",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.10797101449275362,
+              "top": 0.5055555555555555,
+              "right": 0.13478260869565217,
+              "bottom": 0.537962962962963
+            }
+          },
+          {
+            "id": "line-2",
+            "text": "食用油适量",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.17173913043478262,
+              "top": 0.18888888888888888,
+              "right": 0.20652173913043478,
+              "bottom": 0.37037037037037035
+            }
+          },
+          {
+            "id": "line-3",
+            "text": "炒至断生即",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.14492753623188406,
+              "top": 0.5046296296296297,
+              "right": 0.1782608695652174,
+              "bottom": 0.687037037037037
+            }
+          },
+          {
+            "id": "line-4",
+            "text": "4加盐调周味,",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.1855072463768116,
+              "top": 0.43796296296296294,
+              "right": 0.22028985507246376,
+              "bottom": 0.6824074074074075
+            }
+          },
+          {
+            "id": "line-5",
+            "text": "盐适量",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.2971014492753623,
+              "top": 0.18888888888888888,
+              "right": 0.3289855072463768,
+              "bottom": 0.30462962962962964
+            }
+          },
+          {
+            "id": "line-6",
+            "text": "大火翻炒",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.3210144927536232,
+              "top": 0.5074074074074074,
+              "right": 0.3521739130434783,
+              "bottom": 0.6509259259259259
+            }
+          },
+          {
+            "id": "line-7",
+            "text": "3倒入四季豆",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.36086956521739133,
+              "top": 0.4324074074074074,
+              "right": 0.3963768115942029,
+              "bottom": 0.6962962962962963
+            }
+          },
+          {
+            "id": "line-8",
+            "text": "干棘椒3个",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.4108695652173913,
+              "top": 0.18888888888888888,
+              "right": 0.44420289855072465,
+              "bottom": 0.37037037037037035
+            }
+          },
+          {
+            "id": "line-9",
+            "text": "干棘椒",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.45652173913043476,
+              "top": 0.5046296296296297,
+              "right": 0.48840579710144927,
+              "bottom": 0.6166666666666667
+            }
+          },
+          {
+            "id": "line-10",
+            "text": "蒜末适量",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.5202898550724637,
+              "top": 0.1398148148148148,
+              "right": 0.5644927536231884,
+              "bottom": 0.34444444444444444
+            }
+          },
+          {
+            "id": "line-11",
+            "text": "爆香蒜末和",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.4985507246376812,
+              "top": 0.5046296296296297,
+              "right": 0.5297101449275362,
+              "bottom": 0.6888888888888889
+            }
+          },
+          {
+            "id": "line-12",
+            "text": "@热锅下油,",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.5340579710144927,
+              "top": 0.4324074074074074,
+              "right": 0.5731884057971014,
+              "bottom": 0.6759259259259259
+            }
+          },
+          {
+            "id": "line-13",
+            "text": "(四季豆300g",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.6384057971014493,
+              "top": 0.18703703703703703,
+              "right": 0.6797101449275362,
+              "bottom": 0.3712962962962963
+            }
+          },
+          {
+            "id": "line-14",
+            "text": "净切段",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.6340579710144928,
+              "top": 0.5046296296296297,
+              "right": 0.6666666666666666,
+              "bottom": 0.6194444444444445
+            }
+          },
+          {
+            "id": "line-15",
+            "text": "①四季豆洗",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.6739130434782609,
+              "top": 0.4305555555555556,
+              "right": 0.7094202898550724,
+              "bottom": 0.6648148148148149
+            }
+          },
+          {
+            "id": "line-16",
+            "text": ":食材准备,",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.7405797101449275,
+              "top": 0.1,
+              "right": 0.8028985507246377,
+              "bottom": 0.3388888888888889
+            }
+          },
+          {
+            "id": "line-17",
+            "text": "做法步骤:",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.7471014492753624,
+              "top": 0.5351851851851852,
+              "right": 0.8007246376811594,
+              "bottom": 0.862037037037037
+            }
+          },
+          {
+            "id": "line-18",
+            "text": "清炒四季豆",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8753623188405797,
+              "top": 0.10648148148148148,
+              "right": 0.991304347826087,
+              "bottom": 0.8435185185185186
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "titleEquals": "",
+    "warningsContain": [
+      "未找到可靠菜名",
+      "未找到可靠烹饪步骤"
+    ],
+    "quality": "uncertain"
+  }
+}

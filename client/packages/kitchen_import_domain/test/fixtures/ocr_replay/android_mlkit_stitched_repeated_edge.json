@@ -1,0 +1,1076 @@
+{
+  "schemaVersion": 1,
+  "id": "android-mlkit-stitched-repeated-edge",
+  "capture": {
+    "platform": "android",
+    "engine": "mlKit",
+    "deviceKind": "physical",
+    "capturedAt": "2026-08-11",
+    "sourceKind": "captured",
+    "orientation": "portrait",
+    "traits": [
+      "portrait",
+      "stitched",
+      "repeatedEdgeChrome"
+    ],
+    "originalImageIncluded": false
+  },
+  "pages": [
+    {
+      "status": "succeeded",
+      "page": {
+        "pageIndex": 0,
+        "pixelWidth": 1080,
+        "pixelHeight": 2400,
+        "lines": [
+          {
+            "id": "line-0",
+            "text": "23:53",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05925925925925926,
+              "top": 0.023333333333333334,
+              "right": 0.14907407407407408,
+              "bottom": 0.035416666666666666
+            }
+          },
+          {
+            "id": "line-1",
+            "text": "百吃不厌的酸辣柠檬蒙鸡爪-做法",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05277777777777778,
+              "top": 0.12875,
+              "right": 0.8685185185185185,
+              "bottom": 0.15416666666666667
+            }
+          },
+          {
+            "id": "line-2",
+            "text": "「家庭版 0失败」",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.026851851851851852,
+              "top": 0.16166666666666665,
+              "right": 0.47314814814814815,
+              "bottom": 0.19333333333333333
+            }
+          },
+          {
+            "id": "line-3",
+            "text": "下厨房评分",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05277777777777778,
+              "top": 0.22791666666666666,
+              "right": 0.22777777777777777,
+              "bottom": 0.24291666666666667
+            }
+          },
+          {
+            "id": "line-4",
+            "text": "7.4",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.2604166666666667,
+              "right": 0.1361111111111111,
+              "bottom": 0.28583333333333333
+            }
+          },
+          {
+            "id": "line-5",
+            "text": "77人做",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05,
+              "top": 0.29625,
+              "right": 0.17407407407407408,
+              "bottom": 0.31
+            }
+          },
+          {
+            "id": "line-6",
+            "text": "用料",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.6383333333333333,
+              "right": 0.1287037037037037,
+              "bottom": 0.6554166666666666
+            }
+          },
+          {
+            "id": "line-7",
+            "text": "鸡爪",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.6829166666666666,
+              "right": 0.11944444444444445,
+              "bottom": 0.6975
+            }
+          },
+          {
+            "id": "line-8",
+            "text": "柠樣",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.7308333333333333,
+              "right": 0.11851851851851852,
+              "bottom": 0.7458333333333333
+            }
+          },
+          {
+            "id": "line-9",
+            "text": "料酒",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.77875,
+              "right": 0.11944444444444445,
+              "bottom": 0.79375
+            }
+          },
+          {
+            "id": "line-10",
+            "text": "白砂糖",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.053703703703703705,
+              "top": 0.8254166666666667,
+              "right": 0.1537037037037037,
+              "bottom": 0.8416666666666667
+            }
+          },
+          {
+            "id": "line-11",
+            "text": "有没设有跟我一样爱啃鸡爪子的小姐妹?怎么都感",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.5154166666666666,
+              "right": 0.9462962962962963,
+              "bottom": 0.5329166666666667
+            }
+          },
+          {
+            "id": "line-12",
+            "text": "觉吃不够~玩手机啃看电视啃聊天啃吃饭啃。根",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.5495833333333333,
+              "right": 0.9481481481481482,
+              "bottom": 0.5666666666666667
+            }
+          },
+          {
+            "id": "line-13",
+            "text": "本停不下来e",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.5829166666666666,
+              "right": 0.3055555555555556,
+              "bottom": 0.6020833333333333
+            }
+          },
+          {
+            "id": "line-14",
+            "text": "姜片",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.8745833333333334,
+              "right": 0.1175925925925926,
+              "bottom": 0.8895833333333333
+            }
+          },
+          {
+            "id": "line-15",
+            "text": "好极了",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.2490740740740741,
+              "top": 0.2654166666666667,
+              "right": 0.3296296296296296,
+              "bottom": 0.27666666666666667
+            }
+          },
+          {
+            "id": "line-16",
+            "text": ",l、士士",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05648148148148148,
+              "top": 0.9225,
+              "right": 0.11574074074074074,
+              "bottom": 0.9275
+            }
+          },
+          {
+            "id": "line-17",
+            "text": "挺好",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.2824074074074074,
+              "top": 0.2833333333333333,
+              "right": 0.32037037037037036,
+              "bottom": 0.2920833333333333
+            }
+          },
+          {
+            "id": "line-18",
+            "text": "|一般",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.27314814814814814,
+              "top": 0.29875,
+              "right": 0.33240740740740743,
+              "bottom": 0.30916666666666665
+            }
+          },
+          {
+            "id": "line-19",
+            "text": "心“l39",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.6601851851851852,
+              "top": 0.019583333333333335,
+              "right": 0.9425925925925925,
+              "bottom": 0.03625
+            }
+          },
+          {
+            "id": "line-20",
+            "text": "示例作者",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.18425925925925926,
+              "top": 0.45916666666666667,
+              "right": 0.37222222222222223,
+              "bottom": 0.47583333333333333
+            }
+          },
+          {
+            "id": "line-21",
+            "text": "关注",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.850925925925926,
+              "top": 0.46125,
+              "right": 0.9101851851851852,
+              "bottom": 0.4741666666666667
+            }
+          },
+          {
+            "id": "line-22",
+            "text": "☆20万 O58 0交作业 说点什么..",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.053703703703703705,
+              "top": 0.9433333333333334,
+              "right": 0.7546296296296297,
+              "bottom": 0.9645833333333333
+            }
+          },
+          {
+            "id": "line-23",
+            "text": "換算",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8462962962962963,
+              "top": 0.6404166666666666,
+              "right": 0.9055555555555556,
+              "bottom": 0.6533333333333333
+            }
+          },
+          {
+            "id": "line-24",
+            "text": "2斤",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8916666666666667,
+              "top": 0.6833333333333333,
+              "right": 0.9462962962962963,
+              "bottom": 0.6979166666666666
+            }
+          },
+          {
+            "id": "line-25",
+            "text": "1个",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8777777777777778,
+              "top": 0.7291666666666666,
+              "right": 0.9601851851851851,
+              "bottom": 0.7483333333333333
+            }
+          },
+          {
+            "id": "line-26",
+            "text": "1勺",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8805555555555555,
+              "top": 0.7775,
+              "right": 0.9564814814814815,
+              "bottom": 0.7958333333333333
+            }
+          },
+          {
+            "id": "line-27",
+            "text": "10克",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.875,
+              "top": 0.8258333333333333,
+              "right": 0.9444444444444444,
+              "bottom": 0.8408333333333333
+            }
+          },
+          {
+            "id": "line-28",
+            "text": "3片",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8907407407407407,
+              "top": 0.8745833333333334,
+              "right": 0.9462962962962963,
+              "bottom": 0.8895833333333333
+            }
+          }
+        ]
+      }
+    },
+    {
+      "status": "succeeded",
+      "page": {
+        "pageIndex": 1,
+        "pixelWidth": 1080,
+        "pixelHeight": 2400,
+        "lines": [
+          {
+            "id": "line-0",
+            "text": "23:53",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05925925925925926,
+              "top": 0.023333333333333334,
+              "right": 0.14907407407407408,
+              "bottom": 0.035416666666666666
+            }
+          },
+          {
+            "id": "line-1",
+            "text": "人",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05462962962962963,
+              "top": 0.07333333333333333,
+              "right": 0.08611111111111111,
+              "bottom": 0.09125
+            }
+          },
+          {
+            "id": "line-2",
+            "text": "用料",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.02962962962962963,
+              "top": 0.15208333333333332,
+              "right": 0.1388888888888889,
+              "bottom": 0.1725
+            }
+          },
+          {
+            "id": "line-3",
+            "text": "鸡爪",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.19875,
+              "right": 0.11851851851851852,
+              "bottom": 0.21333333333333335
+            }
+          },
+          {
+            "id": "line-4",
+            "text": "柠檬",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.24666666666666667,
+              "right": 0.11851851851851852,
+              "bottom": 0.26166666666666666
+            }
+          },
+          {
+            "id": "line-5",
+            "text": "料酒",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.2945833333333333,
+              "right": 0.11944444444444445,
+              "bottom": 0.3095833333333333
+            }
+          },
+          {
+            "id": "line-6",
+            "text": "白砂糖",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05277777777777778,
+              "top": 0.34208333333333335,
+              "right": 0.15555555555555556,
+              "bottom": 0.3566666666666667
+            }
+          },
+          {
+            "id": "line-7",
+            "text": "姜片",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.39,
+              "right": 0.1175925925925926,
+              "bottom": 0.40541666666666665
+            }
+          },
+          {
+            "id": "line-8",
+            "text": "小葱",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.43833333333333335,
+              "right": 0.11851851851851852,
+              "bottom": 0.4529166666666667
+            }
+          },
+          {
+            "id": "line-9",
+            "text": "大蒜",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.48625,
+              "right": 0.11944444444444445,
+              "bottom": 0.5008333333333334
+            }
+          },
+          {
+            "id": "line-10",
+            "text": "小米辣",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.5341666666666667,
+              "right": 0.15555555555555556,
+              "bottom": 0.5491666666666667
+            }
+          },
+          {
+            "id": "line-11",
+            "text": "青尖椒",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05,
+              "top": 0.5808333333333333,
+              "right": 0.15462962962962962,
+              "bottom": 0.5970833333333333
+            }
+          },
+          {
+            "id": "line-12",
+            "text": "洋葱",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.63,
+              "right": 0.11851851851851852,
+              "bottom": 0.645
+            }
+          },
+          {
+            "id": "line-13",
+            "text": "生抽",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.6779166666666666,
+              "right": 0.1175925925925926,
+              "bottom": 0.6925
+            }
+          },
+          {
+            "id": "line-14",
+            "text": "老抽",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.7258333333333333,
+              "right": 0.1175925925925926,
+              "bottom": 0.7408333333333333
+            }
+          },
+          {
+            "id": "line-15",
+            "text": "耗油",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.03888888888888889,
+              "top": 0.7725,
+              "right": 0.13518518518518519,
+              "bottom": 0.7904166666666667
+            }
+          },
+          {
+            "id": "line-16",
+            "text": "陈醋",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05277777777777778,
+              "top": 0.8216666666666667,
+              "right": 0.11944444444444445,
+              "bottom": 0.8366666666666667
+            }
+          },
+          {
+            "id": "line-17",
+            "text": "步骤1",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.8854166666666666,
+              "right": 0.15648148148148147,
+              "bottom": 0.9029166666666667
+            }
+          },
+          {
+            "id": "line-18",
+            "text": "示例作者",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.25462962962962965,
+              "top": 0.07541666666666667,
+              "right": 0.43148148148148147,
+              "bottom": 0.09
+            }
+          },
+          {
+            "id": "line-19",
+            "text": "心“,ls9",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.6601851851851852,
+              "top": 0.019583333333333335,
+              "right": 0.9435185185185185,
+              "bottom": 0.03625
+            }
+          },
+          {
+            "id": "line-20",
+            "text": "关注",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.7620370370370371,
+              "top": 0.07708333333333334,
+              "right": 0.8175925925925925,
+              "bottom": 0.08916666666666667
+            }
+          },
+          {
+            "id": "line-21",
+            "text": "换算",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8462962962962963,
+              "top": 0.15625,
+              "right": 0.9055555555555556,
+              "bottom": 0.16916666666666666
+            }
+          },
+          {
+            "id": "line-22",
+            "text": "☆2.0万 O58 6交作业 说点什么.",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.9441666666666667,
+              "right": 0.7638888888888888,
+              "bottom": 0.9645833333333333
+            }
+          },
+          {
+            "id": "line-23",
+            "text": "2斤",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8916666666666667,
+              "top": 0.19916666666666666,
+              "right": 0.9462962962962963,
+              "bottom": 0.21375
+            }
+          },
+          {
+            "id": "line-24",
+            "text": "1个",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8787037037037037,
+              "top": 0.245,
+              "right": 0.9583333333333334,
+              "bottom": 0.26375
+            }
+          },
+          {
+            "id": "line-25",
+            "text": "13",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8981481481481481,
+              "top": 0.2945833333333333,
+              "right": 0.9444444444444444,
+              "bottom": 0.30916666666666665
+            }
+          },
+          {
+            "id": "line-26",
+            "text": "10克",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.875,
+              "top": 0.34208333333333335,
+              "right": 0.9453703703703704,
+              "bottom": 0.3575
+            }
+          },
+          {
+            "id": "line-27",
+            "text": "3片",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8907407407407407,
+              "top": 0.3904166666666667,
+              "right": 0.9462962962962963,
+              "bottom": 0.40541666666666665
+            }
+          },
+          {
+            "id": "line-28",
+            "text": "1根",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8981481481481481,
+              "top": 0.43833333333333335,
+              "right": 0.9462962962962963,
+              "bottom": 0.4533333333333333
+            }
+          },
+          {
+            "id": "line-29",
+            "text": "10瓣",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8611111111111112,
+              "top": 0.485,
+              "right": 0.9583333333333334,
+              "bottom": 0.5025
+            }
+          },
+          {
+            "id": "line-30",
+            "text": "10个(根据自己喜好放)",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.5481481481481482,
+              "top": 0.5341666666666667,
+              "right": 0.924074074074074,
+              "bottom": 0.54875
+            }
+          },
+          {
+            "id": "line-31",
+            "text": "4根",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8898148148148148,
+              "top": 0.5820833333333333,
+              "right": 0.9462962962962963,
+              "bottom": 0.5966666666666667
+            }
+          },
+          {
+            "id": "line-32",
+            "text": "半个",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8777777777777778,
+              "top": 0.6295833333333334,
+              "right": 0.9435185185185185,
+              "bottom": 0.6441666666666667
+            }
+          },
+          {
+            "id": "line-33",
+            "text": "2勺",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8916666666666667,
+              "top": 0.6779166666666666,
+              "right": 0.9444444444444444,
+              "bottom": 0.6925
+            }
+          },
+          {
+            "id": "line-34",
+            "text": "半勺",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8777777777777778,
+              "top": 0.7254166666666667,
+              "right": 0.9435185185185185,
+              "bottom": 0.7408333333333333
+            }
+          },
+          {
+            "id": "line-35",
+            "text": "适量",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8777777777777778,
+              "top": 0.7741666666666667,
+              "right": 0.9462962962962963,
+              "bottom": 0.7883333333333333
+            }
+          },
+          {
+            "id": "line-36",
+            "text": "13",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8972222222222223,
+              "top": 0.8216666666666667,
+              "right": 0.9425925925925925,
+              "bottom": 0.8358333333333333
+            }
+          },
+          {
+            "id": "line-37",
+            "text": "烹饪模式",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.7675925925925926,
+              "top": 0.8858333333333334,
+              "right": 0.9166666666666666,
+              "bottom": 0.9025
+            }
+          }
+        ]
+      }
+    },
+    {
+      "status": "succeeded",
+      "page": {
+        "pageIndex": 2,
+        "pixelWidth": 1080,
+        "pixelHeight": 2400,
+        "lines": [
+          {
+            "id": "line-0",
+            "text": "23:53",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05925925925925926,
+              "top": 0.023333333333333334,
+              "right": 0.14907407407407408,
+              "bottom": 0.035416666666666666
+            }
+          },
+          {
+            "id": "line-1",
+            "text": "步骤1",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.02962962962962963,
+              "top": 0.13833333333333334,
+              "right": 0.1712962962962963,
+              "bottom": 0.15916666666666668
+            }
+          },
+          {
+            "id": "line-2",
+            "text": "示例作者",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.25462962962962965,
+              "top": 0.07458333333333333,
+              "right": 0.4305555555555556,
+              "bottom": 0.09
+            }
+          },
+          {
+            "id": "line-3",
+            "text": "步骤2",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.5945833333333334,
+              "right": 0.16574074074074074,
+              "bottom": 0.6120833333333333
+            }
+          },
+          {
+            "id": "line-4",
+            "text": "三",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.5509259259259259,
+              "top": 0.019166666666666665,
+              "right": 0.6222222222222222,
+              "bottom": 0.0375
+            }
+          },
+          {
+            "id": "line-5",
+            "text": "心“,ls9",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.6601851851851852,
+              "top": 0.019583333333333335,
+              "right": 0.9435185185185185,
+              "bottom": 0.03625
+            }
+          },
+          {
+            "id": "line-6",
+            "text": "关注",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.7620370370370371,
+              "top": 0.07708333333333334,
+              "right": 0.8175925925925925,
+              "bottom": 0.08916666666666667
+            }
+          },
+          {
+            "id": "line-7",
+            "text": "鸡爪剪掉指甲剁块,锅里下鸡爪放惹姜料酒,大火",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.5175,
+              "right": 0.9481481481481482,
+              "bottom": 0.5358333333333334
+            }
+          },
+          {
+            "id": "line-8",
+            "text": "煮开撇去浮涞煮10分钟,冷水洗涼备用。",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.5479166666666667,
+              "right": 0.7796296296296297,
+              "bottom": 0.56625
+            }
+          },
+          {
+            "id": "line-9",
+            "text": "☆2.0万O58 回交炸业 说点什么",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.03981481481481482,
+              "top": 0.9454166666666667,
+              "right": 0.7388888888888889,
+              "bottom": 0.9645833333333333
+            }
+          },
+          {
+            "id": "line-10",
+            "text": "烹任模式",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.7842592592592592,
+              "top": 0.14291666666666666,
+              "right": 0.9055555555555556,
+              "bottom": 0.15583333333333332
+            }
+          }
+        ]
+      }
+    },
+    {
+      "status": "succeeded",
+      "page": {
+        "pageIndex": 3,
+        "pixelWidth": 1080,
+        "pixelHeight": 2400,
+        "lines": [
+          {
+            "id": "line-0",
+            "text": "23:53",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05925925925925926,
+              "top": 0.023333333333333334,
+              "right": 0.14907407407407408,
+              "bottom": 0.035416666666666666
+            }
+          },
+          {
+            "id": "line-1",
+            "text": "人",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05555555555555555,
+              "top": 0.07333333333333333,
+              "right": 0.08611111111111111,
+              "bottom": 0.09125
+            }
+          },
+          {
+            "id": "line-2",
+            "text": "示例作者",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.25462962962962965,
+              "top": 0.07541666666666667,
+              "right": 0.43148148148148147,
+              "bottom": 0.09
+            }
+          },
+          {
+            "id": "line-3",
+            "text": "去籽不然会苦)",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.15083333333333335,
+              "right": 0.31296296296296294,
+              "bottom": 0.16791666666666666
+            }
+          },
+          {
+            "id": "line-4",
+            "text": "步骤3",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.19791666666666666,
+              "right": 0.16666666666666666,
+              "bottom": 0.215
+            }
+          },
+          {
+            "id": "line-5",
+            "text": "准备好配料,全部切碎 如图所示。(柠檬片记得",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.03518518518518519,
+              "top": 0.11875,
+              "right": 0.9453703703703704,
+              "bottom": 0.13916666666666666
+            }
+          },
+          {
+            "id": "line-6",
+            "text": "鸡爪放下去搅拌均匀。",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05185185185185185,
+              "top": 0.5966666666666667,
+              "right": 0.4398148148148148,
+              "bottom": 0.6141666666666666
+            }
+          },
+          {
+            "id": "line-7",
+            "text": "步骤4",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05092592592592592,
+              "top": 0.6441666666666667,
+              "right": 0.16574074074074074,
+              "bottom": 0.6608333333333334
+            }
+          },
+          {
+            "id": "line-8",
+            "text": "心“ls",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.6601851851851852,
+              "top": 0.019583333333333335,
+              "right": 0.9425925925925925,
+              "bottom": 0.03625
+            }
+          },
+          {
+            "id": "line-9",
+            "text": "配料放保鮮盒加生抽老抽 耗油白砂糖陈醋,把",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.03796296296296296,
+              "top": 0.565,
+              "right": 0.9546296296296296,
+              "bottom": 0.5854166666666667
+            }
+          },
+          {
+            "id": "line-10",
+            "text": "关注",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.7620370370370371,
+              "top": 0.07708333333333334,
+              "right": 0.8175925925925925,
+              "bottom": 0.08916666666666667
+            }
+          },
+          {
+            "id": "line-11",
+            "text": "☆2.0万 O 58 (交作业",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.05277777777777778,
+              "top": 0.94375,
+              "right": 0.5351851851851852,
+              "bottom": 0.965
+            }
+          },
+          {
+            "id": "line-12",
+            "text": "6炸业 说点什么.",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.37037037037037035,
+              "top": 0.945,
+              "right": 0.7638888888888888,
+              "bottom": 0.96375
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "titleContains": "酸辣柠檬",
+    "ingredientsContain": [
+      "鸡爪 2斤",
+      "白砂糖 10克"
+    ],
+    "stepsContain": [
+      "配料放保鮮盒加生抽老抽 耗油白砂糖陈醋,把鸡爪放下去搅拌均匀。"
+    ],
+    "normalizedTextExcludes": [
+      "23:53"
+    ],
+    "minimumRemovedChromeLines": 3,
+    "quality": "readyForReview"
+  }
+}

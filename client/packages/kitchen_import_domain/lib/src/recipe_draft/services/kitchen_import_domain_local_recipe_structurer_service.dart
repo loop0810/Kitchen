@@ -399,7 +399,13 @@ class LocalRecipeStructurerService implements RecipeStructurer {
       if (candidate.length <= 20) score += 10;
       if (_dishNameHint.hasMatch(candidate)) score += 20;
       if (_titleMethodHint.hasMatch(candidate)) score += 10;
-      if (_titleLabelHint.hasMatch(candidate)) score += 50;
+      // “做法/教程/食谱”通常直接附着在菜名上；“家庭版/零失败”也常独立成为
+      // 更醒目的宣传副标题，不能仅凭字号和标签词压过真正的菜名。
+      if (RegExp(r'(?:做法|教程|食谱)').hasMatch(candidate)) {
+        score += 50;
+      } else if (_titleLabelHint.hasMatch(candidate)) {
+        score += 5;
+      }
       if (heightRatio != null) {
         if (heightRatio >= 0.9) {
           score += 25;

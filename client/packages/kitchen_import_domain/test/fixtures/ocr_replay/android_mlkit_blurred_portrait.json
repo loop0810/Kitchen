@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "id": "android-mlkit-blurred-portrait",
+  "capture": {
+    "platform": "android",
+    "engine": "mlKit",
+    "deviceKind": "physical",
+    "capturedAt": "2026-08-11",
+    "sourceKind": "captured",
+    "orientation": "portrait",
+    "traits": [
+      "portrait",
+      "blurred"
+    ],
+    "originalImageIncluded": false
+  },
+  "pages": [
+    {
+      "status": "succeeded",
+      "page": {
+        "pageIndex": 0,
+        "pixelWidth": 1080,
+        "pixelHeight": 1451,
+        "lines": [
+          {
+            "id": "line-0",
+            "text": "LR热后放眼系",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.06296296296296296,
+              "top": 0.7160578911095796,
+              "right": 0.1675925925925926,
+              "bottom": 0.7312198483804273
+            }
+          },
+          {
+            "id": "line-1",
+            "text": "煮日0s右即可",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.06111111111111111,
+              "top": 0.7305306685044797,
+              "right": 0.17222222222222222,
+              "bottom": 0.7436250861474845
+            }
+          },
+          {
+            "id": "line-2",
+            "text": "目.放入菜、",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.0712962962962963,
+              "top": 0.968986905582357,
+              "right": 0.15555555555555556,
+              "bottom": 0.9820813232253618
+            }
+          },
+          {
+            "id": "line-3",
+            "text": "已.油热放入益報",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.3333333333333333,
+              "top": 0.7201929703652653,
+              "right": 0.43796296296296294,
+              "bottom": 0.7332873880082702
+            }
+          },
+          {
+            "id": "line-4",
+            "text": "4.心量細和鸡精即可",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.30185185185185187,
+              "top": 0.9634734665747761,
+              "right": 0.44907407407407407,
+              "bottom": 0.9772570640937285
+            }
+          },
+          {
+            "id": "line-5",
+            "text": "15H放入兰花",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.5462962962962963,
+              "top": 0.2136457615437629,
+              "right": 0.674074074074074,
+              "bottom": 0.2315644383184011
+            }
+          },
+          {
+            "id": "line-6",
+            "text": "意三0s后增出备用",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.5472222222222223,
+              "top": 0.23018607856650586,
+              "right": 0.6777777777777778,
+              "bottom": 0.2439696760854583
+            }
+          },
+          {
+            "id": "line-7",
+            "text": "日放入西花",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.5685185185185185,
+              "top": 0.4596829772570641,
+              "right": 0.6648148148148149,
+              "bottom": 0.47622329427980703
+            }
+          },
+          {
+            "id": "line-8",
+            "text": "已.迪熱放入益末",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8074074074074075,
+              "top": 0.21847002067539628,
+              "right": 0.9314814814814815,
+              "bottom": 0.23225361819434873
+            }
+          },
+          {
+            "id": "line-9",
+            "text": "4RD量點和鸡預味。",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.7861111111111111,
+              "top": 0.4603721571330117,
+              "right": 0.9592592592592593,
+              "bottom": 0.4755341144038594
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "warningsContain": [
+      "未找到可靠食材清单"
+    ],
+    "quality": "partial"
+  }
+}

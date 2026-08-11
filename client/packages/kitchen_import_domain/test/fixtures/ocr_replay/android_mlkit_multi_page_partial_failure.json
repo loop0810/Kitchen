@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "id": "android-mlkit-multi-page-partial-failure",
+  "capture": {
+    "platform": "android",
+    "engine": "mlKit",
+    "deviceKind": "physical",
+    "capturedAt": "2026-08-11",
+    "sourceKind": "capturedWithInjectedFailure",
+    "orientation": "portrait",
+    "traits": [
+      "portrait",
+      "partialFailure"
+    ],
+    "originalImageIncluded": false
+  },
+  "pages": [
+    {
+      "status": "succeeded",
+      "page": {
+        "pageIndex": 0,
+        "pixelWidth": 1440,
+        "pixelHeight": 1938,
+        "lines": [
+          {
+            "id": "line-0",
+            "text": "未辣椒粉白芝麻林热油",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.022916666666666665,
+              "top": 0.6362229102167183,
+              "right": 0.22083333333333333,
+              "bottom": 0.652734778121775
+            }
+          },
+          {
+            "id": "line-1",
+            "text": "4蚝油",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.07847222222222222,
+              "top": 0.8137254901960784,
+              "right": 0.14097222222222222,
+              "bottom": 0.8281733746130031
+            }
+          },
+          {
+            "id": "line-2",
+            "text": "半肉炒熱",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.07777777777777778,
+              "top": 0.9767801857585139,
+              "right": 0.14722222222222223,
+              "bottom": 0.9891640866873065
+            }
+          },
+          {
+            "id": "line-3",
+            "text": "香菜拌至肉",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.3111111111111111,
+              "top": 0.4850361197110423,
+              "right": 0.6458333333333334,
+              "bottom": 0.5479876160990712
+            }
+          },
+          {
+            "id": "line-4",
+            "text": "幻糖。",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.35625,
+              "top": 0.8126934984520123,
+              "right": 0.4013888888888889,
+              "bottom": 0.8255933952528379
+            }
+          },
+          {
+            "id": "line-5",
+            "text": "7分生抽",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.5798611111111112,
+              "top": 0.21826625386996903,
+              "right": 0.6513888888888889,
+              "bottom": 0.23632610939112486
+            }
+          },
+          {
+            "id": "line-6",
+            "text": "香菜和牛肉",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.3347222222222222,
+              "top": 0.9757481940144479,
+              "right": 0.4236111111111111,
+              "bottom": 0.9912280701754386
+            }
+          },
+          {
+            "id": "line-7",
+            "text": "M料酒",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8569444444444444,
+              "top": 0.21826625386996903,
+              "right": 0.9284722222222223,
+              "bottom": 0.23581011351909184
+            }
+          },
+          {
+            "id": "line-8",
+            "text": "1老抽",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8534722222222222,
+              "top": 0.48194014447884415,
+              "right": 0.9194444444444444,
+              "bottom": 0.49896800825593396
+            }
+          },
+          {
+            "id": "line-9",
+            "text": "内容平台账号:已脱敏",
+            "confidence": null,
+            "boundingBox": {
+              "left": 0.8131944444444444,
+              "top": 0.9731682146542827,
+              "right": 0.9847222222222223,
+              "bottom": 0.9886480908152735
+            }
+          }
+        ]
+      }
+    },
+    {
+      "status": "failed",
+      "pageIndex": 1,
+      "errorCode": "pageUnreadable"
+    }
+  ],
+  "expected": {
+    "failedPageCount": 1
+  }
+}
