@@ -114,6 +114,6 @@ Domain 与数据库继续保存总分钟，避免 schema 变化。Presentation �
 2. 移除 Recipe 层烹饪历史筛选排序、详情 CTA 和公开统计字段；为旧排序偏好增加兼容映射并运行数据库回归测试。
 3. 扩展 Import Domain/Data 的媒体修订、分页状态、generation、校对正文、补充说明和确认草稿持久化，提供旧任务默认迁移。
 4. 实现图片管理与失败降级 UI，再实现可解释草稿确认 UI 和根 App 最终保存协调。
-5. 完成单元、Widget、数据库迁移、真实 OCR 回放和 iOS/Android 核心流程验收。
+5. 完成单元、Widget、数据库迁移和真实 OCR 回放，以 Android 无网络真机验收作为当前 V1 完成条件；iOS Vision 适配器与回放覆盖继续保留，真机验收延期到 V1 稳定后且不阻塞本 change。
 
 回滚时可恢复旧 UI 与 Query 枚举；兼容保留的 SQLite 列使范围回滚不需要逆向数据迁移。Import schema 升级必须提供向前迁移，回滚旧版本前需避免让旧客户端读取它不理解的新任务 JSON，开发阶段通过清理测试数据处理。
