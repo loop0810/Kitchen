@@ -222,6 +222,8 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
                   ocrText: page.plainText,
                   ocrPage: page,
                   ocrStatus: ImportMediaOcrStatus.succeeded,
+                  imageQuality: item.imageQuality,
+                  selectedCandidate: item.selectedCandidate,
                 )
               : item,
         )
@@ -233,6 +235,226 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
       ),
       expectedGeneration: expectedGeneration,
     );
+  }
+
+  @override
+  Future<void> saveMediaOcrQuality({
+    required String taskId,
+    required String mediaId,
+    required ImageQualityReport imageQuality,
+    required OcrCandidateSelection selectedCandidate,
+    int? expectedGeneration,
+  }) async {
+    final task = await getTask(taskId);
+    if (task == null) throw StateError('Import task $taskId does not exist.');
+    if (expectedGeneration != null &&
+        task.processingGeneration != expectedGeneration) {
+      return;
+    }
+    final media = task.media
+        .map(
+          (item) => item.id == mediaId
+              ? ImportMediaReference(
+                  id: item.id,
+                  localPath: item.localPath,
+                  originalLocalPath: item.originalLocalPath,
+                  contentRevision: item.contentRevision,
+                  position: item.position,
+                  rotationQuarterTurns: item.rotationQuarterTurns,
+                  ignored: item.ignored,
+                  ocrText: item.ocrText,
+                  ocrPage: item.ocrPage,
+                  ocrStatus: item.ocrStatus,
+                  ocrErrorCode: item.ocrErrorCode,
+                  ocrErrorMessage: item.ocrErrorMessage,
+                  imageQuality: imageQuality,
+                  selectedCandidate: selectedCandidate,
+                )
+              : item,
+        )
+        .toList(growable: false);
+    await _write(
+      taskId,
+      ImportTasksCompanion(
+        mediaJson: Value(ImportTaskMapper.encodeMedia(media)),
+      ),
+      expectedGeneration: expectedGeneration,
+    );
+  }
+
+  @override
+  Future<void> saveOcrQuality(
+    String taskId,
+    ImportOcrQualityState quality, {
+    int? expectedGeneration,
+  }) {
+    return _write(
+      taskId,
+      ImportTasksCompanion(
+        ocrQualityJson: Value(ImportTaskMapper.encodeOcrQuality(quality)),
+      ),
+      expectedGeneration: expectedGeneration,
+    );
+  }
+
+  @override
+  Future<void> applyOcrCorrectionSuggestion(
+    String taskId,
+    String suggestionId,
+  ) {
+    return _mutateOcrQuality(taskId, (task) {
+      final suggestion = task.ocrQuality.suggestions
+          .where((item) => item.id == suggestionId)
+          .firstOrNull;
+      if (suggestion == null) {
+        throw StateError('OCR correction suggestion $suggestionId not found.');
+      }
+      if (suggestion.status != OcrCorrectionSuggestionStatus.pending) {
+        return null;
+      }
+      final before = task.effectiveOcrText;
+      final index = before.indexOf(suggestion.originalText);
+      if (index < 0) {
+        throw StateError('OCR correction evidence no longer matches text.');
+      }
+      final after = before.replaceRange(
+        index,
+        index + suggestion.originalText.length,
+        suggestion.replacementText,
+      );
+      return _OcrQualityMutation(
+        correctedText: after,
+        state: ImportOcrQualityState(
+          textQuality: task.ocrQuality.textQuality,
+          suggestions: task.ocrQuality.suggestions
+              .map(
+                (item) => item.id == suggestionId
+                    ? OcrCorrectionSuggestion(
+                        id: item.id,
+                        originalText: item.originalText,
+                        replacementText: item.replacementText,
+                        reason: item.reason,
+                        pageIndex: item.pageIndex,
+                        lineId: item.lineId,
+                        status: OcrCorrectionSuggestionStatus.applied,
+                      )
+                    : item,
+              )
+              .toList(growable: false),
+          revisions: [
+            ...task.ocrQuality.revisions,
+            OcrCorrectionRevision(
+              id: _uuid.v4(),
+              beforeText: before,
+              afterText: after,
+              kind: OcrCorrectionRevisionKind.suggestion,
+              createdAt: DateTime.now(),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  @override
+  Future<void> rejectOcrCorrectionSuggestion(
+    String taskId,
+    String suggestionId,
+  ) {
+    return _mutateOcrQuality(taskId, (task) {
+      if (!task.ocrQuality.suggestions.any((item) => item.id == suggestionId)) {
+        throw StateError('OCR correction suggestion $suggestionId not found.');
+      }
+      return _OcrQualityMutation(
+        correctedText: task.correctedOcrText,
+        state: ImportOcrQualityState(
+          textQuality: task.ocrQuality.textQuality,
+          suggestions: task.ocrQuality.suggestions
+              .map(
+                (item) =>
+                    item.id == suggestionId &&
+                        item.status == OcrCorrectionSuggestionStatus.pending
+                    ? OcrCorrectionSuggestion(
+                        id: item.id,
+                        originalText: item.originalText,
+                        replacementText: item.replacementText,
+                        reason: item.reason,
+                        pageIndex: item.pageIndex,
+                        lineId: item.lineId,
+                        status: OcrCorrectionSuggestionStatus.rejected,
+                      )
+                    : item,
+              )
+              .toList(growable: false),
+          revisions: task.ocrQuality.revisions,
+        ),
+      );
+    });
+  }
+
+  @override
+  Future<void> saveOcrCorrectionRevision({
+    required String taskId,
+    required String text,
+    required OcrCorrectionRevisionKind kind,
+  }) {
+    return _mutateOcrQuality(taskId, (task) {
+      final before = task.effectiveOcrText;
+      final after = text.trim();
+      if (before == after) return null;
+      return _OcrQualityMutation(
+        correctedText: after,
+        state: ImportOcrQualityState(
+          textQuality: task.ocrQuality.textQuality,
+          suggestions: task.ocrQuality.suggestions,
+          revisions: [
+            ...task.ocrQuality.revisions,
+            OcrCorrectionRevision(
+              id: _uuid.v4(),
+              beforeText: before,
+              afterText: after,
+              kind: kind,
+              createdAt: DateTime.now(),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  @override
+  Future<void> undoLastOcrCorrection(String taskId) {
+    return _mutateOcrQuality(taskId, (task) {
+      if (task.ocrQuality.revisions.isEmpty) return null;
+      final revisions = task.ocrQuality.revisions.toList();
+      final removed = revisions.removeLast();
+      final suggestions = task.ocrQuality.suggestions
+          .map((item) {
+            if (removed.kind == OcrCorrectionRevisionKind.suggestion &&
+                item.status == OcrCorrectionSuggestionStatus.applied &&
+                removed.afterText.contains(item.replacementText) &&
+                removed.beforeText.contains(item.originalText)) {
+              return OcrCorrectionSuggestion(
+                id: item.id,
+                originalText: item.originalText,
+                replacementText: item.replacementText,
+                reason: item.reason,
+                pageIndex: item.pageIndex,
+                lineId: item.lineId,
+              );
+            }
+            return item;
+          })
+          .toList(growable: false);
+      return _OcrQualityMutation(
+        correctedText: removed.beforeText,
+        state: ImportOcrQualityState(
+          textQuality: task.ocrQuality.textQuality,
+          suggestions: suggestions,
+          revisions: revisions,
+        ),
+      );
+    });
   }
 
   @override
@@ -609,6 +831,31 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     });
   }
 
+  Future<void> _mutateOcrQuality(
+    String taskId,
+    _OcrQualityMutation? Function(ImportTaskEntity task) mutate,
+  ) async {
+    await _database.transaction(() async {
+      final row = await _database.getImportTask(taskId);
+      if (row == null) throw StateError('Import task $taskId does not exist.');
+      final task = ImportTaskMapper.toDomain(row);
+      final mutation = mutate(task);
+      if (mutation == null) return;
+      await _write(
+        taskId,
+        ImportTasksCompanion(
+          correctedOcrText: Value(mutation.correctedText),
+          ocrQualityJson: Value(
+            ImportTaskMapper.encodeOcrQuality(mutation.state),
+          ),
+          processingGeneration: Value(task.processingGeneration + 1),
+          status: Value(ImportTaskStatus.queued.name),
+        ),
+        expectedGeneration: task.processingGeneration,
+      );
+    });
+  }
+
   Future<void> _mutateMedia(
     String taskId,
     List<ImportMediaReference> Function(ImportTaskEntity task) mutate,
@@ -706,6 +953,8 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
       ocrStatus: ocrStatus ?? item.ocrStatus,
       ocrErrorCode: ocrErrorCode ?? item.ocrErrorCode,
       ocrErrorMessage: ocrErrorMessage ?? item.ocrErrorMessage,
+      imageQuality: item.imageQuality,
+      selectedCandidate: item.selectedCandidate,
     );
   }
 
@@ -740,4 +989,11 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     final support = await getApplicationSupportDirectory();
     return Directory(p.join(support.path, 'import_media'));
   }
+}
+
+class _OcrQualityMutation {
+  const _OcrQualityMutation({required this.correctedText, required this.state});
+
+  final String? correctedText;
+  final ImportOcrQualityState state;
 }

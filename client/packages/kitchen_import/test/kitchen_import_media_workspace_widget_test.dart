@@ -59,6 +59,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.reordered, ['media-2', 'media-1']);
   });
+
+  testWidgets('风险图片显示条件式引导，裁剪前说明保留内容边界', (tester) async {
+    final repository = _QualityMediaRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          importDependenciesProvider.overrideWithValue(
+            ImportDependencies(
+              repository: repository,
+              pipeline: ImportPipeline(
+                repository: repository,
+                localStructurer: const LocalRecipeStructurerService(),
+              ),
+              persistPickedImages: (paths) async => paths,
+            ),
+          ),
+        ],
+        child: const MaterialApp(home: ImportTaskPage(taskId: 'quality-task')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('图片较模糊'), findsOneWidget);
+    expect(find.textContaining('建议替换清晰图片'), findsOneWidget);
+    await tester.tap(find.byTooltip('裁剪图片'));
+    await tester.pumpAndSettle();
+    expect(find.text('裁剪前先确认内容'), findsOneWidget);
+    expect(find.textContaining('只保留一道菜'), findsOneWidget);
+    expect(find.textContaining('评论、作者、相关推荐'), findsOneWidget);
+    expect(find.textContaining('自由比例'), findsOneWidget);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(find.text('裁剪前先确认内容'), findsNothing);
+  });
 }
 
 class _MediaRepository implements ImportTaskRepository {
@@ -108,6 +142,39 @@ class _MediaRepository implements ImportTaskRepository {
   Future<void> reorderMedia(String taskId, List<String> orderedMediaIds) async {
     reordered = orderedMediaIds;
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _QualityMediaRepository implements ImportTaskRepository {
+  final task = ImportTaskEntity(
+    id: 'quality-task',
+    inputKind: ImportInputKind.images,
+    status: ImportTaskStatus.awaitingReview,
+    originalText: '',
+    media: const [
+      ImportMediaReference(
+        id: 'risk',
+        localPath: '/not-found.jpg',
+        position: 0,
+        imageQuality: ImageQualityReport(
+          level: ImageQualityLevel.needsAttention,
+          issues: [ImageQualityIssueCode.blurred],
+          recommendedAction: ImageQualityRecommendedAction.replace,
+          profileVersion: '1',
+        ),
+      ),
+    ],
+    createdAt: DateTime(2026),
+    updatedAt: DateTime(2026),
+  );
+
+  @override
+  Stream<List<ImportTaskEntity>> watchTasks() => Stream.value([task]);
+
+  @override
+  Future<ImportTaskEntity?> getTask(String taskId) async => task;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

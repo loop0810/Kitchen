@@ -28,6 +28,11 @@ class OcrLayoutAnalysis {
 class OcrLayoutAnalyzerService {
   const OcrLayoutAnalyzerService();
 
+  static final _singlePageChrome = RegExp(
+    r'^(?:\d{1,2}:\d{2}.*(?:[345]G|Wi-?Fi|%|％)|(?=.*关注)(?=.*收藏)(?=.*评论)(?=.*分享).+|(?:相关推荐|更多推荐|猜你喜欢).*(?:说点什么|查看更多).*)$',
+    caseSensitive: false,
+  );
+
   OcrLayoutAnalysis analyze(OcrDocumentEntity document) {
     final repeatedEdgeKeys = _repeatedEdgeKeys(document);
     final removed = <String>{};
@@ -103,6 +108,11 @@ class OcrLayoutAnalyzerService {
   bool _isLikelyNoise(OcrLineEntity line) {
     final text = line.text.trim();
     if (text.isEmpty || !_hasLetterOrNumber(text)) return true;
+    // 单页无法依赖跨页重复判断，只有同时带网络/电量特征、完整社交动作组或
+    // 明确推荐交互词的行才视为界面框架，避免按具体内容平台做模板匹配。
+    if (_singlePageChrome.hasMatch(text.replaceAll(RegExp(r'\s+'), ''))) {
+      return true;
+    }
     if (line.confidence != null &&
         line.confidence! <= 0.45 &&
         (text.length <= 3 || RegExp(r'^[A-Za-z]{1,8}$').hasMatch(text))) {

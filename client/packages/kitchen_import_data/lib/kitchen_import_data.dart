@@ -12,6 +12,7 @@ import 'src/share/adapters/kitchen_import_data_ios_share_adapter.dart';
 import 'src/import_task/repositories/kitchen_import_data_import_task_repository_impl.dart';
 import 'src/content/adapters/kitchen_import_data_public_content_extractor.dart';
 import 'src/ocr/adapters/kitchen_import_data_platform_ocr_adapter.dart';
+import 'src/ocr/adapters/kitchen_import_data_local_ocr_input_preparer_adapter.dart';
 
 export 'src/share/adapters/kitchen_import_data_android_share_adapter.dart';
 export 'src/share/adapters/kitchen_import_data_ios_share_adapter.dart';
@@ -50,6 +51,12 @@ class ImportDataModule {
 
   OcrAdapter get ocrAdapter => const PlatformOcrAdapter();
 
+  OcrInputPreparer get ocrInputPreparer => const LocalOcrInputPreparerAdapter();
+
+  /// 把相册选择器或系统分享给出的临时文件复制进应用受控目录。
+  ///
+  /// 返回后调用方才可以创建 ImportTask；任一复制失败会删除本批目录，保证
+  /// Repository 不会收到一半有效、一半缺失的媒体路径。
   Future<List<String>> persistPickedImages(List<String> sourcePaths) async {
     final support = await getApplicationSupportDirectory();
     final taskDirectory = Directory(

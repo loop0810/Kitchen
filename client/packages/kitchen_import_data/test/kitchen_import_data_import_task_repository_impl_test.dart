@@ -79,6 +79,8 @@ void main() {
           id: 'line-0',
           text: '番茄炒蛋',
           confidence: 0.96,
+          angleDegrees: 0,
+          recognizedLanguage: 'zh-Hant',
           boundingBox: OcrRectValueObject(
             left: 0.1,
             top: 0.2,
@@ -87,6 +89,16 @@ void main() {
           ),
         ),
       ],
+      platformMetadata: OcrPlatformMetadata(
+        engineIdentifier: 'android-ml-kit',
+        modelBundled: true,
+      ),
+      preprocessMetadata: OcrPreprocessMetadata(
+        source: OcrInputSource.enhanced,
+        profileIdentifier: 'conservative',
+        profileVersion: '1',
+        sourceContentRevision: 0,
+      ),
     );
 
     await repository.saveMediaOcr(
@@ -94,11 +106,35 @@ void main() {
       mediaId: (await repository.getTask(taskId))!.media.single.id,
       page: page,
     );
+    await repository.saveMediaOcrQuality(
+      taskId: taskId,
+      mediaId: (await repository.getTask(taskId))!.media.single.id,
+      imageQuality: const ImageQualityReport(
+        level: ImageQualityLevel.needsAttention,
+        issues: [ImageQualityIssueCode.lowContrast],
+        recommendedAction: ImageQualityRecommendedAction.manualReview,
+        profileVersion: '1',
+      ),
+      selectedCandidate: OcrCandidateSelection.enhanced,
+    );
 
     final restored = await repository.getTask(taskId);
     expect(restored!.media.single.ocrText, '番茄炒蛋');
     expect(restored.media.single.ocrPage!.lines.single.id, 'line-0');
     expect(restored.media.single.ocrPage!.lines.single.confidence, 0.96);
+    expect(restored.media.single.ocrPage!.lines.single.angleDegrees, 0);
+    expect(
+      restored.media.single.ocrPage!.lines.single.recognizedLanguage,
+      'zh-Hant',
+    );
+    expect(
+      restored.media.single.ocrPage!.platformMetadata.modelBundled,
+      isTrue,
+    );
+    expect(
+      restored.media.single.selectedCandidate,
+      OcrCandidateSelection.enhanced,
+    );
   });
 
   test('旧媒体 JSON 缺少修订和状态时安全恢复', () {
@@ -110,6 +146,143 @@ void main() {
     expect(media.contentRevision, 0);
     expect(media.ocrStatus, ImportMediaOcrStatus.succeeded);
     expect(media.ocrErrorCode, isNull);
+    expect(media.imageQuality.level, ImageQualityLevel.unknown);
+    expect(media.selectedCandidate, OcrCandidateSelection.unknown);
+  });
+
+  test('旧 OCR 页面元数据为空，真实零置信度与零角度不会变成空值', () {
+    final legacy = ImportTaskMapper.decodeOcrPage({
+      'pageIndex': 0,
+      'lines': [
+        {
+          'id': 'zero',
+          'text': '原文',
+          'confidence': 0,
+          'angleDegrees': 0,
+          'boundingBox': {'left': 0, 'top': 0, 'right': 1, 'bottom': 1},
+        },
+      ],
+    });
+
+    expect(legacy.pixelWidth, 0);
+    expect(legacy.lines.single.confidence, 0);
+    expect(legacy.lines.single.angleDegrees, 0);
+    expect(legacy.lines.single.recognizedLanguage, isNull);
+    expect(legacy.platformMetadata.engineIdentifier, 'unknown');
+    expect(legacy.preprocessMetadata.source, OcrInputSource.unknown);
+    expect(legacy.textQuality.level, OcrTextQualityLevel.unknown);
+  });
+
+  test('质量报告、建议状态和校对修订可原子往返与撤销', () async {
+    final taskId = await repository.createImageTask(['1.jpg']);
+    await repository.saveOcrText(taskId, '盐 1O克');
+    const initialQuality = ImportOcrQualityState(
+      textQuality: OcrTextQualityReport(
+        level: OcrTextQualityLevel.needsAttention,
+        issues: [OcrTextQualityIssueCode.garbledText],
+        evidence: [
+          OcrTextQualityEvidence(
+            pageIndex: 0,
+            issue: OcrTextQualityIssueCode.garbledText,
+            message: '用量中疑似混入字母',
+          ),
+        ],
+        profileVersion: '1',
+      ),
+      suggestions: [
+        OcrCorrectionSuggestion(
+          id: 's-1',
+          originalText: '1O克',
+          replacementText: '10克',
+          reason: OcrCorrectionReason.number,
+          pageIndex: 0,
+        ),
+      ],
+    );
+    await repository.saveOcrQuality(taskId, initialQuality);
+    await repository.applyOcrCorrectionSuggestion(taskId, 's-1');
+
+    var restored = (await repository.getTask(taskId))!;
+    expect(restored.ocrText, '盐 1O克');
+    expect(restored.correctedOcrText, '盐 10克');
+    expect(
+      restored.ocrQuality.suggestions.single.status,
+      OcrCorrectionSuggestionStatus.applied,
+    );
+    expect(restored.ocrQuality.revisions, hasLength(1));
+
+    await repository.undoLastOcrCorrection(taskId);
+    restored = (await repository.getTask(taskId))!;
+    expect(restored.correctedOcrText, '盐 1O克');
+    expect(
+      restored.ocrQuality.suggestions.single.status,
+      OcrCorrectionSuggestionStatus.pending,
+    );
+    expect(restored.ocrQuality.revisions, isEmpty);
+  });
+
+  test('拒绝建议与用户主动繁体转换确认不会改写机器 OCR 原文', () async {
+    final taskId = await repository.createImageTask(['1.jpg']);
+    await repository.saveOcrText(taskId, '食材：馬鈴薯');
+    await repository.saveOcrQuality(
+      taskId,
+      const ImportOcrQualityState(
+        suggestions: [
+          OcrCorrectionSuggestion(
+            id: 's-2',
+            originalText: '馬鈴薯',
+            replacementText: '马铃薯',
+            reason: OcrCorrectionReason.suspectedGlyphError,
+            pageIndex: 0,
+          ),
+        ],
+      ),
+    );
+    await repository.rejectOcrCorrectionSuggestion(taskId, 's-2');
+    await repository.saveOcrCorrectionRevision(
+      taskId: taskId,
+      text: '食材：马铃薯',
+      kind: OcrCorrectionRevisionKind.convertToSimplified,
+    );
+
+    final restored = (await repository.getTask(taskId))!;
+    expect(restored.ocrText, '食材：馬鈴薯');
+    expect(restored.correctedOcrText, '食材：马铃薯');
+    expect(
+      restored.ocrQuality.suggestions.single.status,
+      OcrCorrectionSuggestionStatus.rejected,
+    );
+    expect(
+      restored.ocrQuality.revisions.single.kind,
+      OcrCorrectionRevisionKind.convertToSimplified,
+    );
+  });
+
+  test('质量状态导出恢复兼容，缺失新字段时回退为空状态', () async {
+    final taskId = await repository.createTextTask('菜谱');
+    await repository.saveOcrQuality(
+      taskId,
+      const ImportOcrQualityState(
+        textQuality: OcrTextQualityReport(
+          level: OcrTextQualityLevel.usable,
+          profileVersion: '1',
+        ),
+      ),
+    );
+    final exported = await database.exportLogicalData();
+    await database.restoreLogicalData(exported, const {});
+    expect(
+      (await repository.getTask(taskId))!.ocrQuality.textQuality.level,
+      OcrTextQualityLevel.usable,
+    );
+
+    final legacy = Map<String, dynamic>.from(exported.single)
+      ..remove('ocrQualityJson');
+    await database.restoreLogicalData([legacy], const {});
+    expect(
+      (await repository.getTask(taskId))!.ocrQuality.textQuality.level,
+      OcrTextQualityLevel.unknown,
+    );
   });
 
   test('重排复用成功页，旋转只使目标页失效并递增 generation', () async {
@@ -300,6 +473,7 @@ CREATE TABLE import_tasks (
     expect(restored.correctedOcrText, isNull);
     expect(restored.supplementalText, isEmpty);
     expect(restored.processingGeneration, 0);
+    expect(restored.ocrQuality.textQuality.level, OcrTextQualityLevel.unknown);
   });
 
   test('删除任务清理受控图片且不触碰目录外文件', () async {
@@ -328,6 +502,29 @@ CREATE TABLE import_tasks (
     expect(await guardedRepository.getTask(taskId), isNull);
     expect(await controlled.exists(), isFalse);
     expect(await external.exists(), isTrue);
+  });
+
+  test('启动期清理超过宽限期且未被任务引用的 OCR 派生文件', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'kitchen_import_orphan_ocr_',
+    );
+    final controlledRoot = Directory('${directory.path}/import_media')
+      ..createSync(recursive: true);
+    final derivative = File(
+      '${controlledRoot.path}/.ocr-orphan-r0-enhanced-1.jpg',
+    )..writeAsBytesSync([1, 2, 3]);
+    derivative.setLastModifiedSync(
+      DateTime.now().subtract(const Duration(days: 2)),
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final guardedRepository = ImportTaskRepositoryImpl(
+      database,
+      mediaDirectoryProvider: () async => controlledRoot,
+    );
+
+    await guardedRepository.cleanupOrphanedMedia();
+
+    expect(await derivative.exists(), isFalse);
   });
 
   test('裁剪提交保留原图，非受控替换失败时不改写引用', () async {

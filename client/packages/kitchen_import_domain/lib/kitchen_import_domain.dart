@@ -4,5 +4,12 @@ export 'src/import_task/repositories/kitchen_import_domain_import_task_repositor
 export 'src/recipe_draft/services/kitchen_import_domain_local_recipe_structurer_service.dart';
 export 'src/recipe_draft/services/kitchen_import_domain_recipe_draft_merge_service.dart';
 export 'src/ocr/entities/kitchen_import_domain_ocr_document_entity.dart';
+export 'src/ocr/entities/kitchen_import_domain_ocr_quality_entity.dart';
 export 'src/ocr/services/kitchen_import_domain_ocr_layout_analyzer_service.dart';
+export 'src/ocr/services/kitchen_import_domain_ocr_input_preparer_service.dart';
+export 'src/ocr/services/kitchen_import_domain_ocr_candidate_selector_service.dart';
+export 'src/ocr/services/kitchen_import_domain_ocr_correction_suggestion_service.dart';
+export 'src/ocr/services/kitchen_import_domain_ocr_script_equivalence_service.dart';
+export 'src/ocr/services/kitchen_import_domain_ocr_script_conversion_service.dart';
+export 'src/ocr/services/kitchen_import_domain_ocr_text_quality_service.dart';
 export 'src/recipe_draft/entities/kitchen_import_domain_recipe_draft_entity.dart';

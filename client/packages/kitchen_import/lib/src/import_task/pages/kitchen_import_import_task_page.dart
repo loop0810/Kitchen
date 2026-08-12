@@ -60,6 +60,13 @@ class _TaskBody extends ConsumerWidget {
           const SizedBox(height: AppSpacing.s20),
           ImportMediaWorkspaceWidget(taskId: task.id, media: task.media),
         ],
+        if (task.ocrQuality.textQuality.level ==
+                OcrTextQualityLevel.needsAttention ||
+            task.ocrQuality.textQuality.level ==
+                OcrTextQualityLevel.insufficient) ...[
+          const SizedBox(height: AppSpacing.s20),
+          _OcrTextQualityCard(report: task.ocrQuality.textQuality),
+        ],
         if (task.ocrText?.trim().isNotEmpty == true) ...[
           const SizedBox(height: AppSpacing.s20),
           Row(
@@ -88,6 +95,81 @@ class _TaskBody extends ConsumerWidget {
             icon: const Icon(Icons.note_add_outlined),
             label: Text(task.supplementalText.isEmpty ? '添加补充说明' : '编辑补充说明'),
           ),
+          const SizedBox(height: AppSpacing.s8),
+          Wrap(
+            spacing: AppSpacing.s8,
+            runSpacing: AppSpacing.s8,
+            children: [
+              OutlinedButton(
+                onPressed: () =>
+                    _previewScriptConversion(context, ref, toSimplified: true),
+                child: const Text('转换为简体'),
+              ),
+              OutlinedButton(
+                onPressed: () =>
+                    _previewScriptConversion(context, ref, toSimplified: false),
+                child: const Text('转换为繁体'),
+              ),
+              if (task.ocrQuality.revisions.isNotEmpty)
+                TextButton.icon(
+                  onPressed: () => _undoCorrection(context, ref),
+                  icon: const Icon(Icons.undo_rounded),
+                  label: const Text('撤销上次校对'),
+                ),
+            ],
+          ),
+          if (task.ocrQuality.suggestions.any(
+            (item) => item.status == OcrCorrectionSuggestionStatus.pending,
+          )) ...[
+            const SizedBox(height: AppSpacing.s12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '校对建议',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const Text('建议不会自动修改文字，可逐项采用或拒绝。'),
+                    for (final suggestion in task.ocrQuality.suggestions.where(
+                      (item) =>
+                          item.status == OcrCorrectionSuggestionStatus.pending,
+                    ))
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          '${suggestion.originalText} → ${suggestion.replacementText}',
+                        ),
+                        subtitle: Text(
+                          '第 ${suggestion.pageIndex + 1} 张 · ${_suggestionReason(suggestion.reason)}',
+                        ),
+                        trailing: Wrap(
+                          children: [
+                            IconButton(
+                              onPressed: () => _rejectSuggestion(
+                                context,
+                                ref,
+                                suggestion.id,
+                              ),
+                              tooltip: '拒绝这条建议',
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  _applySuggestion(context, ref, suggestion.id),
+                              tooltip: '采用这条建议',
+                              icon: const Icon(Icons.check_rounded),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
         if (task.draft?.warnings.isNotEmpty == true) ...[
           const SizedBox(height: AppSpacing.s20),
@@ -252,7 +334,151 @@ class _TaskBody extends ConsumerWidget {
     await dependencies.pipeline.process(task.id);
     ref.invalidate(importTaskProvider(task.id));
   }
+
+  Future<void> _applySuggestion(
+    BuildContext context,
+    WidgetRef ref,
+    String suggestionId,
+  ) async {
+    final dependencies = ref.read(importDependenciesProvider);
+    try {
+      await dependencies.repository.applyOcrCorrectionSuggestion(
+        task.id,
+        suggestionId,
+      );
+      await dependencies.pipeline.process(task.id);
+      ref.invalidate(importTaskProvider(task.id));
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('建议与当前文字不再匹配，请重新校对。')));
+    }
+  }
+
+  Future<void> _rejectSuggestion(
+    BuildContext context,
+    WidgetRef ref,
+    String suggestionId,
+  ) async {
+    try {
+      await ref
+          .read(importDependenciesProvider)
+          .repository
+          .rejectOcrCorrectionSuggestion(task.id, suggestionId);
+      ref.invalidate(importTaskProvider(task.id));
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法保存拒绝状态，请重试。')));
+    }
+  }
+
+  Future<void> _previewScriptConversion(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool toSimplified,
+  }) async {
+    const converter = OcrScriptConversionService();
+    final before = task.effectiveOcrText;
+    final after = toSimplified
+        ? converter.toSimplified(before)
+        : converter.toTraditional(before);
+    if (after == before) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(toSimplified ? '没有可转换的繁体文字。' : '没有可转换的简体文字。')),
+      );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(toSimplified ? '预览转换为简体' : '预览转换为繁体'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('转换属于用户校对，不会修改机器 OCR 原文。'),
+              const SizedBox(height: AppSpacing.s12),
+              Text('转换前', style: Theme.of(context).textTheme.titleSmall),
+              SelectableText(before),
+              const SizedBox(height: AppSpacing.s12),
+              Text('转换后', style: Theme.of(context).textTheme.titleSmall),
+              SelectableText(after),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认转换'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final dependencies = ref.read(importDependenciesProvider);
+    await dependencies.repository.saveOcrCorrectionRevision(
+      taskId: task.id,
+      text: after,
+      kind: toSimplified
+          ? OcrCorrectionRevisionKind.convertToSimplified
+          : OcrCorrectionRevisionKind.convertToTraditional,
+    );
+    await dependencies.pipeline.process(task.id);
+    ref.invalidate(importTaskProvider(task.id));
+  }
+
+  Future<void> _undoCorrection(BuildContext context, WidgetRef ref) async {
+    final dependencies = ref.read(importDependenciesProvider);
+    await dependencies.repository.undoLastOcrCorrection(task.id);
+    await dependencies.pipeline.process(task.id);
+    ref.invalidate(importTaskProvider(task.id));
+  }
 }
+
+class _OcrTextQualityCard extends StatelessWidget {
+  const _OcrTextQualityCard({required this.report});
+
+  final OcrTextQualityReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('识别文字需要校对', style: Theme.of(context).textTheme.titleMedium),
+            const Text('这与菜谱字段是否齐全是两类问题，请对照图片检查风险行。'),
+            for (final item in report.evidence)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(child: Text('${item.pageIndex + 1}')),
+                title: Text(item.message),
+                subtitle: item.lineId == null
+                    ? Text('第 ${item.pageIndex + 1} 张')
+                    : Text('第 ${item.pageIndex + 1} 张 · ${item.lineId}'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _suggestionReason(OcrCorrectionReason reason) => switch (reason) {
+  OcrCorrectionReason.number => '数字可能误识别',
+  OcrCorrectionReason.amountUnit => '用量单位可能误识别',
+  OcrCorrectionReason.recipeTerm => '菜谱词可能误识别',
+  OcrCorrectionReason.suspectedGlyphError => '字形可能误识别',
+};
 
 /// 让编辑控制器与弹框路由拥有相同生命周期，避免弹框退出动画期间提前销毁
 /// TextField 仍在使用的控制器，触发 Flutter framework 的 dependents 断言。

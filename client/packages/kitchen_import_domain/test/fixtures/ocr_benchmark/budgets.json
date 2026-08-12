@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "budgetVersion": "2026-08-12.reference",
+  "note": "Reference budgets verify the runner. Replace with reviewed Android physical-device values after capture.",
+  "default": {
+    "maxCharacterErrorRate": 0.35,
+    "minEffectiveLineRecall": 0.70,
+    "maxNoiseResidualRate": 0.25,
+    "minTitleExactRate": 0.80,
+    "minIngredientF1": 0.70,
+    "minStepF1": 0.70,
+    "maxCorrectionDistanceRate": 0.35,
+    "maxDurationMs": 2500,
+    "maxPeakMemoryBytes": 268435456
+  }
+}

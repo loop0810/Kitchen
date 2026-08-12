@@ -1,3 +1,5 @@
+import 'kitchen_import_domain_ocr_quality_entity.dart';
+
 class OcrRectValueObject {
   const OcrRectValueObject({
     required this.left,
@@ -34,6 +36,8 @@ class OcrLineEntity {
     required this.text,
     required this.boundingBox,
     this.confidence,
+    this.angleDegrees,
+    this.recognizedLanguage,
   });
 
   /// 页面内稳定文字行 ID，用于草稿字段回溯来源。
@@ -47,6 +51,12 @@ class OcrLineEntity {
 
   /// 平台提供的识别置信度，范围为 0 到 1；平台未提供时为空。
   final double? confidence;
+
+  /// 平台实际提供的文字行角度；未提供时为空，真实 0° 保留为零值。
+  final double? angleDegrees;
+
+  /// 平台实际检测到的 BCP-47 语言标签；未提供时为空。
+  final String? recognizedLanguage;
 }
 
 class OcrPageEntity {
@@ -55,6 +65,9 @@ class OcrPageEntity {
     required this.pixelWidth,
     required this.pixelHeight,
     required this.lines,
+    this.platformMetadata = const OcrPlatformMetadata(),
+    this.preprocessMetadata = const OcrPreprocessMetadata(),
+    this.textQuality = const OcrTextQualityReport(),
   });
 
   /// 用户图片顺序对应的零基页码。
@@ -68,6 +81,15 @@ class OcrPageEntity {
 
   /// 页面内带坐标的文字行，原始顺序不作为阅读顺序依据。
   final List<OcrLineEntity> lines;
+
+  /// 本页识别所用平台引擎的可用元数据。
+  final OcrPlatformMetadata platformMetadata;
+
+  /// 本页最终所选 OCR 输入的预处理来源和版本。
+  final OcrPreprocessMetadata preprocessMetadata;
+
+  /// 只评价本页 OCR 文字的质量报告。
+  final OcrTextQualityReport textQuality;
 
   /// 按纵向、横向坐标恢复的本页纯文本，用于展示和旧解析兼容。
   String get plainText {

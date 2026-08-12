@@ -1,5 +1,6 @@
 import '../../recipe_draft/entities/kitchen_import_domain_recipe_draft_entity.dart';
 import '../../ocr/entities/kitchen_import_domain_ocr_document_entity.dart';
+import '../../ocr/entities/kitchen_import_domain_ocr_quality_entity.dart';
 
 enum ImportTaskStatus {
   queued,
@@ -31,6 +32,8 @@ class ImportMediaReference {
     bool ocrCompleted = false,
     this.ocrErrorCode,
     this.ocrErrorMessage,
+    this.imageQuality = const ImageQualityReport(),
+    this.selectedCandidate = OcrCandidateSelection.unknown,
   }) : originalLocalPath = originalLocalPath ?? localPath,
        ocrStatus =
            ocrStatus ??
@@ -74,6 +77,12 @@ class ImportMediaReference {
   /// 本页 OCR 的中文可行动错误说明；非失败状态为空。
   final String? ocrErrorMessage;
 
+  /// 当前图片的像素预检质量报告。
+  final ImageQualityReport imageQuality;
+
+  /// 原图与增强图候选之间的最终选择结果。
+  final OcrCandidateSelection selectedCandidate;
+
   /// 兼容旧调用方的完成标记，权威状态为 [ocrStatus]。
   bool get ocrCompleted => ocrStatus == ImportMediaOcrStatus.succeeded;
 }
@@ -96,6 +105,7 @@ class ImportTaskEntity {
     this.errorCode,
     this.errorMessage,
     this.finalRecipeId,
+    this.ocrQuality = const ImportOcrQualityState(),
   });
 
   /// 导入任务稳定 UUID，也是正式菜谱保存的幂等键。
@@ -142,6 +152,9 @@ class ImportTaskEntity {
 
   /// 保存成功后的正式菜谱 ID。
   final String? finalRecipeId;
+
+  /// 与结构化草稿质量独立保存的 OCR 文字质量和校对状态。
+  final ImportOcrQualityState ocrQuality;
 
   /// 任务首次持久化时间。
   final DateTime createdAt;

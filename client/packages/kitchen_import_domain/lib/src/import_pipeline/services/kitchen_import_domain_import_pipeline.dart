@@ -1,6 +1,11 @@
 import '../../import_task/entities/kitchen_import_domain_import_task_entity.dart';
 import '../../import_task/repositories/kitchen_import_domain_import_task_repository.dart';
 import '../../ocr/entities/kitchen_import_domain_ocr_document_entity.dart';
+import '../../ocr/entities/kitchen_import_domain_ocr_quality_entity.dart';
+import '../../ocr/services/kitchen_import_domain_ocr_candidate_selector_service.dart';
+import '../../ocr/services/kitchen_import_domain_ocr_correction_suggestion_service.dart';
+import '../../ocr/services/kitchen_import_domain_ocr_input_preparer_service.dart';
+import '../../ocr/services/kitchen_import_domain_ocr_text_quality_service.dart';
 import '../../recipe_draft/entities/kitchen_import_domain_recipe_draft_entity.dart';
 import '../../recipe_draft/services/kitchen_import_domain_recipe_draft_merge_service.dart';
 
@@ -32,12 +37,14 @@ class ImportPipeline {
     required RecipeStructurer localStructurer,
     PublicContentExtractor? publicContentExtractor,
     OcrAdapter? ocrAdapter,
+    OcrInputPreparer? ocrInputPreparer,
   }) {
     return ImportPipeline._(
       repository,
       localStructurer,
       publicContentExtractor,
       ocrAdapter,
+      ocrInputPreparer,
     );
   }
 
@@ -46,15 +53,27 @@ class ImportPipeline {
     this._localStructurer,
     this._publicContentExtractor,
     this._ocrAdapter,
+    this._ocrInputPreparer,
   );
 
   final ImportTaskRepository _repository;
   final RecipeStructurer _localStructurer;
   final PublicContentExtractor? _publicContentExtractor;
   final OcrAdapter? _ocrAdapter;
+  final OcrInputPreparer? _ocrInputPreparer;
+  final OcrCandidateSelectorService _candidateSelector =
+      const OcrCandidateSelectorService();
+  final OcrTextQualityService _textQualityService =
+      const OcrTextQualityService();
+  final OcrCorrectionSuggestionService _suggestionService =
+      const OcrCorrectionSuggestionService();
   final RecipeDraftMergeService _draftMergeService =
       const RecipeDraftMergeService();
 
+  /// 从已持久化的任务继续处理，直到产生审核草稿或可恢复错误。
+  ///
+  /// 调用方不能把尚未落库的临时输入直接传进来；[taskId] 是状态机恢复、
+  /// 幂等保存和异步代次检查共同使用的稳定身份。
   Future<void> process(String taskId) async {
     final task = await _repository.getTask(taskId);
     if (task == null || task.status == ImportTaskStatus.cancelled) return;
@@ -101,7 +120,70 @@ class ImportPipeline {
               mediaId: media.id,
               expectedGeneration: generation,
             );
-            final page = await adapter.recognize(media);
+            OcrInputPreparation? preparation;
+            OcrPageEntity page;
+            var imageQuality = const ImageQualityReport();
+            var selectedCandidate = OcrCandidateSelection.original;
+            try {
+              preparation = await _ocrInputPreparer?.prepare(media);
+              if (!await _isCurrent(taskId, generation)) return;
+              if (preparation == null) {
+                page = _withTextQuality(await adapter.recognize(media));
+              } else {
+                imageQuality = preparation.imageQuality;
+                final originalPage = await _recognizeCandidate(
+                  taskId: taskId,
+                  generation: generation,
+                  adapter: adapter,
+                  sourceMedia: media,
+                  candidate: preparation.original,
+                );
+                var selectedPage = originalPage;
+                var selectedInput = preparation.original;
+                final enhancedInput = preparation.enhanced;
+                if (enhancedInput != null &&
+                    await _isCurrent(taskId, generation)) {
+                  try {
+                    final enhancedPage = await _recognizeCandidate(
+                      taskId: taskId,
+                      generation: generation,
+                      adapter: adapter,
+                      sourceMedia: media,
+                      candidate: enhancedInput,
+                    );
+                    if (_candidateSelector.shouldSelectEnhanced(
+                      original: originalPage,
+                      enhanced: enhancedPage,
+                    )) {
+                      selectedPage = enhancedPage;
+                      selectedInput = enhancedInput;
+                      selectedCandidate = OcrCandidateSelection.enhanced;
+                    }
+                  } catch (_) {
+                    // 增强候选是可选优化，失败时继续使用原图结果。
+                  }
+                }
+                page = _withTextQuality(
+                  selectedPage,
+                  preprocessMetadata: selectedInput.metadata,
+                );
+              }
+              if (!await _isCurrent(taskId, generation)) return;
+              if (preparation != null) {
+                await _repository.saveMediaOcrQuality(
+                  taskId: taskId,
+                  mediaId: media.id,
+                  imageQuality: imageQuality,
+                  selectedCandidate: selectedCandidate,
+                  expectedGeneration: generation,
+                );
+              }
+            } finally {
+              if (preparation != null) {
+                await _ocrInputPreparer?.release(preparation);
+              }
+            }
+            if (!await _isCurrent(taskId, generation)) return;
             await _repository.saveMediaOcr(
               taskId: taskId,
               mediaId: media.id,
@@ -110,6 +192,7 @@ class ImportPipeline {
             );
             pages.add(page);
           } catch (_) {
+            if (!await _isCurrent(taskId, generation)) return;
             // 单页失败不丢弃已成功页；页面级错误会驱动
             // 替换、旋转、裁剪或仅重试该页的恢复操作。
             await _repository.saveMediaOcrFailure(
@@ -133,6 +216,36 @@ class ImportPipeline {
         await _repository.saveOcrText(
           taskId,
           ocrText,
+          expectedGeneration: generation,
+        );
+        final existingSuggestionStatus = {
+          for (final suggestion in task.ocrQuality.suggestions)
+            suggestion.id: suggestion.status,
+        };
+        final suggestions = _suggestionService
+            .generate(ocrDocument)
+            .map(
+              (suggestion) => OcrCorrectionSuggestion(
+                id: suggestion.id,
+                originalText: suggestion.originalText,
+                replacementText: suggestion.replacementText,
+                reason: suggestion.reason,
+                pageIndex: suggestion.pageIndex,
+                lineId: suggestion.lineId,
+                status:
+                    existingSuggestionStatus[suggestion.id] ??
+                    suggestion.status,
+              ),
+            )
+            .toList(growable: false);
+        if (!await _isCurrent(taskId, generation)) return;
+        await _repository.saveOcrQuality(
+          taskId,
+          ImportOcrQualityState(
+            textQuality: _textQualityService.assessDocument(ocrDocument),
+            suggestions: suggestions,
+            revisions: task.ocrQuality.revisions,
+          ),
           expectedGeneration: generation,
         );
         text = [
@@ -215,6 +328,7 @@ class ImportPipeline {
     }
   }
 
+  /// 复位失败状态后复用同一任务重新处理，不重新保存或复制原始材料。
   Future<void> retry(String taskId) async {
     await _repository.retry(taskId);
     await process(taskId);
@@ -266,6 +380,8 @@ class ImportPipeline {
   }
 
   Future<void> resumePending() async {
+    // 应用冷启动时只恢复中间态。awaitingReview、failed 和 saved 都需要明确的
+    // 用户动作，不能因为重启而自动覆盖草稿或反复重试失败输入。
     final tasks = await _repository.watchTasks().first;
     for (final task in tasks.where(
       (task) => {
@@ -282,6 +398,49 @@ class ImportPipeline {
   Future<bool> _isCancelled(String taskId) async {
     final current = await _repository.getTask(taskId);
     return current == null || current.status == ImportTaskStatus.cancelled;
+  }
+
+  Future<bool> _isCurrent(String taskId, int generation) async {
+    final current = await _repository.getTask(taskId);
+    return current != null &&
+        current.status != ImportTaskStatus.cancelled &&
+        current.processingGeneration == generation;
+  }
+
+  Future<OcrPageEntity> _recognizeCandidate({
+    required String taskId,
+    required int generation,
+    required OcrAdapter adapter,
+    required ImportMediaReference sourceMedia,
+    required OcrInputCandidate candidate,
+  }) async {
+    if (!await _isCurrent(taskId, generation)) {
+      throw const ImportPipelineException('staleGeneration', '图片已更新。');
+    }
+    return adapter.recognize(candidate.asMedia(sourceMedia));
+  }
+
+  OcrPageEntity _withTextQuality(
+    OcrPageEntity page, {
+    OcrPreprocessMetadata? preprocessMetadata,
+  }) {
+    final undecorated = OcrPageEntity(
+      pageIndex: page.pageIndex,
+      pixelWidth: page.pixelWidth,
+      pixelHeight: page.pixelHeight,
+      lines: page.lines,
+      platformMetadata: page.platformMetadata,
+      preprocessMetadata: preprocessMetadata ?? page.preprocessMetadata,
+    );
+    return OcrPageEntity(
+      pageIndex: undecorated.pageIndex,
+      pixelWidth: undecorated.pixelWidth,
+      pixelHeight: undecorated.pixelHeight,
+      lines: undecorated.lines,
+      platformMetadata: undecorated.platformMetadata,
+      preprocessMetadata: undecorated.preprocessMetadata,
+      textQuality: _textQualityService.assessPage(undecorated),
+    );
   }
 
   Future<void> _failIfPresent(

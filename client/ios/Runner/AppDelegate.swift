@@ -68,6 +68,9 @@ import Vision
           result([
             "width": Int(image.size.width * image.scale),
             "height": Int(image.size.height * image.scale),
+            "engineIdentifier": "ios-vision",
+            "engineVersion": "\(request.revision)",
+            "modelBundled": true,
             "lines": lines,
           ])
         }

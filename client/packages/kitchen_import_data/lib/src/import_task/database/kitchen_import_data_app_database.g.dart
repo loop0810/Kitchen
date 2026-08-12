@@ -141,6 +141,18 @@ class $ImportTasksTable extends ImportTasks
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _ocrQualityJsonMeta = const VerificationMeta(
+    'ocrQualityJson',
+  );
+  @override
+  late final GeneratedColumn<String> ocrQualityJson = GeneratedColumn<String>(
+    'ocr_quality_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
   static const VerificationMeta _errorCodeMeta = const VerificationMeta(
     'errorCode',
   );
@@ -210,6 +222,7 @@ class $ImportTasksTable extends ImportTasks
     supplementalText,
     processingGeneration,
     draftJson,
+    ocrQualityJson,
     errorCode,
     errorMessage,
     finalRecipeId,
@@ -321,6 +334,15 @@ class $ImportTasksTable extends ImportTasks
         draftJson.isAcceptableOrUnknown(data['draft_json']!, _draftJsonMeta),
       );
     }
+    if (data.containsKey('ocr_quality_json')) {
+      context.handle(
+        _ocrQualityJsonMeta,
+        ocrQualityJson.isAcceptableOrUnknown(
+          data['ocr_quality_json']!,
+          _ocrQualityJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('error_code')) {
       context.handle(
         _errorCodeMeta,
@@ -418,6 +440,10 @@ class $ImportTasksTable extends ImportTasks
         DriftSqlType.string,
         data['${effectivePrefix}draft_json'],
       ),
+      ocrQualityJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ocr_quality_json'],
+      )!,
       errorCode: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}error_code'],
@@ -484,6 +510,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
   /// 最新版本化结构草稿 JSON；尚未整理时为空。
   final String? draftJson;
 
+  /// OCR 文字质量、建议状态和校对修订的版本化 JSON。
+  final String ocrQualityJson;
+
   /// 稳定错误分类；非失败状态为空。
   final String? errorCode;
 
@@ -511,6 +540,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     required this.supplementalText,
     required this.processingGeneration,
     this.draftJson,
+    required this.ocrQualityJson,
     this.errorCode,
     this.errorMessage,
     this.finalRecipeId,
@@ -542,6 +572,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     if (!nullToAbsent || draftJson != null) {
       map['draft_json'] = Variable<String>(draftJson);
     }
+    map['ocr_quality_json'] = Variable<String>(ocrQualityJson);
     if (!nullToAbsent || errorCode != null) {
       map['error_code'] = Variable<String>(errorCode);
     }
@@ -580,6 +611,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
       draftJson: draftJson == null && nullToAbsent
           ? const Value.absent()
           : Value(draftJson),
+      ocrQualityJson: Value(ocrQualityJson),
       errorCode: errorCode == null && nullToAbsent
           ? const Value.absent()
           : Value(errorCode),
@@ -616,6 +648,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
         json['processingGeneration'],
       ),
       draftJson: serializer.fromJson<String?>(json['draftJson']),
+      ocrQualityJson: serializer.fromJson<String>(json['ocrQualityJson']),
       errorCode: serializer.fromJson<String?>(json['errorCode']),
       errorMessage: serializer.fromJson<String?>(json['errorMessage']),
       finalRecipeId: serializer.fromJson<String?>(json['finalRecipeId']),
@@ -639,6 +672,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
       'supplementalText': serializer.toJson<String>(supplementalText),
       'processingGeneration': serializer.toJson<int>(processingGeneration),
       'draftJson': serializer.toJson<String?>(draftJson),
+      'ocrQualityJson': serializer.toJson<String>(ocrQualityJson),
       'errorCode': serializer.toJson<String?>(errorCode),
       'errorMessage': serializer.toJson<String?>(errorMessage),
       'finalRecipeId': serializer.toJson<String?>(finalRecipeId),
@@ -660,6 +694,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     String? supplementalText,
     int? processingGeneration,
     Value<String?> draftJson = const Value.absent(),
+    String? ocrQualityJson,
     Value<String?> errorCode = const Value.absent(),
     Value<String?> errorMessage = const Value.absent(),
     Value<String?> finalRecipeId = const Value.absent(),
@@ -684,6 +719,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     supplementalText: supplementalText ?? this.supplementalText,
     processingGeneration: processingGeneration ?? this.processingGeneration,
     draftJson: draftJson.present ? draftJson.value : this.draftJson,
+    ocrQualityJson: ocrQualityJson ?? this.ocrQualityJson,
     errorCode: errorCode.present ? errorCode.value : this.errorCode,
     errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
     finalRecipeId: finalRecipeId.present
@@ -718,6 +754,9 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
           ? data.processingGeneration.value
           : this.processingGeneration,
       draftJson: data.draftJson.present ? data.draftJson.value : this.draftJson,
+      ocrQualityJson: data.ocrQualityJson.present
+          ? data.ocrQualityJson.value
+          : this.ocrQualityJson,
       errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
       errorMessage: data.errorMessage.present
           ? data.errorMessage.value
@@ -745,6 +784,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
           ..write('supplementalText: $supplementalText, ')
           ..write('processingGeneration: $processingGeneration, ')
           ..write('draftJson: $draftJson, ')
+          ..write('ocrQualityJson: $ocrQualityJson, ')
           ..write('errorCode: $errorCode, ')
           ..write('errorMessage: $errorMessage, ')
           ..write('finalRecipeId: $finalRecipeId, ')
@@ -768,6 +808,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
     supplementalText,
     processingGeneration,
     draftJson,
+    ocrQualityJson,
     errorCode,
     errorMessage,
     finalRecipeId,
@@ -790,6 +831,7 @@ class ImportTask extends DataClass implements Insertable<ImportTask> {
           other.supplementalText == this.supplementalText &&
           other.processingGeneration == this.processingGeneration &&
           other.draftJson == this.draftJson &&
+          other.ocrQualityJson == this.ocrQualityJson &&
           other.errorCode == this.errorCode &&
           other.errorMessage == this.errorMessage &&
           other.finalRecipeId == this.finalRecipeId &&
@@ -810,6 +852,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
   final Value<String> supplementalText;
   final Value<int> processingGeneration;
   final Value<String?> draftJson;
+  final Value<String> ocrQualityJson;
   final Value<String?> errorCode;
   final Value<String?> errorMessage;
   final Value<String?> finalRecipeId;
@@ -829,6 +872,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     this.supplementalText = const Value.absent(),
     this.processingGeneration = const Value.absent(),
     this.draftJson = const Value.absent(),
+    this.ocrQualityJson = const Value.absent(),
     this.errorCode = const Value.absent(),
     this.errorMessage = const Value.absent(),
     this.finalRecipeId = const Value.absent(),
@@ -849,6 +893,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     this.supplementalText = const Value.absent(),
     this.processingGeneration = const Value.absent(),
     this.draftJson = const Value.absent(),
+    this.ocrQualityJson = const Value.absent(),
     this.errorCode = const Value.absent(),
     this.errorMessage = const Value.absent(),
     this.finalRecipeId = const Value.absent(),
@@ -873,6 +918,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     Expression<String>? supplementalText,
     Expression<int>? processingGeneration,
     Expression<String>? draftJson,
+    Expression<String>? ocrQualityJson,
     Expression<String>? errorCode,
     Expression<String>? errorMessage,
     Expression<String>? finalRecipeId,
@@ -894,6 +940,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
       if (processingGeneration != null)
         'processing_generation': processingGeneration,
       if (draftJson != null) 'draft_json': draftJson,
+      if (ocrQualityJson != null) 'ocr_quality_json': ocrQualityJson,
       if (errorCode != null) 'error_code': errorCode,
       if (errorMessage != null) 'error_message': errorMessage,
       if (finalRecipeId != null) 'final_recipe_id': finalRecipeId,
@@ -916,6 +963,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     Value<String>? supplementalText,
     Value<int>? processingGeneration,
     Value<String?>? draftJson,
+    Value<String>? ocrQualityJson,
     Value<String?>? errorCode,
     Value<String?>? errorMessage,
     Value<String?>? finalRecipeId,
@@ -936,6 +984,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
       supplementalText: supplementalText ?? this.supplementalText,
       processingGeneration: processingGeneration ?? this.processingGeneration,
       draftJson: draftJson ?? this.draftJson,
+      ocrQualityJson: ocrQualityJson ?? this.ocrQualityJson,
       errorCode: errorCode ?? this.errorCode,
       errorMessage: errorMessage ?? this.errorMessage,
       finalRecipeId: finalRecipeId ?? this.finalRecipeId,
@@ -984,6 +1033,9 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
     if (draftJson.present) {
       map['draft_json'] = Variable<String>(draftJson.value);
     }
+    if (ocrQualityJson.present) {
+      map['ocr_quality_json'] = Variable<String>(ocrQualityJson.value);
+    }
     if (errorCode.present) {
       map['error_code'] = Variable<String>(errorCode.value);
     }
@@ -1020,6 +1072,7 @@ class ImportTasksCompanion extends UpdateCompanion<ImportTask> {
           ..write('supplementalText: $supplementalText, ')
           ..write('processingGeneration: $processingGeneration, ')
           ..write('draftJson: $draftJson, ')
+          ..write('ocrQualityJson: $ocrQualityJson, ')
           ..write('errorCode: $errorCode, ')
           ..write('errorMessage: $errorMessage, ')
           ..write('finalRecipeId: $finalRecipeId, ')
@@ -1056,6 +1109,7 @@ typedef $$ImportTasksTableCreateCompanionBuilder =
       Value<String> supplementalText,
       Value<int> processingGeneration,
       Value<String?> draftJson,
+      Value<String> ocrQualityJson,
       Value<String?> errorCode,
       Value<String?> errorMessage,
       Value<String?> finalRecipeId,
@@ -1077,6 +1131,7 @@ typedef $$ImportTasksTableUpdateCompanionBuilder =
       Value<String> supplementalText,
       Value<int> processingGeneration,
       Value<String?> draftJson,
+      Value<String> ocrQualityJson,
       Value<String?> errorCode,
       Value<String?> errorMessage,
       Value<String?> finalRecipeId,
@@ -1151,6 +1206,11 @@ class $$ImportTasksTableFilterComposer
 
   ColumnFilters<String> get draftJson => $composableBuilder(
     column: $table.draftJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ocrQualityJson => $composableBuilder(
+    column: $table.ocrQualityJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1249,6 +1309,11 @@ class $$ImportTasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get ocrQualityJson => $composableBuilder(
+    column: $table.ocrQualityJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get errorCode => $composableBuilder(
     column: $table.errorCode,
     builder: (column) => ColumnOrderings(column),
@@ -1332,6 +1397,11 @@ class $$ImportTasksTableAnnotationComposer
   GeneratedColumn<String> get draftJson =>
       $composableBuilder(column: $table.draftJson, builder: (column) => column);
 
+  GeneratedColumn<String> get ocrQualityJson => $composableBuilder(
+    column: $table.ocrQualityJson,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get errorCode =>
       $composableBuilder(column: $table.errorCode, builder: (column) => column);
 
@@ -1397,6 +1467,7 @@ class $$ImportTasksTableTableManager
                 Value<String> supplementalText = const Value.absent(),
                 Value<int> processingGeneration = const Value.absent(),
                 Value<String?> draftJson = const Value.absent(),
+                Value<String> ocrQualityJson = const Value.absent(),
                 Value<String?> errorCode = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
                 Value<String?> finalRecipeId = const Value.absent(),
@@ -1416,6 +1487,7 @@ class $$ImportTasksTableTableManager
                 supplementalText: supplementalText,
                 processingGeneration: processingGeneration,
                 draftJson: draftJson,
+                ocrQualityJson: ocrQualityJson,
                 errorCode: errorCode,
                 errorMessage: errorMessage,
                 finalRecipeId: finalRecipeId,
@@ -1437,6 +1509,7 @@ class $$ImportTasksTableTableManager
                 Value<String> supplementalText = const Value.absent(),
                 Value<int> processingGeneration = const Value.absent(),
                 Value<String?> draftJson = const Value.absent(),
+                Value<String> ocrQualityJson = const Value.absent(),
                 Value<String?> errorCode = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
                 Value<String?> finalRecipeId = const Value.absent(),
@@ -1456,6 +1529,7 @@ class $$ImportTasksTableTableManager
                 supplementalText: supplementalText,
                 processingGeneration: processingGeneration,
                 draftJson: draftJson,
+                ocrQualityJson: ocrQualityJson,
                 errorCode: errorCode,
                 errorMessage: errorMessage,
                 finalRecipeId: finalRecipeId,

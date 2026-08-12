@@ -2,9 +2,11 @@ import 'package:flutter/services.dart';
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
 class PlatformOcrAdapter implements OcrAdapter {
-  const PlatformOcrAdapter();
+  const PlatformOcrAdapter([
+    this._channel = const MethodChannel('kitchen_notes/import_ocr'),
+  ]);
 
-  static const _channel = MethodChannel('kitchen_notes/import_ocr');
+  final MethodChannel _channel;
 
   @override
   Future<OcrPageEntity> recognize(ImportMediaReference media) async {
@@ -21,6 +23,8 @@ class PlatformOcrAdapter implements OcrAdapter {
               id: line['id']! as String,
               text: line['text']! as String,
               confidence: (line['confidence'] as num?)?.toDouble(),
+              angleDegrees: (line['angleDegrees'] as num?)?.toDouble(),
+              recognizedLanguage: line['recognizedLanguage'] as String?,
               boundingBox: OcrRectValueObject(
                 left: (line['left']! as num).toDouble(),
                 top: (line['top']! as num).toDouble(),
@@ -35,6 +39,12 @@ class PlatformOcrAdapter implements OcrAdapter {
         pixelWidth: document['width'] as int? ?? 0,
         pixelHeight: document['height'] as int? ?? 0,
         lines: lines,
+        platformMetadata: OcrPlatformMetadata(
+          engineIdentifier:
+              document['engineIdentifier'] as String? ?? 'unknown',
+          engineVersion: document['engineVersion'] as String?,
+          modelBundled: document['modelBundled'] as bool?,
+        ),
       );
     } on MissingPluginException {
       throw const ImportPipelineException(

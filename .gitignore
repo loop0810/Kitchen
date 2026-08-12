@@ -28,6 +28,10 @@
 version
 analysis_benchmark.json
 
+# OCR quality benchmark private inputs and generated reports
+client/.ocr_benchmark_private/
+client/build/ocr_quality/
+
 # packages file containing multi-root paths
 .packages.generated
 

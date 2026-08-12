@@ -93,6 +93,10 @@ class MainActivity : FlutterActivity() {
                             mapOf(
                                 "id" to "line-$index",
                                 "text" to line.text,
+                                "confidence" to line.confidence,
+                                "angleDegrees" to line.angle,
+                                "recognizedLanguage" to line.recognizedLanguage
+                                    .takeUnless { it == "und" || it.isBlank() },
                                 "left" to box.left.toDouble() / width,
                                 "top" to box.top.toDouble() / height,
                                 "right" to box.right.toDouble() / width,
@@ -103,6 +107,9 @@ class MainActivity : FlutterActivity() {
                         mapOf(
                             "width" to width,
                             "height" to height,
+                            "engineIdentifier" to "android-ml-kit-chinese",
+                            "engineVersion" to "16.0.1",
+                            "modelBundled" to true,
                             "lines" to lines,
                         ),
                     )

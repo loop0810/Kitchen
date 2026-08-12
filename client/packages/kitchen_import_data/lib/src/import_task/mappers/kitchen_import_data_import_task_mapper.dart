@@ -4,6 +4,10 @@ import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
 import '../database/kitchen_import_data_app_database.dart';
 
+/// 在 Drift 行、版本化 JSON 和 Import Domain 实体之间转换。
+///
+/// 媒体及草稿使用 JSON 是为了让一个可恢复任务原子保存完整快照；解码逻辑必须
+/// 为旧字段提供默认值，生成的 Drift `*.g.dart` 不承载这些兼容规则。
 abstract final class ImportTaskMapper {
   static ImportTaskEntity toDomain(ImportTask row) {
     return ImportTaskEntity(
@@ -23,6 +27,7 @@ abstract final class ImportTaskMapper {
       errorCode: row.errorCode,
       errorMessage: row.errorMessage,
       finalRecipeId: row.finalRecipeId,
+      ocrQuality: decodeOcrQuality(row.ocrQualityJson),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     );
@@ -47,6 +52,8 @@ abstract final class ImportTaskMapper {
               'ocrStatus': item.ocrStatus.name,
               'ocrErrorCode': item.ocrErrorCode,
               'ocrErrorMessage': item.ocrErrorMessage,
+              'imageQuality': encodeImageQuality(item.imageQuality),
+              'selectedCandidate': item.selectedCandidate.name,
               // 保留旧字段一个版本，方便已发布客户端回读新任务。
               'ocrCompleted': item.ocrCompleted,
             },
@@ -82,6 +89,16 @@ abstract final class ImportTaskMapper {
             ocrCompleted: map['ocrCompleted'] as bool? ?? false,
             ocrErrorCode: map['ocrErrorCode'] as String?,
             ocrErrorMessage: map['ocrErrorMessage'] as String?,
+            imageQuality: map['imageQuality'] == null
+                ? const ImageQualityReport()
+                : decodeImageQuality(
+                    map['imageQuality'] as Map<String, dynamic>,
+                  ),
+            selectedCandidate: _enumByName(
+              OcrCandidateSelection.values,
+              map['selectedCandidate'] as String?,
+              OcrCandidateSelection.unknown,
+            ),
           );
         })
         .toList(growable: false);
@@ -98,6 +115,8 @@ abstract final class ImportTaskMapper {
               'id': line.id,
               'text': line.text,
               'confidence': line.confidence,
+              'angleDegrees': line.angleDegrees,
+              'recognizedLanguage': line.recognizedLanguage,
               'boundingBox': {
                 'left': line.boundingBox.left,
                 'top': line.boundingBox.top,
@@ -107,6 +126,18 @@ abstract final class ImportTaskMapper {
             },
           )
           .toList(growable: false),
+      'platformMetadata': {
+        'engineIdentifier': page.platformMetadata.engineIdentifier,
+        'engineVersion': page.platformMetadata.engineVersion,
+        'modelBundled': page.platformMetadata.modelBundled,
+      },
+      'preprocessMetadata': {
+        'source': page.preprocessMetadata.source.name,
+        'profileIdentifier': page.preprocessMetadata.profileIdentifier,
+        'profileVersion': page.preprocessMetadata.profileVersion,
+        'sourceContentRevision': page.preprocessMetadata.sourceContentRevision,
+      },
+      'textQuality': encodeTextQuality(page.textQuality),
     };
   }
 
@@ -119,6 +150,8 @@ abstract final class ImportTaskMapper {
             id: line['id'] as String,
             text: line['text'] as String,
             confidence: (line['confidence'] as num?)?.toDouble(),
+            angleDegrees: (line['angleDegrees'] as num?)?.toDouble(),
+            recognizedLanguage: line['recognizedLanguage'] as String?,
             boundingBox: OcrRectValueObject(
               left: (box['left'] as num).toDouble(),
               top: (box['top'] as num).toDouble(),
@@ -133,7 +166,220 @@ abstract final class ImportTaskMapper {
       pixelWidth: map['pixelWidth'] as int? ?? 0,
       pixelHeight: map['pixelHeight'] as int? ?? 0,
       lines: lines,
+      platformMetadata: _decodePlatformMetadata(
+        map['platformMetadata'] as Map<String, dynamic>?,
+      ),
+      preprocessMetadata: _decodePreprocessMetadata(
+        map['preprocessMetadata'] as Map<String, dynamic>?,
+      ),
+      textQuality: map['textQuality'] == null
+          ? const OcrTextQualityReport()
+          : decodeTextQuality(map['textQuality'] as Map<String, dynamic>),
     );
+  }
+
+  static Map<String, dynamic> encodeImageQuality(ImageQualityReport report) {
+    return {
+      'level': report.level.name,
+      'issues': report.issues.map((issue) => issue.name).toList(),
+      'recommendedAction': report.recommendedAction.name,
+      'profileVersion': report.profileVersion,
+      'detail': report.detail,
+    };
+  }
+
+  static ImageQualityReport decodeImageQuality(Map<String, dynamic> map) {
+    return ImageQualityReport(
+      level: _enumByName(
+        ImageQualityLevel.values,
+        map['level'] as String?,
+        ImageQualityLevel.unknown,
+      ),
+      issues: (map['issues'] as List<dynamic>? ?? const [])
+          .map(
+            (value) => _enumByName(
+              ImageQualityIssueCode.values,
+              value as String?,
+              ImageQualityIssueCode.metadataLimited,
+            ),
+          )
+          .toList(growable: false),
+      recommendedAction: _enumByName(
+        ImageQualityRecommendedAction.values,
+        map['recommendedAction'] as String?,
+        ImageQualityRecommendedAction.continueRecognition,
+      ),
+      profileVersion: map['profileVersion'] as String? ?? 'unknown',
+      detail: map['detail'] as String?,
+    );
+  }
+
+  static Map<String, dynamic> encodeTextQuality(OcrTextQualityReport report) {
+    return {
+      'level': report.level.name,
+      'issues': report.issues.map((issue) => issue.name).toList(),
+      'evidence': report.evidence
+          .map(
+            (item) => {
+              'pageIndex': item.pageIndex,
+              'issue': item.issue.name,
+              'lineId': item.lineId,
+              'message': item.message,
+            },
+          )
+          .toList(growable: false),
+      'profileVersion': report.profileVersion,
+    };
+  }
+
+  static OcrTextQualityReport decodeTextQuality(Map<String, dynamic> map) {
+    return OcrTextQualityReport(
+      level: _enumByName(
+        OcrTextQualityLevel.values,
+        map['level'] as String?,
+        OcrTextQualityLevel.unknown,
+      ),
+      issues: (map['issues'] as List<dynamic>? ?? const [])
+          .map(
+            (value) => _enumByName(
+              OcrTextQualityIssueCode.values,
+              value as String?,
+              OcrTextQualityIssueCode.metadataLimited,
+            ),
+          )
+          .toList(growable: false),
+      evidence: (map['evidence'] as List<dynamic>? ?? const [])
+          .map((value) {
+            final evidence = value as Map<String, dynamic>;
+            return OcrTextQualityEvidence(
+              pageIndex: evidence['pageIndex'] as int? ?? 0,
+              issue: _enumByName(
+                OcrTextQualityIssueCode.values,
+                evidence['issue'] as String?,
+                OcrTextQualityIssueCode.metadataLimited,
+              ),
+              lineId: evidence['lineId'] as String?,
+              message: evidence['message'] as String? ?? '',
+            );
+          })
+          .toList(growable: false),
+      profileVersion: map['profileVersion'] as String? ?? 'unknown',
+    );
+  }
+
+  static String encodeOcrQuality(ImportOcrQualityState state) {
+    return jsonEncode({
+      'textQuality': encodeTextQuality(state.textQuality),
+      'suggestions': state.suggestions
+          .map(
+            (item) => {
+              'id': item.id,
+              'originalText': item.originalText,
+              'replacementText': item.replacementText,
+              'reason': item.reason.name,
+              'pageIndex': item.pageIndex,
+              'lineId': item.lineId,
+              'status': item.status.name,
+            },
+          )
+          .toList(growable: false),
+      'revisions': state.revisions
+          .map(
+            (item) => {
+              'id': item.id,
+              'beforeText': item.beforeText,
+              'afterText': item.afterText,
+              'kind': item.kind.name,
+              'createdAt': item.createdAt.toIso8601String(),
+            },
+          )
+          .toList(growable: false),
+    });
+  }
+
+  static ImportOcrQualityState decodeOcrQuality(String value) {
+    final map = jsonDecode(value) as Map<String, dynamic>;
+    return ImportOcrQualityState(
+      textQuality: map['textQuality'] == null
+          ? const OcrTextQualityReport()
+          : decodeTextQuality(map['textQuality'] as Map<String, dynamic>),
+      suggestions: (map['suggestions'] as List<dynamic>? ?? const [])
+          .map((value) {
+            final item = value as Map<String, dynamic>;
+            return OcrCorrectionSuggestion(
+              id: item['id'] as String,
+              originalText: item['originalText'] as String,
+              replacementText: item['replacementText'] as String,
+              reason: _enumByName(
+                OcrCorrectionReason.values,
+                item['reason'] as String?,
+                OcrCorrectionReason.suspectedGlyphError,
+              ),
+              pageIndex: item['pageIndex'] as int? ?? 0,
+              lineId: item['lineId'] as String?,
+              status: _enumByName(
+                OcrCorrectionSuggestionStatus.values,
+                item['status'] as String?,
+                OcrCorrectionSuggestionStatus.pending,
+              ),
+            );
+          })
+          .toList(growable: false),
+      revisions: (map['revisions'] as List<dynamic>? ?? const [])
+          .map((value) {
+            final item = value as Map<String, dynamic>;
+            return OcrCorrectionRevision(
+              id: item['id'] as String,
+              beforeText: item['beforeText'] as String,
+              afterText: item['afterText'] as String,
+              kind: _enumByName(
+                OcrCorrectionRevisionKind.values,
+                item['kind'] as String?,
+                OcrCorrectionRevisionKind.manual,
+              ),
+              createdAt: DateTime.parse(item['createdAt'] as String),
+            );
+          })
+          .toList(growable: false),
+    );
+  }
+
+  static OcrPlatformMetadata _decodePlatformMetadata(
+    Map<String, dynamic>? map,
+  ) {
+    if (map == null) return const OcrPlatformMetadata();
+    return OcrPlatformMetadata(
+      engineIdentifier: map['engineIdentifier'] as String? ?? 'unknown',
+      engineVersion: map['engineVersion'] as String?,
+      modelBundled: map['modelBundled'] as bool?,
+    );
+  }
+
+  static OcrPreprocessMetadata _decodePreprocessMetadata(
+    Map<String, dynamic>? map,
+  ) {
+    if (map == null) return const OcrPreprocessMetadata();
+    return OcrPreprocessMetadata(
+      source: _enumByName(
+        OcrInputSource.values,
+        map['source'] as String?,
+        OcrInputSource.unknown,
+      ),
+      profileIdentifier: map['profileIdentifier'] as String? ?? 'unknown',
+      profileVersion: map['profileVersion'] as String? ?? 'unknown',
+      sourceContentRevision: map['sourceContentRevision'] as int? ?? 0,
+    );
+  }
+
+  static T _enumByName<T extends Enum>(
+    List<T> values,
+    String? name,
+    T fallback,
+  ) {
+    for (final value in values) {
+      if (value.name == name) return value;
+    }
+    return fallback;
   }
 
   static String encodeDraft(RecipeDraftEntity draft) {
@@ -204,6 +450,8 @@ abstract final class ImportTaskMapper {
     }
 
     final source = map['sourceSnapshot'] as Map<String, dynamic>;
+    // schemaVersion 1 没有 preparations 等后续字段。迁移在读取边界补默认值，
+    // 不修改原始 JSON，下一次用户保存草稿时自然写成当前版本。
     return RecipeDraftEntity(
       schemaVersion: map['schemaVersion'] as int? ?? 1,
       quality: RecipeDraftQuality.values.byName(

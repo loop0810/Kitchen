@@ -37,6 +37,7 @@ class ImportDraftReviewPage extends ConsumerWidget {
         return _ReviewForm(
           taskId: taskId,
           draft: draft,
+          ocrQuality: value.ocrQuality,
           onContinue: onContinue,
           categories: categories,
           tags: tags,
@@ -54,6 +55,7 @@ class _ReviewForm extends ConsumerStatefulWidget {
   const _ReviewForm({
     required this.taskId,
     required this.draft,
+    required this.ocrQuality,
     required this.onContinue,
     required this.categories,
     required this.tags,
@@ -62,6 +64,7 @@ class _ReviewForm extends ConsumerStatefulWidget {
 
   final String taskId;
   final RecipeDraftEntity draft;
+  final ImportOcrQualityState ocrQuality;
   final Future<void> Function(RecipeDraftEntity draft) onContinue;
   final List<String> categories;
   final List<String> tags;
@@ -207,7 +210,7 @@ class _ReviewFormState extends ConsumerState<_ReviewForm> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.s16),
         children: [
-          _IssuesCard(draft: draft),
+          _IssuesCard(draft: draft, ocrQuality: widget.ocrQuality),
           _field(
             keyName: 'title',
             label: '基础信息 · 菜名',
@@ -617,6 +620,8 @@ class _ReviewFormState extends ConsumerState<_ReviewForm> {
     setState(() => _saving = true);
     try {
       final draft = _currentDraft();
+      // 先保存审核快照，再交给组合根打开菜谱编辑器。即使用户没有完成正式保存，
+      // 返回导入箱后仍会看到刚才确认和调整过的字段。
       await ref
           .read(importDependenciesProvider)
           .repository
@@ -628,6 +633,7 @@ class _ReviewFormState extends ConsumerState<_ReviewForm> {
   }
 
   void _persist() {
+    // 审核页只保存 Import Domain 草稿，不在输入过程中触碰正式菜谱数据库。
     unawaited(
       ref
           .read(importDependenciesProvider)
@@ -702,6 +708,7 @@ class _ReviewFormState extends ConsumerState<_ReviewForm> {
     T value,
     DraftFieldValue<T> original,
   ) {
+    // origin 是重新整理时的保护边界：用户编辑或确认过的值不会被下一次自动候选覆盖。
     final origin = _confirmed.contains(keyName)
         ? DraftFieldOrigin.userConfirmed
         : _edited.contains(keyName)
@@ -773,17 +780,19 @@ class _MetaChip extends StatelessWidget {
 }
 
 class _IssuesCard extends StatelessWidget {
-  const _IssuesCard({required this.draft});
+  const _IssuesCard({required this.draft, required this.ocrQuality});
 
   final RecipeDraftEntity draft;
+  final ImportOcrQualityState ocrQuality;
 
   @override
   Widget build(BuildContext context) {
-    final issues = [
+    final structureIssues = [
       ...draft.warnings,
       if (draft.ingredients.value.isEmpty) '尚未识别到食材',
       if (draft.steps.value.isEmpty) '尚未识别到步骤',
     ];
+    final textEvidence = ocrQuality.textQuality.evidence;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.s12),
@@ -792,8 +801,21 @@ class _IssuesCard extends StatelessWidget {
           children: [
             Text('问题摘要', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.s8),
-            if (issues.isEmpty) const Text('未发现明显问题，仍请核对自动字段。'),
-            for (final issue in issues) Text('• $issue'),
+            Text('菜谱结构', style: Theme.of(context).textTheme.titleSmall),
+            if (structureIssues.isEmpty) const Text('• 未发现明显字段缺失。'),
+            for (final issue in structureIssues) Text('• $issue'),
+            const SizedBox(height: AppSpacing.s8),
+            Text('识别文字', style: Theme.of(context).textTheme.titleSmall),
+            if (ocrQuality.textQuality.level == OcrTextQualityLevel.usable ||
+                ocrQuality.textQuality.level == OcrTextQualityLevel.unknown)
+              const Text('• 未发现需要单独提示的文字风险，仍请对照原图核对。'),
+            for (final item in textEvidence)
+              Semantics(
+                label: '第 ${item.pageIndex + 1} 张图片文字风险',
+                child: Text(
+                  '• 第 ${item.pageIndex + 1} 张${item.lineId == null ? '' : ' · ${item.lineId}'}：${item.message}',
+                ),
+              ),
           ],
         ),
       ),

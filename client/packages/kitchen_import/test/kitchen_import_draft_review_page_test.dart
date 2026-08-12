@@ -275,6 +275,61 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('确认页分开显示菜谱结构与 OCR 文字风险证据', (tester) async {
+    final repository = _ReviewRepository(
+      _task(
+        ocrQuality: const ImportOcrQualityState(
+          textQuality: OcrTextQualityReport(
+            level: OcrTextQualityLevel.needsAttention,
+            issues: [OcrTextQualityIssueCode.lowConfidenceKeyText],
+            evidence: [
+              OcrTextQualityEvidence(
+                pageIndex: 1,
+                lineId: 'line-risk',
+                issue: OcrTextQualityIssueCode.lowConfidenceKeyText,
+                message: '食材用量可能识别不准。',
+              ),
+            ],
+            profileVersion: '1',
+          ),
+        ),
+      ),
+    );
+    addTearDown(repository.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          importDependenciesProvider.overrideWithValue(
+            ImportDependencies(
+              repository: repository,
+              pipeline: ImportPipeline(
+                repository: repository,
+                localStructurer: const LocalRecipeStructurerService(),
+              ),
+              persistPickedImages: (paths) async => paths,
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          home: ImportDraftReviewPage(
+            taskId: 'task-1',
+            categories: _categories,
+            tags: _tags,
+            difficulties: _difficulties,
+            onContinue: (_) async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('菜谱结构'), findsOneWidget);
+    expect(find.text('识别文字'), findsOneWidget);
+    expect(find.textContaining('第 2 张 · line-risk'), findsOneWidget);
+    expect(find.textContaining('食材用量可能识别不准'), findsOneWidget);
+    expect(find.textContaining('%'), findsNothing);
+  });
 }
 
 const _categories = ['家常菜', '主食'];
@@ -285,12 +340,14 @@ ImportTaskEntity _task({
   String title = '番茄炒蛋',
   List<String> ingredients = const ['番茄 2个', '鸡蛋 3个'],
   List<String> steps = const ['番茄切块', '炒熟鸡蛋'],
+  ImportOcrQualityState ocrQuality = const ImportOcrQualityState(),
 }) => ImportTaskEntity(
   id: 'task-1',
   inputKind: ImportInputKind.images,
   status: ImportTaskStatus.awaitingReview,
   originalText: '',
   media: const [],
+  ocrQuality: ocrQuality,
   draft: RecipeDraftEntity(
     warnings: const ['请确认菜名'],
     title: DraftFieldValue(

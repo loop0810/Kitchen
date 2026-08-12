@@ -1,10 +1,17 @@
 import '../../import_pipeline/services/kitchen_import_domain_import_pipeline.dart';
 import '../../ocr/entities/kitchen_import_domain_ocr_document_entity.dart';
 import '../../ocr/services/kitchen_import_domain_ocr_layout_analyzer_service.dart';
+import '../../ocr/services/kitchen_import_domain_ocr_script_equivalence_service.dart';
 import '../entities/kitchen_import_domain_recipe_draft_entity.dart';
 
+/// 使用本地、可解释规则把文本候选整理成菜谱审核草稿。
+///
+/// 这里不追求“尽量填满字段”：先恢复分区，再用明确语义识别菜名、食材和步骤；
+/// 缺少可靠证据时保留空值与警告，把最终决定交给用户。
 class LocalRecipeStructurerService implements RecipeStructurer {
   const LocalRecipeStructurerService();
+
+  static const _scriptEquivalence = OcrScriptEquivalenceService();
 
   static final _stepPrefix = RegExp(
     r'^\s*(?:(?:步骤\s*)?(?:\d+|[一二三四五六七八九十]+)[.、:：)\s|｜]+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳]\s*|[0-9]\uFE0F?\u20E3\s*)',
@@ -59,6 +66,7 @@ class LocalRecipeStructurerService implements RecipeStructurer {
     required SourceSnapshot source,
     OcrDocumentEntity? ocrDocument,
   }) {
+    // 图片输入先利用 OCR 坐标恢复版面；纯文案和网页正文没有坐标，直接沿用文本顺序。
     final layout = ocrDocument == null
         ? null
         : const OcrLayoutAnalyzerService().analyze(ocrDocument);
@@ -110,6 +118,8 @@ class LocalRecipeStructurerService implements RecipeStructurer {
     var readingColumnAmounts = false;
     var columnAmountIndex = 0;
 
+    // 接下来的单次遍历是一个小型分区状态机。section 表示当前正在读取食材、
+    // 步骤或未分类区域；遇到新标题时先提交上一分区的暂存内容。
     void addIngredient(String value) {
       final normalized = value.trim();
       if (normalized.isNotEmpty && !ingredients.contains(normalized)) {
@@ -248,6 +258,8 @@ class LocalRecipeStructurerService implements RecipeStructurer {
               )
               .toList(growable: false);
     List<DraftFieldEvidence> evidenceFor(String value) {
+      // 证据优先精确匹配；OCR 断行时再用包含关系降级匹配。证据只解释来源，
+      // 不会把低置信文本自动提升为用户已确认内容。
       final normalized = value.replaceAll(RegExp(r'\s+'), '');
       if (normalized.isEmpty) return const [];
       final exact = imageEvidence
@@ -564,6 +576,6 @@ class LocalRecipeStructurerService implements RecipeStructurer {
       caseSensitive: false,
     ).firstMatch(normalized);
     if (noisyPrefix != null) normalized = noisyPrefix.group(1)!;
-    return normalized;
+    return _scriptEquivalence.key(normalized);
   }
 }

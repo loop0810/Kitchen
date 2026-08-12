@@ -49,6 +49,9 @@ class ImportTasks extends Table {
   /// 最新版本化结构草稿 JSON；尚未整理时为空。
   TextColumn get draftJson => text().nullable()();
 
+  /// OCR 文字质量、建议状态和校对修订的版本化 JSON。
+  TextColumn get ocrQualityJson => text().withDefault(const Constant('{}'))();
+
   /// 稳定错误分类；非失败状态为空。
   TextColumn get errorCode => text().nullable()();
 
@@ -75,7 +78,7 @@ class ImportAppDatabase extends _$ImportAppDatabase {
   ImportAppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -90,6 +93,10 @@ class ImportAppDatabase extends _$ImportAppDatabase {
       if (from < 3) {
         // 外部分享 ID 只用于重复接管幂等，不改变旧任务的本地内容语义。
         await migrator.addColumn(importTasks, importTasks.sourceShareId);
+      }
+      if (from < 4) {
+        // 质量数据独立于草稿保存，旧任务读取空对象后按 unknown 兼容。
+        await migrator.addColumn(importTasks, importTasks.ocrQualityJson);
       }
     },
   );
@@ -127,6 +134,7 @@ class ImportAppDatabase extends _$ImportAppDatabase {
             'supplementalText': row.supplementalText,
             'processingGeneration': row.processingGeneration,
             'draftJson': row.draftJson,
+            'ocrQualityJson': row.ocrQualityJson,
             'errorCode': row.errorCode,
             'errorMessage': row.errorMessage,
             'finalRecipeId': row.finalRecipeId,
@@ -162,6 +170,7 @@ class ImportAppDatabase extends _$ImportAppDatabase {
             supplementalText: Value(row['supplementalText'] as String),
             processingGeneration: Value(row['processingGeneration'] as int),
             draftJson: Value(row['draftJson'] as String?),
+            ocrQualityJson: Value(row['ocrQualityJson'] as String? ?? '{}'),
             errorCode: Value(row['errorCode'] as String?),
             errorMessage: Value(row['errorMessage'] as String?),
             finalRecipeId: Value(row['finalRecipeId'] as String?),

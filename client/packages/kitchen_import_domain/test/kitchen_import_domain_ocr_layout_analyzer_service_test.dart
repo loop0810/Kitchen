@@ -62,6 +62,27 @@ void main() {
     ]);
   });
 
+  test('单页只过滤具有完整界面证据的状态栏、社交动作和推荐行', () {
+    final document = OcrDocumentEntity(
+      pages: [
+        _page(0, [
+          _line('status', '10:08 5G 86%', 0.03, 0.02, 0.90, 0.05),
+          _line('social', '示例作者 关注 收藏 评论 分享', 0.03, 0.07, 0.90, 0.11),
+          _line('title', '酸辣土豆丝', 0.08, 0.18, 0.60, 0.24),
+          _line('follow-step', '关注火候快速翻炒', 0.08, 0.32, 0.70, 0.38),
+          _line('recommendation', '相关推荐 说点什么 查看更多', 0.03, 0.91, 0.90, 0.96),
+        ]),
+      ],
+    );
+
+    final analysis = const OcrLayoutAnalyzerService().analyze(document);
+
+    expect(analysis.visibleLines.map((item) => item.line.id), [
+      'title',
+      'follow-step',
+    ]);
+  });
+
   test('图片草稿保留字段证据并对所有自动结果要求确认', () {
     final document = OcrDocumentEntity(
       pages: [

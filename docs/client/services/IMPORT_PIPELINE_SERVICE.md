@@ -53,13 +53,18 @@ MVP 不直接接收完整视频文件。
 1. 标准化输入类型和来源。
 2. 保存原文、链接和媒体引用。
 3. 提取公开可访问内容。
-4. 对图片执行方向、顺序和可读性检查。
-5. 调用 OCR，并保留页码、文本行、归一化坐标和可用的识别置信度。
-6. 按几何位置恢复阅读顺序，过滤跨页重复的页眉、页脚和平台界面文字。
-7. 使用通用菜谱语义解析候选标题、食材和步骤，不为具体平台或截图模板写规则。
-8. 为候选字段记录原文证据、来源页和本地置信等级。
-9. 进行结构校验；不能可靠分类的文字保留在 OCR 原文，不强行写入菜谱字段。
-10. 生成用户确认草稿。
+4. 对图片执行像素预检，检查有效方向、清晰度、文字尺寸候选和对比度。
+5. 先使用受控原图或用户裁剪图调用 OCR；只有预检命中时才生成并识别至多一个
+   版本化增强候选。
+6. 保守选择候选，并保留页码、文本行、归一化坐标、输入 profile 和平台可提供的
+   置信度、方向及识别语言；未知元数据保持为空，不伪造高置信。
+7. 按几何位置恢复阅读顺序，过滤跨页重复的页眉、页脚和平台界面文字，生成文字
+   质量结论和风险行证据。
+8. 使用不改写原文的繁简等价匹配与通用菜谱语义解析候选标题、食材和步骤，不为
+   具体平台或截图模板写规则。
+9. 为候选字段记录原文证据、来源页和本地置信等级，并将文字质量与结构完整度分开。
+10. 进行结构校验；不能可靠分类的文字保留在 OCR 原文，不强行写入菜谱字段。
+11. 生成纠错建议与用户确认草稿；建议不得自动改写机器 OCR 或用户校对内容。
 
 每张图片具有稳定媒体 ID、用户顺序、忽略状态、内容修订号和独立 OCR 状态。
 任务另外维护单调递增的处理代次；图片在识别期间被替换、裁剪、旋转或重排时，
@@ -106,6 +111,10 @@ OCR 结果按页保存 `pending / processing / succeeded / failed` 状态。多�
 不能清除其他成功页；用户可以只重试、替换或忽略失败页，也可以使用成功页继续
 生成不完整草稿。所有页面失败时仍保留任务、图片、校对文字和补充说明。
 
+质量问题只提供条件式引导：清晰图片直接处理；正文占比不足或无关界面过多时提示
+裁剪并允许继续；严重模糊或文字过小时提示替换或手动整理。OCR 增强派生图不得覆盖
+原图，最多追加一个候选，失败或质量更差时回退原图。
+
 ## 9. 用户文字与确认草稿
 
 机器 OCR 汇总、用户校对正文和用户自然语言补充分别保存：
@@ -117,6 +126,8 @@ OCR 结果按页保存 `pending / processing / succeeded / failed` 状态。多�
 - 用户编辑或确认字段具有最高优先级；重新处理产生冲突时保留用户值并展示候选。
 - 用户编辑或排序过的食材、步骤列表在当前版本按整个列表保护。
 - 确认进度自动持久化，退出后可以继续；缺少食材或步骤时允许保存为待完善菜谱。
+- 机器 OCR、内部繁简等价匹配、纠错建议和用户校对是独立层级；默认展示机器识别
+  字形，任何繁简转换或建议采用都需要用户主动预览、确认并可撤销。
 
 ## 10. 来源和可信度
 
@@ -175,5 +186,59 @@ OCR 结果按页保存 `pending / processing / succeeded / failed` 状态。多�
 - 重新识别和重新整理不会覆盖用户编辑或确认字段。
 - 退出确认页再返回时恢复字段、顺序、来源和确认状态。
 - 拼接图、无食材清单和多栏截图不会因为字段不足而被强行补全。
+- 旋转后的图片按用户看到的方向识别，宽高和证据坐标与预览一致。
+- 清晰图片无额外打断；风险图片获得可行动的裁剪、替换或手动整理建议。
+- 字段结构齐全不掩盖 OCR 文字风险，繁体和合法繁简混排不会被默认转换。
+- 图片级 benchmark 能复现分层质量与性能指标，并阻止超过预算的场景回退。
 - 用户不使用 AI 也能完全离线完成导入、校对和确认。
 - 未来付费 AI 未经用户明确选择和授权，不上传图片或 OCR 正文。
+
+## 14. 本地繁简转换依赖
+
+用户主动整段转换使用纯 Dart `pinyin` 包内的繁简字符与词组字典。少量手写映射无法
+诚实覆盖整段菜谱，而原生 OpenCC 会增加双平台二进制和 FFI 构建边界；该包采用
+BSD-2 许可证、运行时不联网，且只在用户点击转换并预览时使用。转换异常或结果无
+变化时保持原文，不生成修订。
+
+## 15. 质量回归复现
+
+从 `client/` 执行：
+
+```bash
+CLANG_MODULE_CACHE_PATH=/private/tmp/kitchen-ocr-swift-cache \
+SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/kitchen-ocr-swift-cache \
+swift tool/generate_ocr_benchmark_images.swift \
+  packages/kitchen_import_domain/test/fixtures/ocr_benchmark/images
+
+dart tool/ocr_quality_benchmark.dart \
+  --manifest packages/kitchen_import_domain/test/fixtures/ocr_benchmark/manifest.json \
+  --results packages/kitchen_import_domain/test/fixtures/ocr_benchmark/results/reference-ground-truth.json \
+  --budgets packages/kitchen_import_domain/test/fixtures/ocr_benchmark/budgets.json \
+  --output build/ocr_quality/reference-report.json
+
+./tool/kitchen_flutter.sh test packages/kitchen_import_domain/test \
+  packages/kitchen_import_data/test packages/kitchen_import/test
+```
+
+`reference-ground-truth.json` 只验证 runner、标准答案和预算规则，不代表平台 OCR 实测。
+Android 真机连接后必须另行采集版本化 baseline/post-change 结果，并在无网络、未登录
+条件下复跑；报告只保存匿名样本 ID、场景标签、指标和设备档位，不保存绝对路径。
+
+2026-08-12 已在 Android 物理设备、ML Kit Chinese `16.0.1`、无 Wi-Fi/移动数据条件
+下采集 10 张合成公开样本，并连续运行两轮基线验证文字结果可比较。第三轮修正了
+RSS 采集口径和单页界面噪声过滤：基线聚合字符错误率 `0.162196`、有效行召回
+`0.837103`、噪声残留 `0.033333`、标题准确率 `0.7`、食材 F1 `0.633333`、步骤
+F1 `0.95`；条件式增强后的聚合文字指标相同，说明本批样本增强候选未取得明确优势，
+但横版/旋转场景保持通过，增强路径的峰值 RSS 增量约 `104 MB` 以内。当前公开集仍
+有模糊、多栏、低对比、繁体食材和噪声残留预算未通过，因此该结果只作为真实基线与
+回归证据，不能勾选质量预算验收；私有集仍需在 `client/.ocr_benchmark_private/`
+提供后复跑。
+
+真机采集入口（测试结束前需从应用私有目录导出报告）：
+
+```bash
+./tool/kitchen_flutter.sh test -d <android-device> \
+  integration_test/kitchen_notes_ocr_benchmark_test.dart \
+  --dart-define=OCR_BENCHMARK_ROOT=/data/user/0/com.example.kitchen_notes/files/ocr-benchmark \
+  --dart-define=OCR_BENCHMARK_HOLD_SECONDS=600
+```

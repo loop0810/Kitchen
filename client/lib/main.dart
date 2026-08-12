@@ -57,6 +57,7 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
       localStructurer: const LocalRecipeStructurerService(),
       publicContentExtractor: _importDataModule.publicContentExtractor,
       ocrAdapter: _importDataModule.ocrAdapter,
+      ocrInputPreparer: _importDataModule.ocrInputPreparer,
     );
     _backupService = KitchenNotesLocalBackupService(
       recipeDataModule: _recipeDataModule,

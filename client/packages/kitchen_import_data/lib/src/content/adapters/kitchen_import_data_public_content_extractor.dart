@@ -4,6 +4,10 @@ import 'dart:io';
 
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
+/// 只读取公开 HTTPS HTML，并将常见网页元数据降级为可结构化文本。
+///
+/// 安全校验与内容提取放在同一适配器边界：每次重定向都重新检查目标地址，
+/// 避免公开域名把请求引向本机或私网。输出仍是文本，不直接构造领域草稿。
 class SafePublicContentExtractor implements PublicContentExtractor {
   const SafePublicContentExtractor();
 
@@ -105,6 +109,8 @@ class SafePublicContentExtractor implements PublicContentExtractor {
   }
 
   String extractRecipeTextFromHtml(String html) {
+    // 优先选择语义最明确的标准数据；只有站点未提供结构化元数据时，
+    // 才逐步降级到 Open Graph 和页面正文，减少导航与推荐内容混入菜谱。
     final recipe = _recipeJsonLd(html);
     if (recipe != null) return recipe;
     final article = _articleJsonLd(html);

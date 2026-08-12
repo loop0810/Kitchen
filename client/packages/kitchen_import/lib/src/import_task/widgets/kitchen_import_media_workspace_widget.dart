@@ -34,6 +34,9 @@ class _ImportMediaWorkspaceWidgetState
   Widget build(BuildContext context) {
     final ordered = [...widget.media]
       ..sort((left, right) => left.position.compareTo(right.position));
+    final hasQualityRisk = ordered.any(
+      (item) => item.imageQuality.level == ImageQualityLevel.needsAttention,
+    );
     return Semantics(
       container: true,
       label: '导入图片管理，共 ${ordered.length} 张',
@@ -57,7 +60,7 @@ class _ImportMediaWorkspaceWidgetState
           ),
           const SizedBox(height: AppSpacing.s8),
           SizedBox(
-            height: 292,
+            height: hasQualityRisk ? 372 : 292,
             child: ReorderableListView.builder(
               scrollDirection: Axis.horizontal,
               buildDefaultDragHandles: false,
@@ -134,6 +137,8 @@ class _ImportMediaWorkspaceWidgetState
   }
 
   Future<void> _crop(ImportMediaReference media) async {
+    final confirmed = await _confirmCropGuidance(media);
+    if (!confirmed || !mounted) return;
     final cropped = await ImageCropper().cropImage(
       sourcePath: media.localPath,
       compressFormat: ImageCompressFormat.jpg,
@@ -164,6 +169,50 @@ class _ImportMediaWorkspaceWidgetState
         controlledLocalPath: paths.single,
       );
     });
+  }
+
+  Future<bool> _confirmCropGuidance(ImportMediaReference media) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('裁剪前先确认内容'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('建议只保留一道菜的菜名、食材和完整步骤。'),
+                  const SizedBox(height: AppSpacing.s8),
+                  const Text('请尽量去除评论、作者、相关推荐和系统状态栏等无关内容。'),
+                  const SizedBox(height: AppSpacing.s12),
+                  Semantics(
+                    label: '裁剪前查看原图',
+                    child: Image.file(
+                      File(media.originalLocalPath),
+                      height: 160,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) =>
+                          const Text('原图暂时无法预览，取消裁剪不会修改图片。'),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                  const Text('裁剪使用自由比例；取消不会保存，完成后仍保留原图。'),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('继续裁剪'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   Future<void> _reorder(
@@ -318,6 +367,21 @@ class _MediaCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
+              if (item.imageQuality.level ==
+                  ImageQualityLevel.needsAttention) ...[
+                const SizedBox(height: AppSpacing.s4),
+                Semantics(
+                  label: '第 ${index + 1} 张图片质量提示',
+                  child: Text(
+                    _imageQualityGuidance(item.imageQuality),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.tertiary,
+                    ),
+                  ),
+                ),
+              ],
               Wrap(
                 spacing: 0,
                 children: [
@@ -359,6 +423,28 @@ class _MediaCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _imageQualityGuidance(ImageQualityReport report) {
+  final issue = report.issues.isEmpty ? null : report.issues.first;
+  final problem = switch (issue) {
+    ImageQualityIssueCode.blurred => '图片较模糊',
+    ImageQualityIssueCode.textMayBeTooSmall => '文字像素可能过小',
+    ImageQualityIssueCode.lowContrast => '文字与背景对比偏低',
+    ImageQualityIssueCode.lowRecipeCoverage => '菜谱正文占比较少',
+    ImageQualityIssueCode.excessInterfaceContent => '可能混入较多界面内容',
+    ImageQualityIssueCode.orientationUnknown => '图片方向需要确认',
+    ImageQualityIssueCode.metadataLimited => '图片质量无法完整判断',
+    null => '图片质量需要确认',
+  };
+  final action = switch (report.recommendedAction) {
+    ImageQualityRecommendedAction.crop => '可继续识别，或先裁剪无关内容。',
+    ImageQualityRecommendedAction.rotate => '请旋转到文字正向后重试。',
+    ImageQualityRecommendedAction.replace => '建议替换清晰图片，也可继续识别。',
+    ImageQualityRecommendedAction.manualReview => '可继续识别，之后请重点校对。',
+    ImageQualityRecommendedAction.continueRecognition => '可继续识别并在之后校对。',
+  };
+  return '$problem。$action';
 }
 
 String _ocrStatusText(ImportMediaReference media) {
