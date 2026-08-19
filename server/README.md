@@ -6,6 +6,10 @@
 
 需要 Python 3.13、uv、Docker 和 Docker Compose。
 
+开发任务先由全局 `harness` skill 选择当前 OpenSpec Change，再阅读 [Kitchen Harness 扩展](../docs/Harness/README.md) 和
+[服务端文档导航](../docs/server/README.md)。服务端 Change 归档前还要按
+[学习记录规则](../docs/learning/server/README.md) 创建学习记录或记录有理由的豁免。
+
 ```sh
 docker compose up -d postgres
 export APP_ENV=development

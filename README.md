@@ -12,6 +12,7 @@
 ## 仓库入口
 
 - [文档导航](docs/README.md)：按 product、contracts、client、server、learning 和 decisions 分区。
+- [Codex Harness](docs/Harness/README.md)：OpenSpec Task 的执行、验证、Report 和 Git 现场规则。
 - [OpenSpec](openspec/)：所有客户端、服务端和共享变更从仓库根统一规划。
 - [Monorepo 约束](AGENTS.md)：先按任务范围选择最小阅读集。
 

@@ -6,6 +6,8 @@
 
 ## 完成条件
 
+服务端 Task 的通用执行、验证、状态和 Report 生命周期由全局 `harness` skill 负责；服务端项目扩展见 [`../../Harness/README.md`](../../Harness/README.md)，本目录只负责学习复盘的权威范围。
+
 服务端 change 在全部实现和验证任务完成后、归档前，必须：
 
 1. 根据 [`iterations/TEMPLATE.md`](iterations/TEMPLATE.md) 新增或更新学习记录；或

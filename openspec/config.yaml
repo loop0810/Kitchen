@@ -1,32 +1,19 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Kitchen 是 Flutter/Dart 客户端与 Python/FastAPI/PostgreSQL 服务端的本地优先 monorepo。
+  所有变更从根 openspec/ 规划；产品、共享 contract、客户端、服务端、决策和学习记录有各自权威目录。
+  通用 Task 生命周期遵循全局 harness skill；docs/Harness/ 只提供 Kitchen 的技术栈、读取路由、验证命令、Report 字段和工作区扩展。
+  当前仓库可能存在多个活动 Change 和未提交用户修改，不能自动猜选 Change、清理工作区或提交改动。
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
-
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+rules:
+  proposal:
+    - Keep the proposal concise and include Why, What Changes, Non-goals, Capabilities or an explicit skip_specs rationale, and Impact.
+    - Do not redefine product behavior or shared contracts; link to their authoritative documents.
+  design:
+    - Record decisions, alternatives, risks, migration or rollback boundaries, and cross-client/server impact when applicable.
+    - Resolve questions that would change scope or architecture before implementation.
+  tasks:
+    - Each task must be a Markdown checkbox and small enough to form a verifiable slice in one controlled session.
+    - Include Scope, Out of Scope, Acceptance Criteria, Validation Level, and Reset / Verification for new or materially changed tasks.
+    - Do not batch-rewrite existing changes solely to apply the template.

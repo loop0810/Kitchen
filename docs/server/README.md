@@ -16,11 +16,12 @@ Python/FastAPI 服务端运行时基础位于 `server/`。当前实现覆盖集�
 
 ## 默认阅读顺序
 
-1. 根 `AGENTS.md` 与 `server/AGENTS.md`。
+1. 根 `AGENTS.md`、`server/AGENTS.md` 和 [`../Harness/README.md`](../Harness/README.md)。
 2. 当前根 OpenSpec change 的 proposal、spec、design 和 tasks。
 3. 本索引及任务涉及的服务端模块文档。
 4. 仅在修改共享接口时读取对应 contract。
 5. 仅在改变用户行为或版本范围时读取对应 product 文档。
+6. 完成服务端 Change 前读取 [`../learning/server/README.md`](../learning/server/README.md) 的学习记录收尾规则。
 
 ## 已实现文档
 

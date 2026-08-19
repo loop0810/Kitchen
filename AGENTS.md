@@ -16,6 +16,9 @@
 - 客户端、服务端和共享变更均位于 `openspec/changes`，名称应清楚表达范围，例如 `client-*`、`server-*` 或 `shared-*`；已有历史名称无需仅为前缀重命名。
 - 产品行为、共享契约、架构边界或跨文件工作流变化先创建 OpenSpec change，再实施。
 - 完成服务端 change 后、归档前，按 `docs/learning/server/README.md` 创建学习记录或写明学习记录豁免。
+- 通用 OpenSpec/Harness 生命周期由全局 `~/.codex/AGENTS.md` 和 `~/.codex/skills/harness/SKILL.md` 负责；执行仓库任务时再阅读 [`docs/Harness/README.md`](docs/Harness/README.md) 获取 Kitchen 技术栈扩展。
+- `docs/Harness/` 只维护本项目的读取路由、Flutter/Android、FastAPI/PostgreSQL、共享 contract、验证命令和工作区边界，不复制全局生命周期。
+- `openspec list` 存在多个活动 Change 时不得按最近修改时间猜选；必须由用户或当前会话明确当前 Change。
 
 ## 修改纪律
 
@@ -23,4 +26,5 @@
 - 规范性内容只在一个权威位置定义；其他文档使用链接和实现说明，禁止复制出竞争事实源。
 - 新增生产依赖、密钥处理、数据迁移或外部服务时，必须说明边界、失败策略和验证方式。
 - 禁止提交密钥、签名材料、构建目录和本地环境绝对路径。
+- 开始 Task 前保留 Git 现场并区分已有用户修改；不得自动清理、回滚或提交未获授权的改动。
 - 验证命令和代码风格以对应项目及更深层 `AGENTS.md` 为准。

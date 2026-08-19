@@ -10,6 +10,8 @@
   只有共享边界同时影响服务端实现时才读取最小相关服务端文档。
 - 新增或重命名文件前阅读 `docs/client/engineering/NAMING_CONVENTIONS.md`。
 - 涉及 Codex 与 Flutter 教学时阅读 `docs/client/workflow/CODEX_WORKFLOW.md`。
+- 全局 `harness` skill 负责客户端 Task 的 Change 选择、生命周期、Report 和停止规则；执行客户端任务时再读取 `docs/Harness/README.md` 的 Flutter/Android 扩展。
+- 客户端只补充 package 专项约束、平台验证和本地命令，不重复维护全局 Task 状态规则。
 - 修改 `packages/**` 前阅读 `packages/AGENTS.md`。
 - 修改含有子级 `AGENTS.md` 的组件前，继续阅读该组件的专项约束。
 - 产品名和 Bundle ID 尚未最终确定。
@@ -80,6 +82,8 @@ dart format --output=none --set-exit-if-changed .
 ./tool/kitchen_flutter.sh test
 ./tool/kitchen_flutter.sh test packages/*/test
 ```
+
+上述命令按 `docs/Harness/validation-rules.md` 结合 Task 的 Validation Level 选择，不以未执行的命令替代验证证据；执行过的 Task 在当前 Change 的 `reports/<task-id>.md` 记录结果。
 
 组件专项验证以对应子级 `AGENTS.md` 为准。
 

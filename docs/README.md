@@ -12,6 +12,7 @@
 | [`server/`](server/README.md) | Python/FastAPI 架构、模块、数据库、安全和运维 | Flutter 页面与端侧细节 |
 | [`learning/`](learning/README.md) | 完成迭代后的学习复盘和代码导航 | 权威需求或接口定义 |
 | [`decisions/`](decisions/README.md) | 已确认且需要长期保留的架构与产品决策及原因 | 任务进度 |
+| [`Harness/`](Harness/README.md) | Kitchen 对全局 Codex Harness 的技术栈、读取路由、验证和工作区扩展 | 产品需求、共享 contract、任务清单和通用生命周期 |
 
 `AGENTS.md` 保留在它约束的代码目录旁；变更计划与规格保留在根 [`openspec/`](../openspec/)；项目启动说明保留在对应项目 README。
 
@@ -25,6 +26,7 @@
 | 产品需求或版本范围 | `product/README.md` 及对应权威需求、当前 change | 受影响的 contract 和两端入口 | 无关实现细节 |
 | 腾讯云或部署 | `server/operations`、`infra/`、当前 change | 安全、数据库、备份 contract | 客户端视觉与本地功能细节 |
 | 学习复盘 | 对应 change、最终代码与测试、学习模板 | 相关 contract、decision | 全量需求复制 |
+| Harness / OpenSpec 文档 | 本变更 artifacts、`Harness/README.md`、受影响入口 | 发现业务边界时再读对应权威文档 | 无关客户端、服务端和产品全文 |
 
 ## 升级读取条件
 

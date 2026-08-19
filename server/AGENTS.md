@@ -7,11 +7,12 @@
 
 ## 开始工作前
 
-1. 阅读根 `AGENTS.md` 和当前根 OpenSpec change。
+1. 由全局 `harness` skill 选择并读取当前 Change；随后阅读根 `AGENTS.md`、[`docs/Harness/README.md`](../docs/Harness/README.md) 和服务端项目扩展。
 2. 阅读 `docs/server/README.md` 及任务涉及的服务端模块文档。
-3. 涉及 HTTP、共享模型、错误、幂等或同步时，读取对应 `docs/contracts`。
-4. 只有改变用户行为或发布范围时，才读取 `docs/product` 的对应权威需求。
-5. 不默认读取 `docs/client`、Figma、Flutter、Drift 或端侧 OCR 文档；仅在共享边界的客户端适配也受影响时读取最小相关内容。
+3. 按全局 Harness 确认 Task 后，读取其 Scope、Out of Scope、Acceptance Criteria、Validation Level 和当前 Git 现场。
+4. 涉及 HTTP、共享模型、错误、幂等或同步时，读取对应 `docs/contracts`，并在两端受影响时扩大验证范围。
+5. 只有改变用户行为或发布范围时，才读取 `docs/product` 的对应权威需求。
+6. 不默认读取 `docs/client`、Figma、Flutter、Drift 或端侧 OCR 文档；仅在共享边界的客户端适配也受影响时读取最小相关内容。
 
 ## 架构与文档
 
@@ -19,6 +20,7 @@
 - API、数据库、任务队列和腾讯云部署的具体选择以对应 change 和已实现文档为准，不能从未来需求反推为现状。
 - 跨端契约定义网络和共享语义；服务端文档只解释 FastAPI、持久化、安全和运维实现。
 - 每轮服务端实现完成后，按 `docs/learning/server/iterations/TEMPLATE.md` 记录实际学习结果，或在 tasks 中说明无学习增量的豁免原因。
+- 执行过的 Task 按全局 Harness 创建 Report，并使用 `docs/Harness/task-report-template.md` 记录真实命令、PostgreSQL 前提、失败策略和遗留问题；完成条件遵循全局 Harness 的 Definition of Done。
 
 ## 验证与安全
 

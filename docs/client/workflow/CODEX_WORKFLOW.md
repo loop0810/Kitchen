@@ -1,6 +1,8 @@
-# Codex 学习工作流
+# Codex 学习工作流与 Harness 入口
 
-本文档用于通过“厨房手记”项目练习 Codex CLI 和 VS Code Codex 扩展。
+本文档用于通过“厨房手记”项目练习 Codex CLI 和 VS Code Codex 扩展。通用的
+OpenSpec Task 执行、验证、状态和 Report 生命周期由全局 `harness` skill 负责；
+[`docs/Harness/README.md`](../../Harness/README.md) 只提供 Kitchen 的技术栈扩展。本文件只负责学习路径、界面分工和提示词示例。
 
 ## 不同使用界面的分工
 
@@ -59,17 +61,17 @@ AGENTS.md
 
 ## 项目开始前
 
-当前项目应纳入 Git 管理，以便查看差异、使用 `/review` 并建立可恢复的
-开发检查点。
+项目已经由 monorepo 根统一管理 Git 和 OpenSpec。开始实现任务前，先让全局
+`harness` skill 选择 Change 和 Task，再按 [`Kitchen Harness 技术扩展`](../../Harness/README.md)
+检查客户端上下文与工作区；不要为了建立“干净基线”自动初始化、清理、回滚或提交用户现场。
 
 ```sh
-cd "/Users/loop/Desktop/My App"
-git init
-git add .
-git commit -m "chore: establish Flutter MVP baseline"
+git status --short
+openspec list --json
+openspec status --change "<current-change>" --json
 ```
 
-执行前应先确认 `.gitignore` 没有遗漏密钥、签名文件或构建产物。
+执行前还应确认 `.gitignore` 没有遗漏密钥、签名文件或构建产物。
 
 ## CLI 基础练习
 
@@ -113,15 +115,14 @@ codex
 ## 推荐的单个需求开发循环
 
 ```text
-需求文档确认
-→ 让 Codex 输出计划
-→ 人工检查组件边界
-→ Codex 实现一个小切片
-→ format / analyze / test
-→ /diff
-→ /review
-→ 人工运行模拟器验收
-→ Git commit
+需求与权威文档确认
+→ OpenSpec Change / Task 确认
+→ git status 归属检查
+→ Codex 实现一个最小切片
+→ format / analyze / test / 运行时验证
+→ /diff 与范围审查
+→ Task Report + DONE/PARTIAL/BLOCKED/FAILED
+→ 按授权建立 checkpoint
 ```
 
 ## 练习用提示词
@@ -145,9 +146,10 @@ codex
 ### 实现一个切片
 
 ```text
-实现“为 `kitchen_recipe_domain` 增加一个 Recipe UseCase”这一个切片。
+当前 Change 的 Task 是“为 `kitchen_recipe_domain` 增加一个 Recipe UseCase”。
+先读取 proposal、design、相关 spec 和 tasks，按 Task 的 Scope 实现一个切片。
 不要同时调整 UI。完成后运行相关测试，并解释 feature、domain、data
-之间的依赖方向。
+之间的依赖方向。不要修改 Out of Scope 内容；结束时输出实际文件、验证命令和结果、偏差与遗留问题，供 Task Report 使用。
 ```
 
 ### 代码审查

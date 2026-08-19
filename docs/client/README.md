@@ -16,4 +16,5 @@
 - 新增或重命名 Dart/Flutter 文件：读取 `engineering/NAMING_CONVENTIONS.md`。
 - 视觉设计：读取 `design/FIGMA_DESIGN_BRIEF.md` 和相关设计系统约束。
 - Codex/Flutter 学习流程：读取 `workflow/CODEX_WORKFLOW.md`。
+- OpenSpec Task 的通用生命周期由全局 `harness` skill 负责；客户端技术扩展从 [`../Harness/README.md`](../Harness/README.md) 进入，本文件只保留客户端架构和文档路由。
 - 涉及共享接口时再读取对应 contract；默认不读取 `docs/server`。

@@ -21,6 +21,7 @@ V1 核心能力：
 ## 项目文档
 
 - [Monorepo 文档导航](../docs/README.md)
+- [Codex Harness 执行规则](../docs/Harness/README.md)
 - [产品需求总纲](../docs/product/PRODUCT_REQUIREMENTS.md)
 - [MVP 需求文档](../docs/product/MVP_REQUIREMENTS.md)
 - [菜谱功能需求文档](../docs/product/RECIPE_REQUIREMENTS.md)
