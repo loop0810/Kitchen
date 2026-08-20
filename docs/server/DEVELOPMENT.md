@@ -11,8 +11,14 @@
 | `HOST` | 否 | 默认 `127.0.0.1` |
 | `PORT` | 否 | 默认 `8080` |
 | `LOG_LEVEL` | 否 | 生产默认 `info`，其他环境默认 `debug` |
+| `AUTH_SIGNING_SECRET` | 生产必需 | 访问令牌 HMAC 密钥；生产至少 32 字符且不得使用仓库示例值 |
+| `PHONE_OTP_PEPPER` | 生产必需 | 手机号摘要 pepper；生产至少 32 字符且不得使用仓库示例值 |
+| `PHONE_AUTH_MODE` | 否 | 默认 `disabled`；`mock` 只允许在非生产环境使用 |
+| `APPLE_CLIENT_ID` | 否 | 空值按未配置处理，Apple 登录失败关闭而不是用空 audience 校验 |
 
 测试环境额外要求数据库名包含 `test`，这是阻止测试误连普通或生产数据库的最低保护。生产环境只从进程环境或未来的秘密管理设施注入秘密；仓库中的 `.env.example` 只含本地示例值。
+
+生产启动的密钥边界：`APP_ENV=production` 时未显式注入 `AUTH_SIGNING_SECRET` 和 `PHONE_OTP_PEPPER`、使用仓库中的开发示例值、长度不足 32 字符或启用 `PHONE_AUTH_MODE=mock`，进程都在监听 HTTP 前退出。失败策略与其他配置错误一致：只输出稳定错误类别，不输出配置值；恢复方式是注入新的长随机密钥后重启，不得回退到默认值。验证方式见 `server/tests/unit/test_config.py` 的生产密钥用例。
 
 配置缺失或格式错误时进程在监听 HTTP 前以非零结果退出，日志只记录稳定错误类别，不记录配置值。数据库运行中不可用时存活仍成功、就绪返回 503，以便负载均衡摘流。
 

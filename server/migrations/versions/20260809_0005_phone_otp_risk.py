@@ -23,9 +23,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("used_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index(
-        "ix_otp_challenge_phone_status", "otp_challenges", ["phone_subject", "status"]
-    )
+    op.create_index("ix_otp_challenge_phone_status", "otp_challenges", ["phone_subject", "status"])
     op.create_table(
         "sms_send_intents",
         sa.Column("id", sa.String(length=36), primary_key=True),

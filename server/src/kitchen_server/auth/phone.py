@@ -258,6 +258,42 @@ class RecordingSmsSender:
         return "accepted"
 
 
+class BoundedIdempotencyCache:
+    """进程内幂等结果缓存; 带 TTL 和容量上限, 避免匿名请求撑爆内存并长期留存令牌。"""
+
+    def __init__(self, *, ttl_seconds: int = 300, max_entries: int = 10_000) -> None:
+        self._ttl_seconds = ttl_seconds
+        self._max_entries = max_entries
+        self._items: dict[str, tuple[str, dict[str, object], datetime]] = {}
+
+    def get(self, key: str) -> tuple[str, dict[str, object]] | None:
+        item = self._items.get(key)
+        if item is None:
+            return None
+        request_hash, response, expires_at = item
+        if expires_at <= datetime.now(UTC):
+            del self._items[key]
+            return None
+        return request_hash, response
+
+    def __setitem__(self, key: str, value: tuple[str, dict[str, object]]) -> None:
+        now = datetime.now(UTC)
+        self._purge(now)
+        request_hash, response = value
+        self._items[key] = (request_hash, response, now + timedelta(seconds=self._ttl_seconds))
+
+    def _purge(self, now: datetime) -> None:
+        expired = [key for key, item in self._items.items() if item[2] <= now]
+        for key in expired:
+            del self._items[key]
+        overflow = len(self._items) - self._max_entries + 1
+        if overflow <= 0:
+            return
+        oldest = sorted(self._items.items(), key=lambda item: item[1][2])[:overflow]
+        for key, _ in oldest:
+            del self._items[key]
+
+
 @dataclass
 class PhoneMockRuntime:
     """模拟登录运行时依赖, 通过应用状态注入路由且不触达外部短信接口。"""
@@ -266,7 +302,7 @@ class PhoneMockRuntime:
     captcha: InMemoryCaptchaVerifier
     risk: InMemoryRiskPreflight
     sender: RecordingSmsSender
-    idempotency: dict[str, tuple[str, dict[str, object]]]
+    idempotency: BoundedIdempotencyCache
 
 
 def new_intent(challenge: OtpChallenge) -> SmsSendIntent:

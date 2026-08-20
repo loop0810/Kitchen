@@ -15,6 +15,7 @@ from kitchen_server.auth.apple import (
     InMemoryAppleAuthorizationStateStore,
 )
 from kitchen_server.auth.phone import (
+    BoundedIdempotencyCache,
     InMemoryCaptchaVerifier,
     InMemoryOtpChallengeStore,
     InMemoryRiskPreflight,
@@ -65,7 +66,7 @@ def create_app(
                 cost_limit=runtime_settings.phone_daily_budget_units,
             ),
             sender=RecordingSmsSender(),
-            idempotency={},
+            idempotency=BoundedIdempotencyCache(),
         )
         state_store = InMemoryAppleAuthorizationStateStore()
         app.state.apple_state_store = state_store

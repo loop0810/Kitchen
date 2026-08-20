@@ -52,6 +52,8 @@ def test_production_defaults_to_info_logging() -> None:
         {
             "APP_ENV": "production",
             "DATABASE_URL": "postgresql://kitchen:secret@db.example/kitchen_production",
+            "AUTH_SIGNING_SECRET": "a" * 32,
+            "PHONE_OTP_PEPPER": "b" * 32,
         }
     )
 
@@ -67,3 +69,63 @@ def test_mock_phone_otp_must_be_six_digits() -> None:
                 "DATABASE_URL": "postgresql://kitchen:secret@localhost/kitchen_dev",
             }
         )
+
+
+def test_production_rejects_development_signing_secret() -> None:
+    with pytest.raises(RuntimeConfigurationError):
+        load_settings(
+            {
+                "APP_ENV": "production",
+                "DATABASE_URL": "postgresql://kitchen:secret@db.example/kitchen_production",
+                "PHONE_OTP_PEPPER": "a" * 32,
+            }
+        )
+
+
+def test_production_rejects_short_phone_otp_pepper() -> None:
+    with pytest.raises(RuntimeConfigurationError):
+        load_settings(
+            {
+                "APP_ENV": "production",
+                "DATABASE_URL": "postgresql://kitchen:secret@db.example/kitchen_production",
+                "AUTH_SIGNING_SECRET": "a" * 32,
+                "PHONE_OTP_PEPPER": "too-short",
+            }
+        )
+
+
+def test_production_rejects_mock_phone_auth_mode() -> None:
+    with pytest.raises(RuntimeConfigurationError):
+        load_settings(
+            {
+                "APP_ENV": "production",
+                "DATABASE_URL": "postgresql://kitchen:secret@db.example/kitchen_production",
+                "AUTH_SIGNING_SECRET": "a" * 32,
+                "PHONE_OTP_PEPPER": "b" * 32,
+                "PHONE_AUTH_MODE": "mock",
+            }
+        )
+
+
+def test_production_accepts_explicit_secrets() -> None:
+    settings = load_settings(
+        {
+            "APP_ENV": "production",
+            "DATABASE_URL": "postgresql://kitchen:secret@db.example/kitchen_production",
+            "AUTH_SIGNING_SECRET": "a" * 32,
+            "PHONE_OTP_PEPPER": "b" * 32,
+        }
+    )
+
+    assert settings.app_env is AppEnvironment.PRODUCTION
+
+
+def test_blank_apple_client_id_is_treated_as_unconfigured() -> None:
+    settings = load_settings(
+        {
+            "DATABASE_URL": "postgresql://kitchen:secret@localhost/kitchen_development",
+            "APPLE_CLIENT_ID": "  ",
+        }
+    )
+
+    assert settings.apple_client_id is None

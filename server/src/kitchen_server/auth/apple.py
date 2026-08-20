@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -56,19 +57,35 @@ class AppleAuthorizationStateStore(Protocol):
 class InMemoryAppleAuthorizationStateStore:
     """短期授权流程状态; 生产多副本部署应替换为共享 TTL 存储。"""
 
-    def __init__(self, ttl: timedelta = timedelta(minutes=5)) -> None:
+    def __init__(self, ttl: timedelta = timedelta(minutes=5), *, max_entries: int = 10_000) -> None:
         self._ttl = ttl
+        self._max_entries = max_entries
         self._flows: dict[str, tuple[str, datetime]] = {}
 
     async def issue(self, flow_id: str, nonce: str, *, now: datetime | None = None) -> None:
-        self._flows[flow_id] = (nonce, (now or datetime.now(UTC)) + self._ttl)
+        current = now or datetime.now(UTC)
+        # 流程入口不需要认证, 因此必须自行回收过期状态并设置上限, 避免被
+        # 任意调用方用不同 flow_id 撑爆进程内存。
+        self._purge(current)
+        self._flows[flow_id] = (nonce, current + self._ttl)
+
+    def _purge(self, now: datetime) -> None:
+        expired = [key for key, (_, expires_at) in self._flows.items() if expires_at <= now]
+        for key in expired:
+            del self._flows[key]
+        overflow = len(self._flows) - self._max_entries + 1
+        if overflow <= 0:
+            return
+        oldest = sorted(self._flows.items(), key=lambda item: item[1][1])[:overflow]
+        for key, _ in oldest:
+            del self._flows[key]
 
     async def consume(self, flow_id: str, nonce: str) -> bool:
         flow = self._flows.pop(flow_id, None)
         if flow is None:
             return False
         expected_nonce, expires_at = flow
-        return expected_nonce == nonce and expires_at > datetime.now(UTC)
+        return hmac.compare_digest(expected_nonce, nonce) and expires_at > datetime.now(UTC)
 
 
 @dataclass(frozen=True)
@@ -106,6 +123,8 @@ class AppleIdentityVerifier:
     async def verify(self, credential: AppleCredential) -> VerifiedIdentityAssertion:
         if not credential.identity_token or not credential.authorization_code:
             raise AuthError("invalid_credentials", 401)
+        if not self._config.client_id:
+            raise AuthError("invalid_credentials", 401)
         if not await self._state_store.consume(credential.flow_id, credential.nonce):
             raise AuthError("invalid_credentials", 401)
 
@@ -137,7 +156,10 @@ class AppleIdentityVerifier:
             )
         except (jwt.InvalidTokenError, TypeError, ValueError):
             raise AuthError("invalid_credentials", 401) from None
-        if claims.get("nonce") != credential.nonce:
+        claimed_nonce = claims.get("nonce")
+        if not isinstance(claimed_nonce, str) or not hmac.compare_digest(
+            claimed_nonce, credential.nonce
+        ):
             raise AuthError("invalid_credentials", 401)
         subject = claims.get("sub")
         if not isinstance(subject, str) or not subject:

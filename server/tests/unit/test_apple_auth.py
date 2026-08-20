@@ -12,6 +12,7 @@ from kitchen_server.auth.apple import (
     AppleCredential,
     AppleIdentityVerifier,
     AppleVerifierConfig,
+    InMemoryAppleAuthorizationStateStore,
 )
 from kitchen_server.auth.service import AuthError
 
@@ -121,3 +122,29 @@ def test_apple_flow_state_is_one_time() -> None:
     asyncio.run(verifier.verify(credential))
     with pytest.raises(AuthError, match="invalid_credentials"):
         asyncio.run(verifier.verify(credential))
+
+
+def test_apple_verification_fails_closed_without_client_id() -> None:
+    _, private_key = _fixture()
+    verifier = AppleIdentityVerifier(
+        AppleVerifierConfig(client_id=""),
+        _Keys("key-1", {}),
+        _FlowState(),
+    )
+
+    with pytest.raises(AuthError, match="invalid_credentials"):
+        asyncio.run(verifier.verify(_credential(private_key)))
+
+
+def test_apple_flow_state_store_drops_expired_and_caps_entries() -> None:
+    store = InMemoryAppleAuthorizationStateStore(ttl=timedelta(minutes=5), max_entries=2)
+    stale = datetime.now(UTC) - timedelta(minutes=10)
+
+    asyncio.run(store.issue("expired-flow", "nonce", now=stale))
+    asyncio.run(store.issue("flow-a", "nonce-a"))
+    asyncio.run(store.issue("flow-b", "nonce-b"))
+    asyncio.run(store.issue("flow-c", "nonce-c"))
+
+    assert asyncio.run(store.consume("expired-flow", "nonce")) is False
+    assert asyncio.run(store.consume("flow-a", "nonce-a")) is False
+    assert asyncio.run(store.consume("flow-c", "nonce-c")) is True
