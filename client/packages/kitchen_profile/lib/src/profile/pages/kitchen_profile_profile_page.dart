@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_design_system/kitchen_design_system.dart';
@@ -25,7 +27,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     ProfileDependencies? dependencies;
     try {
       dependencies = ref.read(profileDependenciesProvider);
-    } catch (_) {
+    } on StateError {
+      // 只容忍未注入依赖这一种约定失败；其余异常仍向上传递，避免组合根装配
+      // 缺陷被静默降级成“无账号能力”。
       dependencies = null;
     }
     final authRepository = dependencies?.authSessionRepository;
@@ -186,14 +190,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     if (confirmed != true || !context.mounted) return;
     try {
       await repository.deleteAccount(clearLocalData: clearLocalData);
-      if (clearLocalData) {
-        await ref.read(profileDependenciesProvider).clearLocalData?.call();
-      }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      developer.log(
+        'delete_account_failed',
+        name: 'kitchen_profile',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('账号删除请求失败，请稍后重试。')));
+      }
+      return;
+    }
+    if (!clearLocalData) return;
+    try {
+      await ref.read(profileDependenciesProvider).clearLocalData?.call();
+    } catch (error, stackTrace) {
+      // 账号已删除而本机清理失败是不同结果，不能共用“删除失败”文案。
+      developer.log(
+        'clear_local_data_after_delete_account_failed',
+        name: 'kitchen_profile',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('账号已删除，但本机资料未完全清除，请稍后重试。')),
+        );
       }
     }
   }
@@ -247,7 +272,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       context,
                     ).showSnackBar(const SnackBar(content: Text('本机资料已清除。')));
                   }
-                } catch (_) {
+                } catch (error, stackTrace) {
+                  developer.log(
+                    'clear_local_data_failed',
+                    name: 'kitchen_profile',
+                    error: error,
+                    stackTrace: stackTrace,
+                  );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('本机资料未完全清除，请稍后重试。')),
@@ -269,7 +300,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       context,
                     ).showSnackBar(SnackBar(content: Text('备份已生成：$path')));
                   }
-                } catch (_) {
+                } catch (error, stackTrace) {
+                  developer.log(
+                    'export_backup_failed',
+                    name: 'kitchen_profile',
+                    error: error,
+                    stackTrace: stackTrace,
+                  );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('备份生成失败，请检查本机空间。')),
@@ -338,7 +375,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       context,
                     ).showSnackBar(const SnackBar(content: Text('本机备份已恢复。')));
                   }
-                } catch (_) {
+                } catch (error, stackTrace) {
+                  developer.log(
+                    'restore_backup_failed',
+                    name: 'kitchen_profile',
+                    error: error,
+                    stackTrace: stackTrace,
+                  );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('恢复失败，当前资料保持不变。')),
@@ -619,7 +662,13 @@ class _AppleIdentitySectionState extends State<_AppleIdentitySection> {
       ScaffoldMessenger.of(
         this.context,
       ).showSnackBar(const SnackBar(content: Text('Apple 登录已解绑。')));
-    } catch (_) {
+    } catch (error, stackTrace) {
+      developer.log(
+        'unbind_identity_failed',
+        name: 'kitchen_profile',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('解绑失败，可能需要近期重新登录或保留至少一个登录身份。')),

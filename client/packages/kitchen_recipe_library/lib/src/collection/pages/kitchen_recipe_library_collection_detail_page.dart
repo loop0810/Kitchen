@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -170,10 +172,21 @@ class _CollectionMemberContentState
       selectedIds: const {},
     );
     if (selected == null || selected.isEmpty || !mounted) return;
-    await dependencies.appendRecipesToCollection?.call(
-      collectionId: widget.detail.collection.id,
-      orderedRecipeIds: selected.toList(growable: false),
-    );
+    try {
+      await dependencies.appendRecipesToCollection?.call(
+        collectionId: widget.detail.collection.id,
+        orderedRecipeIds: selected.toList(growable: false),
+      );
+    } catch (error, stackTrace) {
+      developer.log(
+        'append_recipes_to_collection_failed',
+        name: 'kitchen_recipe_library',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (mounted) _showFailure('添加失败，请稍后重试。');
+      return;
+    }
     ref.invalidate(recipeCollectionDetailProvider(widget.detail.collection.id));
   }
 
@@ -199,11 +212,22 @@ class _CollectionMemberContentState
           action: SnackBarAction(
             label: '撤销',
             onPressed: () async {
-              await dependencies.restoreRecipeToCollection?.call(
-                collectionId: widget.detail.collection.id,
-                recipeId: recipeId,
-                position: originalPosition,
-              );
+              // 撤销失败时不能只靠刷新列表让用户自己猜结果。
+              try {
+                await dependencies.restoreRecipeToCollection?.call(
+                  collectionId: widget.detail.collection.id,
+                  recipeId: recipeId,
+                  position: originalPosition,
+                );
+              } catch (error, stackTrace) {
+                developer.log(
+                  'restore_recipe_to_collection_failed',
+                  name: 'kitchen_recipe_library',
+                  error: error,
+                  stackTrace: stackTrace,
+                );
+                if (mounted) _showFailure('撤销失败，请重新添加这道菜谱。');
+              }
               ref.invalidate(
                 recipeCollectionDetailProvider(widget.detail.collection.id),
               );
@@ -211,9 +235,24 @@ class _CollectionMemberContentState
           ),
         ),
       );
-    } catch (_) {
-      if (mounted) setState(() => _members.insert(index, member));
+    } catch (error, stackTrace) {
+      developer.log(
+        'remove_recipe_from_collection_failed',
+        name: 'kitchen_recipe_library',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (!mounted) return;
+      // 乐观更新回退后必须告知失败，否则列表看起来只是自己跳了一下。
+      setState(() => _members.insert(index, member));
+      _showFailure('移除失败，请稍后重试。');
     }
+  }
+
+  void _showFailure(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _reorder(int oldIndex, int newIndex) async {
@@ -232,8 +271,16 @@ class _CollectionMemberContentState
                 .map((item) => item.recipe.recipe.id)
                 .toList(growable: false),
           );
-    } catch (_) {
-      if (mounted) setState(() => _members = previous);
+    } catch (error, stackTrace) {
+      developer.log(
+        'reorder_collection_members_failed',
+        name: 'kitchen_recipe_library',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (!mounted) return;
+      setState(() => _members = previous);
+      _showFailure('排序保存失败，已恢复原顺序。');
     }
   }
 }

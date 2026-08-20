@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kitchen_auth_domain/kitchen_auth_domain.dart';
@@ -101,7 +102,12 @@ final class KitchenNotesAuthSessionRepository implements AuthSessionRepository {
     }
     try {
       await _replaceTokens(await _gateway.refresh(_refreshToken!));
-    } catch (_) {
+    } catch (error) {
+      // 仅记录异常类型：认证失败的错误对象可能携带响应体或凭证，不得进入日志。
+      developer.log(
+        'auth_session_restore_failed:${error.runtimeType}',
+        name: 'kitchen_notes',
+      );
       await _secureStore.clear();
       _refreshToken = null;
       _set(const AuthSessionState.invalid(message: '登录已失效，请重新登录。'));
@@ -113,7 +119,11 @@ final class KitchenNotesAuthSessionRepository implements AuthSessionRepository {
     _set(const AuthSessionState.authenticating());
     try {
       await _replaceTokens(await _gateway.authenticate(identity));
-    } catch (_) {
+    } catch (error) {
+      developer.log(
+        'auth_session_authenticate_failed:${error.runtimeType}',
+        name: 'kitchen_notes',
+      );
       _set(const AuthSessionState.invalid(message: '登录服务暂时不可用，本地功能仍可继续使用。'));
       rethrow;
     }

@@ -1,4 +1,6 @@
+import 'dart:developer' as developer;
 import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:path/path.dart' as p;
@@ -196,8 +198,15 @@ class RecipeCollectionRepositoryImpl implements RecipeCollectionRepository {
           // 删除仍在提交中的新封面。
           if ((await entry.stat()).modified.isAfter(staleBefore)) continue;
           await entry.delete();
-        } catch (_) {
-          // 机会式清理失败不影响集合读取，下次启动会再次尝试。
+        } on FileSystemException catch (error, stackTrace) {
+          // 机会式清理失败不影响集合读取，下次启动会再次尝试；只屏蔽文件
+          // 系统错误，其余异常仍向上传递以暴露实现缺陷。
+          developer.log(
+            'orphaned_cover_delete_failed',
+            name: 'kitchen_recipe_data',
+            error: error,
+            stackTrace: stackTrace,
+          );
         }
       }
     }
@@ -217,7 +226,15 @@ class RecipeCollectionRepositoryImpl implements RecipeCollectionRepository {
     try {
       final directory = await _coverDirectoryProvider();
       return File(p.join(directory.path, relativePath!)).readAsBytes();
-    } catch (_) {
+    } on FileSystemException catch (error, stackTrace) {
+      // 封面文件丢失或不可读时集合仍需要可读，但不能因此隐藏所有异常；
+      // 非文件系统错误交由调用方传递。
+      developer.log(
+        'collection_cover_read_failed',
+        name: 'kitchen_recipe_data',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
@@ -228,8 +245,14 @@ class RecipeCollectionRepositoryImpl implements RecipeCollectionRepository {
       final directory = await _coverDirectoryProvider();
       final file = File(p.join(directory.path, relativePath!));
       if (await file.exists()) await file.delete();
-    } catch (_) {
+    } on FileSystemException catch (error, stackTrace) {
       // 数据库已经是权威状态；失败文件留给下一次孤立文件清理。
+      developer.log(
+        'collection_cover_delete_failed',
+        name: 'kitchen_recipe_data',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 

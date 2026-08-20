@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_app_core/kitchen_app_core.dart';
@@ -177,7 +179,13 @@ class _RecipeEditorFormWidgetState
       }
     } on CreateRecipeValidationFailure catch (failure) {
       if (mounted) _applyValidationFailure(failure);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      developer.log(
+        _isEditing ? 'update_recipe_failed' : 'create_recipe_failed',
+        name: 'kitchen_recipe_editor',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(_isEditing ? '更新失败，请稍后重试' : '保存失败，请稍后重试')),

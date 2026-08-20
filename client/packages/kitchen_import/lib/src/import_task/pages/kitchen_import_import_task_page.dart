@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitchen_app_core/kitchen_app_core.dart';
@@ -228,6 +230,18 @@ class _TaskBody extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (error, stackTrace) {
+      // 流水线以外的异常（如持久化失败）也必须告知用户，而不是只停在旧状态。
+      developer.log(
+        'restructure_from_ocr_text_failed',
+        name: 'kitchen_import',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('重新整理失败，识别文字已保留，请重试。')));
     }
   }
 
@@ -248,8 +262,22 @@ class _TaskBody extends ConsumerWidget {
     );
     if (value == null || !context.mounted) return;
     final dependencies = ref.read(importDependenciesProvider);
-    await dependencies.repository.saveSupplementalText(task.id, value);
-    await dependencies.pipeline.process(task.id);
+    try {
+      await dependencies.repository.saveSupplementalText(task.id, value);
+      await dependencies.pipeline.process(task.id);
+    } catch (error, stackTrace) {
+      developer.log(
+        'save_supplemental_text_failed',
+        name: 'kitchen_import',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('补充说明保存失败，请稍后重试。')));
+      }
+    }
     ref.invalidate(importTaskProvider(task.id));
   }
 }

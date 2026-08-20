@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:drift/drift.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
@@ -50,8 +51,15 @@ class PersonalRecipeConfigRepositoryImpl
           confirmed,
         ).copyWith(syncPending: false, lastSyncedAt: DateTime.now()),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
       // 缓存已经保存用户修改；保持 pending，启动或网络恢复时继续重试。
+      // 降级不得将异常完全吞掉，否则无法区分网络失败与网关实现缺陷。
+      developer.log(
+        'personal_recipe_config_remote_update_failed',
+        name: 'kitchen_recipe_data',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -69,8 +77,14 @@ class PersonalRecipeConfigRepositoryImpl
           synchronized,
         ).copyWith(syncPending: false, lastSyncedAt: DateTime.now()),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
       // 启动同步失败不清空缓存；本地创建、导入和编辑继续读取现有值。
+      developer.log(
+        'personal_recipe_config_synchronize_failed',
+        name: 'kitchen_recipe_data',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 

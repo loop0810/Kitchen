@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -86,6 +87,9 @@ class _ReviewFormState extends ConsumerState<_ReviewForm> {
   final _edited = <String>{};
   final _confirmed = <String>{};
   var _saving = false;
+
+  /// 暂存失败只提示一次，避免逐字输入时反复弹出同一条提示。
+  var _autoSaveFailureNotified = false;
 
   @override
   void initState() {
@@ -622,18 +626,50 @@ class _ReviewFormState extends ConsumerState<_ReviewForm> {
           .repository
           .saveReviewDraft(widget.taskId, draft);
       await widget.onContinue(draft);
+    } catch (error, stackTrace) {
+      // 保存或跳转失败时按钮会恢复可用，必须同时说明原因，否则用户只看到“没反应”。
+      developer.log(
+        'continue_review_draft_failed',
+        name: 'kitchen_import',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('保存失败，当前修改仍保留在本页，请稍后重试。')));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
   void _persist() {
-    unawaited(
-      ref
+    unawaited(_persistDraft());
+  }
+
+  /// 字段级暂存不阻塞输入，但失败不能无声丢弃：用户必须知道当前修改还没有落盘，
+  /// 否则退出页面后会以为草稿已经保存。
+  Future<void> _persistDraft() async {
+    try {
+      await ref
           .read(importDependenciesProvider)
           .repository
-          .saveReviewDraft(widget.taskId, _currentDraft()),
-    );
+          .saveReviewDraft(widget.taskId, _currentDraft());
+      _autoSaveFailureNotified = false;
+    } catch (error, stackTrace) {
+      developer.log(
+        'save_review_draft_failed',
+        name: 'kitchen_import',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (!mounted || _autoSaveFailureNotified) return;
+      _autoSaveFailureNotified = true;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂存失败，请点击“继续”重新保存当前修改。')));
+    }
   }
 
   RecipeDraftEntity _currentDraft() {

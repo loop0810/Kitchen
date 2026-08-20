@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -78,18 +79,43 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
       sessionRepository: _authSessionRepository,
       installationId: 'local-development-installation',
     );
-    unawaited(_authSessionRepository.restore());
+    _startBackgroundWork(_authSessionRepository.restore(), 'restore_session');
     WidgetsBinding.instance.addObserver(this);
     _importDataModule.androidShareAdapter.setOnShareAvailable(
       _consumePendingAndroidShares,
     );
     // App 冷启动后恢复被系统中断的导入阶段；任务原文和中间结果已经在独立
     // Drift 数据库中，因此恢复不会依赖页面是否打开。
-    unawaited(_importPipeline.resumePending());
+    _startBackgroundWork(
+      _importPipeline.resumePending(),
+      'resume_pending_imports',
+    );
     // 个性化配置先读本地缓存，不阻塞首屏；远端可用时再双向同步账号配置。
-    unawaited(_recipeDataModule.personalRecipeConfigRepository.synchronize());
-    unawaited(_consumePendingAndroidShares());
-    unawaited(_purgeExpiredRecipes());
+    _startBackgroundWork(
+      _recipeDataModule.personalRecipeConfigRepository.synchronize(),
+      'synchronize_personal_recipe_config',
+    );
+    _startBackgroundWork(
+      _consumePendingAndroidShares(),
+      'consume_pending_android_shares',
+    );
+    _startBackgroundWork(_purgeExpiredRecipes(), 'purge_expired_recipes');
+  }
+
+  /// 启动与生命周期驱动的后台工作不能阻塞首屏，但也不能变成无人认领的异步
+  /// 错误；统一在组合根把失败归因到具体操作名称后写入诊断日志。
+  void _startBackgroundWork(Future<void> work, String operation) {
+    unawaited(
+      work.then<void>(
+        (_) {},
+        onError: (Object error, StackTrace stackTrace) => developer.log(
+          'background_work_failed:$operation',
+          name: 'kitchen_notes',
+          error: error,
+          stackTrace: stackTrace,
+        ),
+      ),
+    );
   }
 
   @override
@@ -105,16 +131,25 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      unawaited(_consumePendingAndroidShares());
-      unawaited(_purgeExpiredRecipes());
+      _startBackgroundWork(
+        _consumePendingAndroidShares(),
+        'consume_pending_android_shares',
+      );
+      _startBackgroundWork(_purgeExpiredRecipes(), 'purge_expired_recipes');
     }
   }
 
   Future<void> _purgeExpiredRecipes() async {
     try {
       await PurgeExpiredRecipesUseCase(_recipeDataModule.deletionRepository)();
-    } catch (_) {
+    } catch (error, stackTrace) {
       // 机会式清理失败不阻塞启动；下次启动、恢复前台或打开回收站会重试。
+      developer.log(
+        'purge_expired_recipes_failed',
+        name: 'kitchen_notes',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -130,7 +165,10 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
               .findSharedTask(share.id);
           if (existingTaskId != null) {
             await _importDataModule.androidShareAdapter.acknowledge(share.id);
-            unawaited(_importPipeline.process(existingTaskId));
+            _startBackgroundWork(
+              _importPipeline.process(existingTaskId),
+              'process_shared_import',
+            );
             continue;
           }
           final controlledPaths = share.localPaths.isEmpty
@@ -144,9 +182,18 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
               );
           // ImportTask 已持久化后才删除原生清单，进程在此前终止时仍可重新消费。
           await _importDataModule.androidShareAdapter.acknowledge(share.id);
-          unawaited(_importPipeline.process(taskId));
-        } catch (_) {
+          _startBackgroundWork(
+            _importPipeline.process(taskId),
+            'process_shared_import',
+          );
+        } catch (error, stackTrace) {
           // 保留原生暂存清单，应用下次启动或恢复前台时再次尝试。
+          developer.log(
+            'consume_android_share_failed',
+            name: 'kitchen_notes',
+            error: error,
+            stackTrace: stackTrace,
+          );
         }
       }
     } finally {

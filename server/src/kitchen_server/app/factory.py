@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -29,6 +30,8 @@ from kitchen_server.auth.service import AuthError
 from kitchen_server.domain.readiness import RuntimeReadinessChecker
 from kitchen_server.infrastructure.config import Settings, load_settings
 from kitchen_server.infrastructure.database import Database
+
+_logger = logging.getLogger("kitchen_server")
 
 
 def create_app(
@@ -114,7 +117,13 @@ def create_app(
         # ready 才检查数据库等运行依赖，供负载均衡器决定是否把流量交给实例。
         try:
             is_ready = await checker.is_ready()
-        except Exception:
+        except Exception as error:
+            # The probe stays a plain 503 for callers, but an unexpected readiness
+            # failure must not disappear; only the exception type is recorded.
+            _logger.error(
+                "readiness_check_failed",
+                extra={"error_category": type(error).__name__},
+            )
             is_ready = False
         if not is_ready:
             response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE

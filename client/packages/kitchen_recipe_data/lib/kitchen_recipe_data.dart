@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 
@@ -28,8 +29,19 @@ class RecipeDataModule {
          _database,
          remoteGateway: remoteGateway,
        ) {
-    // 封面文件清理是机会式维护，失败不能阻断应用组合根创建。
-    unawaited(_collectionRepository.cleanupOrphanedCovers().catchError((_) {}));
+    // 封面文件清理是机会式维护，失败不能阻断应用组合根创建；但失败原因必须
+    // 留下诊断日志，否则封面目录持续膨胀时没有任何可观测线索。
+    unawaited(
+      _collectionRepository.cleanupOrphanedCovers().then<void>(
+        (_) {},
+        onError: (Object error, StackTrace stackTrace) => developer.log(
+          'cleanup_orphaned_covers_failed',
+          name: 'kitchen_recipe_data',
+          error: error,
+          stackTrace: stackTrace,
+        ),
+      ),
+    );
   }
 
   factory RecipeDataModule({
