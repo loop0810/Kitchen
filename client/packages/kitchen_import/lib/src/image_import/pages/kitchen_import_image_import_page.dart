@@ -39,10 +39,13 @@ class _ImageImportPageState extends ConsumerState<ImageImportPage> {
       final selected = await ImagePicker().pickMultiImage();
       if (selected.isEmpty) return;
       final dependencies = ref.read(importDependenciesProvider);
+      // image_picker 返回的是系统相册临时路径，生命周期不由本 App 控制。先复制
+      // 到应用受控目录，异步 OCR 和下次启动恢复时才有稳定的输入文件。
       final controlledPaths = await dependencies.persistPickedImages(
         selected.map((image) => image.path).toList(growable: false),
       );
-      // 文件全部复制成功后才创建任务，防止任务引用相册临时路径。
+      // 只有全部图片进入受控存储后才创建任务；Repository 会按 position 保留
+      // 截图顺序，Pipeline 再逐页保存 OCR 结果。
       final taskId = await dependencies.repository.createImageTask(
         controlledPaths,
       );

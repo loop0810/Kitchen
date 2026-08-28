@@ -59,6 +59,9 @@ class LocalRecipeStructurerService implements RecipeStructurer {
     required SourceSnapshot source,
     OcrDocumentEntity? ocrDocument,
   }) {
+    // 结构化先恢复“行”和分区，再识别菜名、食材、准备工作与步骤；OCR 文档还
+    // 能提供坐标和置信度，普通粘贴文本则只提供换行。两者在这里统一为同一输入。
+    // 规则故意偏保守：无法确认的字段保持空值并附带提醒，把最终决定交给用户。
     final layout = ocrDocument == null
         ? null
         : const OcrLayoutAnalyzerService().analyze(ocrDocument);
@@ -93,6 +96,8 @@ class LocalRecipeStructurerService implements RecipeStructurer {
         confidenceByText[key] = confidence;
       }
     }
+    // 菜名不简单取第一行。截图常包含作者、关注按钮、平台标题或重复页眉，
+    // _title 会综合显式标题、显著性、菜名词和噪声过滤为候选打分。
     final titleMatch = _title(
       lines,
       lineCounts,
@@ -272,6 +277,8 @@ class LocalRecipeStructurerService implements RecipeStructurer {
           .toList(growable: false);
     }
 
+    // 这里生成的是审核草稿而非 RecipeEntity；字段同时携带来源、可信等级和
+    // OCR 证据，审核页才能解释“这个值从哪里来、是否需要确认”。
     return RecipeDraftEntity(
       title: DraftFieldValue(
         value: title,

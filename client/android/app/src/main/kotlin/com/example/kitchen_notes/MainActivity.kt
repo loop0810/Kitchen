@@ -58,9 +58,11 @@ class MainActivity : FlutterActivity() {
             }
         }
         MethodChannel(
-            flutterEngine.dartExecutor.binaryMessenger,
-            "kitchen_notes/import_ocr",
+          flutterEngine.dartExecutor.binaryMessenger,
+          "kitchen_notes/import_ocr",
         ).setMethodCallHandler { call, result ->
+            // 这是 Android 对同一个 MethodChannel 的实现。Dart 侧不需要知道这里
+            // 使用 ML Kit；它只接收与 iOS 相同的 width、height 和 lines 数据。
             if (call.method != "recognizeDocument") {
                 result.notImplemented()
                 return@setMethodCallHandler
@@ -84,12 +86,17 @@ class MainActivity : FlutterActivity() {
             )
             recognizer.process(image)
                 .addOnSuccessListener { recognized ->
+                    // ML Kit 已经把识别结果分成 textBlocks 和 lines。项目只保留 line
+                    // 层，因为菜谱布局分析关心的是“每一行文字在哪里”，不需要保存
+                    // ML Kit 的 Block 容器。
                     val width = image.width.coerceAtLeast(1)
                     val height = image.height.coerceAtLeast(1)
                     val lines = recognized.textBlocks
                         .flatMap { block -> block.lines }
                         .mapIndexedNotNull { index, line ->
                             val box = line.boundingBox ?: return@mapIndexedNotNull null
+                            // ML Kit 返回像素坐标；除以图片宽高后转换为 0...1 的相对
+                            // 坐标。Android 的 top/bottom 已经以左上角为原点，无需翻转。
                             mapOf(
                                 "id" to "line-$index",
                                 "text" to line.text,
@@ -100,6 +107,7 @@ class MainActivity : FlutterActivity() {
                             )
                         }
                     result.success(
+                        // 返回结构必须和 iOS 一致，Flutter 适配器才能共用一套解析代码。
                         mapOf(
                             "width" to width,
                             "height" to height,

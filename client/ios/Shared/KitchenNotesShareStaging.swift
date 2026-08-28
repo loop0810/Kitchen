@@ -35,6 +35,8 @@ final class KitchenNotesShareStaging {
   }
 
   func listReadyManifests() -> [[String: Any]] {
+    // 主 App 只接收 ready 且经过路径、大小、SHA-256 校验的清单。这里的校验把
+    // 原生扩展和 Flutter 之间的文件交接收束成可信输入，避免把任意路径交给 OCR。
     guard let root = stagingRoot,
           let directories = try? fileManager.contentsOfDirectory(
             at: root,
@@ -54,6 +56,8 @@ final class KitchenNotesShareStaging {
   }
 
   func acknowledge(id: String) throws {
+    // 只有主 App 已经把清单转换成 ImportTask 后才会调用 acknowledge；在此之前
+    // 保留目录是崩溃恢复机制的一部分，而不是普通的临时文件清理。
     guard isSafeIdentifier(id), let root = stagingRoot else { return }
     let directory = root.appendingPathComponent(id, isDirectory: true)
     guard directory.path.hasPrefix(root.path + "/") else { return }

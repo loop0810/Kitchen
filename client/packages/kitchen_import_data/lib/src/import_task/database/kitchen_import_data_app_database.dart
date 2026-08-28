@@ -95,6 +95,8 @@ class ImportAppDatabase extends _$ImportAppDatabase {
   );
 
   Stream<List<ImportTask>> watchImportTasks() {
+    // 导入箱和任务详情都订阅这条 Stream，而不是轮询。Pipeline 每次更新状态、
+    // OCR 或草稿都会发出新的 Row 快照，UI 因而能展示处理中间态和最终草稿。
     return (select(
       importTasks,
     )..orderBy([(row) => OrderingTerm.desc(row.updatedAt)])).watch();

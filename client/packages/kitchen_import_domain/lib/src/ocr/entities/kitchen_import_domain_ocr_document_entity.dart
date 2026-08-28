@@ -71,6 +71,9 @@ class OcrPageEntity {
 
   /// 按纵向、横向坐标恢复的本页纯文本，用于展示和旧解析兼容。
   String get plainText {
+    // 原生 OCR 返回顺序不能当作阅读顺序：不同平台、图片布局和文字列都会影响
+    // 返回顺序。这里先按上到下、再按左到右排序，得到一个基础的阅读顺序。
+    // 更复杂的双列、跨页和食材配对由 OcrLayoutAnalyzerService 继续处理。
     final ordered = lines.toList(growable: false)
       ..sort((left, right) {
         final vertical = left.boundingBox.top.compareTo(right.boundingBox.top);

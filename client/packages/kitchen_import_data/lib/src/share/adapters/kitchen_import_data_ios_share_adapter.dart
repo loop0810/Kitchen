@@ -97,6 +97,8 @@ final class IosSharedImportPayload {
   }
 
   String get combinedText {
+    // 标题、主题和正文在原生边界合并成一次任务的 originalText；URL 仍会被
+    // Repository 单独检测并保存，方便网页提取和草稿来源回溯。
     return <String>[
       title.trim(),
       subject.trim(),

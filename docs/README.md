@@ -16,6 +16,10 @@
 
 `AGENTS.md` 保留在它约束的代码目录旁；变更计划与规格保留在根 [`openspec/`](../openspec/)；项目启动说明保留在对应项目 README。
 
+## 面试沉淀
+
+- [Codex + OpenSpec + Harness：AI 辅助移动客户端开发流程](面试_Codex_OpenSpec_Harness_移动客户端AI辅助开发流程.md)：以 Flutter、iOS、Android、本地优先、平台桥接和移动端验证为案例的面试表达版本。
+
 ## 按任务阅读
 
 | 任务范围 | 默认读取 | 条件读取 | 默认排除 |

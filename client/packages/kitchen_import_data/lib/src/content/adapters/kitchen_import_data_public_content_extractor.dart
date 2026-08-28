@@ -30,6 +30,8 @@ class SafePublicContentExtractor implements PublicContentExtractor {
         }
       }
       final html = utf8.decode(bytes, allowMalformed: true);
+      // 输出仍是“待结构化文本”，不是 RecipeDraftEntity。这样 JSON-LD、Open Graph
+      // 和普通正文可以共用同一套本地菜谱规则，网络适配层不会偷偷决定领域字段。
       return extractRecipeTextFromHtml(html);
     } on ImportPipelineException {
       rethrow;
@@ -105,6 +107,8 @@ class SafePublicContentExtractor implements PublicContentExtractor {
   }
 
   String extractRecipeTextFromHtml(String html) {
+    // 按“结构化菜谱数据 -> 文章元数据 -> 页面正文”逐级降级，尽量排除导航、
+    // 推荐和广告。每个来源最终都归一化为普通文本，后续结构化器无需知道网站。
     final recipe = _recipeJsonLd(html);
     if (recipe != null) return recipe;
     final article = _articleJsonLd(html);

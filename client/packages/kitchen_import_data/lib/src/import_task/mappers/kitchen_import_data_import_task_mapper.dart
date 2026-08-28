@@ -6,6 +6,8 @@ import '../database/kitchen_import_data_app_database.dart';
 
 abstract final class ImportTaskMapper {
   static ImportTaskEntity toDomain(ImportTask row) {
+    // UI 和 Domain 永远只看到 ImportTaskEntity；Drift Row、JSON 字段名及兼容默认
+    // 值都封装在 Data 层。这样数据库格式变化不会扩散到导入页面和流水线。
     return ImportTaskEntity(
       id: row.id,
       inputKind: ImportInputKind.values.byName(row.inputKind),
@@ -29,6 +31,8 @@ abstract final class ImportTaskMapper {
   }
 
   static String encodeMedia(List<ImportMediaReference> media) {
+    // OCR 页除了纯文本，还包含坐标、置信度、预处理来源和质量报告，用于草稿
+    // 字段证据、候选图选择和单页重试，不能只保存最终字符串。
     return jsonEncode(
       media
           .map(

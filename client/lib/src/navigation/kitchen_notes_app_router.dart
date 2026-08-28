@@ -158,6 +158,9 @@ class _ImportDraftCoordinatorPage extends ConsumerWidget {
           tags: personalConfig.tags,
           difficulties: personalConfig.difficulties,
           onContinue: (confirmedDraft) async {
+            // 审核页交付的仍是 Import Domain 草稿；这里是 Import Feature 与 Recipe
+            // Feature 的组合边界。根 App 把确认值映射为 CreateRecipeInput，并把
+            // 原始文案和公开链接复制到正式菜谱的来源快照。
             // 领域映射留在组合根：Import Feature 只交付确认草稿，
             // Recipe Feature 仍通过自己的 UseCase 完成校验和幂等保存。
             final initialInput = CreateRecipeInput(

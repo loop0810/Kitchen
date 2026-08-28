@@ -19,6 +19,8 @@ import Vision
       name: "kitchen_notes/import_ocr",
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
+    // 这里是 Flutter MethodChannel 的 iOS 实现。Dart 侧调用 recognizeDocument
+    // 时会进入这个闭包；识别完成后必须通过 result 回传一次成功值或错误。
     channel.setMethodCallHandler { call, result in
       guard call.method == "recognizeDocument" else {
         result(FlutterMethodNotImplemented)
@@ -48,12 +50,17 @@ import Vision
           }
           return
         }
+        // Vision 返回的是一组文字区域。每个 observation 代表一行（或一个可读的
+        // 文字块），这里选它最可信的候选文字，并把区域一起传给 Flutter。
         let lines = (request.results as? [VNRecognizedTextObservation])?
           .enumerated()
           .compactMap { index, observation -> [String: Any]? in
             guard let candidate = observation.topCandidates(1).first else { return nil }
             let box = observation.boundingBox
-            // Vision 使用左下角原点；Domain 统一为左上角原点和 0...1 坐标。
+            // Vision 的 boundingBox 已经是 0...1 的相对坐标，但原点在左下角。
+            // Domain 和 Android 统一使用左上角原点，所以要翻转垂直方向：
+            // Domain top    = 1 - Vision maxY
+            // Domain bottom = 1 - Vision minY
             return [
               "id": "line-\(index)",
               "text": candidate.string,
@@ -75,6 +82,8 @@ import Vision
       request.recognitionLevel = .accurate
       request.recognitionLanguages = ["zh-Hans", "zh-Hant", "en-US"]
       request.usesLanguageCorrection = true
+      // OCR 可能耗时较长，放到后台队列执行，避免阻塞 Flutter 主线程；完成后再
+      // 切回主线程调用 result，因为 Flutter 通道回调需要在主线程完成。
       DispatchQueue.global(qos: .userInitiated).async {
         do {
           try VNImageRequestHandler(cgImage: cgImage).perform([request])

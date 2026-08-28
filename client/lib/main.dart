@@ -142,7 +142,9 @@ class _KitchenNotesBootstrapState extends State<KitchenNotesBootstrap>
                 controlledLocalPaths: controlledPaths,
                 sourceShareId: share.id,
               );
-          // ImportTask 已持久化后才删除原生清单，进程在此前终止时仍可重新消费。
+          // 原生分享清单只是交接箱，ImportTask 才是主 App 的正式接管记录。先
+          // 持久化任务，再确认并删除清单；进程若在交接期间退出，下次启动仍可重试。
+          // sourceShareId 同时用于避免同一份系统分享重复建任务。
           await _importDataModule.androidShareAdapter.acknowledge(share.id);
           unawaited(_importPipeline.process(taskId));
         } catch (_) {

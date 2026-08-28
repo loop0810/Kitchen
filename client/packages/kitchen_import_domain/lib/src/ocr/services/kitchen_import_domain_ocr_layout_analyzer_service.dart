@@ -29,6 +29,9 @@ class OcrLayoutAnalyzerService {
   const OcrLayoutAnalyzerService();
 
   OcrLayoutAnalysis analyze(OcrDocumentEntity document) {
+    // OCR 只告诉我们“识别出了哪些文字以及它们在哪里”；它不会告诉我们哪行
+    // 是食材、哪行是步骤。这个服务利用 boundingBox 的上下左右关系恢复截图版面，
+    // 再把清理后的行交给菜谱结构化器。
     final repeatedEdgeKeys = _repeatedEdgeKeys(document);
     final removed = <String>{};
     final removedDuplicates = <String>{};

@@ -38,8 +38,12 @@ class _PasteArticlePageState extends ConsumerState<PasteArticlePage> {
     });
     try {
       final dependencies = ref.read(importDependenciesProvider);
-      // 只有 Repository 完成原文持久化并返回 taskId 后，才启动后续解析。
+      // 这里的“保存”先建立可恢复的导入任务，而不是直接生成正式菜谱。
+      // 原文作为不可变输入写入导入库，后续解析都通过 taskId 找回它；页面退出、
+      // App 被系统杀死或解析失败时，用户仍能从导入箱继续处理。
       final taskId = await dependencies.repository.createTextTask(text);
+      // 解析在后台执行，任务状态由 Drift Stream 推送给任务详情页；入口页不需要
+      // 等待网页读取或本地结构化完成。
       unawaited(dependencies.pipeline.process(taskId));
       if (mounted) {
         _allowPop = true;

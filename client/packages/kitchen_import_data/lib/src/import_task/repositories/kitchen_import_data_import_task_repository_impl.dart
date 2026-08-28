@@ -47,6 +47,8 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     }
     final id = _uuid.v4();
     final now = DateTime.now();
+    // URL 检测只识别输入形态，不在创建任务时发起网络请求。链接单独保存后，
+    // Pipeline 才能决定是否提取网页正文，并把来源写入草稿快照。
     final detectedPublicUrl = _detectedPublicUrl(normalized);
     await _database
         .into(_database.importTasks)
@@ -122,6 +124,8 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
           ),
         )
         .toList(growable: false);
+    // 系统分享可能同时包含标题、文案、URL 和图片，统一落成一个任务，避免
+    // 同一次分享被拆成彼此无法关联的多个导入结果。
     await _database
         .into(_database.importTasks)
         .insert(
@@ -157,8 +161,9 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     final value = _publicUrl.firstMatch(text)?.group(0);
     final parsed = value == null ? null : Uri.tryParse(value);
     if (parsed == null) return null;
-    // 只进行本地 scheme 升级，绝不发送明文 HTTP 请求；目标不支持 HTTPS 时由
-    // 安全提取器按“不可访问”降级并保留原始分享文案。
+    // 这里只进行本地 scheme 升级，绝不发送明文 HTTP 请求。真正访问前还要经过
+    // SafePublicContentExtractor 的 HTTPS、DNS 私网和重定向检查；不安全时保留
+    // 原始分享文案，让用户仍可手动整理。
     return parsed.scheme.toLowerCase() == 'http'
         ? parsed.replace(scheme: 'https')
         : parsed;
@@ -304,6 +309,8 @@ class ImportTaskRepositoryImpl implements ImportTaskRepository {
     RecipeDraftEntity draft, {
     int? expectedGeneration,
   }) {
+    // 草稿是可重算的自动结果，原文、OCR 和媒体才是恢复与解释的依据，因此分列
+    // 保存。awaitingReview 表示“等待用户确认”，并不表示正式菜谱已经入库。
     return _write(
       taskId,
       ImportTasksCompanion(

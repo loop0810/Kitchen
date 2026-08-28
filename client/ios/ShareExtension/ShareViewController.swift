@@ -23,6 +23,9 @@ final class ShareViewController: SLComposeServiceViewController {
     let shareId = UUID().uuidString.lowercased()
     let createdAt = Date()
     do {
+      // Share Extension 只负责接住系统提供的 URL、文字和图片，并复制图片到
+      // App Group。它不解析菜谱，也不直接调用 Flutter；这样扩展被系统提前终止
+      // 时，主 App 仍可根据 manifest 判断这次分享是否已经完整写入。
       let directory = try KitchenNotesShareStaging.shared.createShareDirectory(id: shareId)
       let group = DispatchGroup()
       let lock = NSLock()
@@ -108,6 +111,8 @@ final class ShareViewController: SLComposeServiceViewController {
             files: files.sorted(by: { $0.position < $1.position }),
             errorCode: nil
           )
+          // manifest 最后以 ready 状态原子写入。主 App 只消费 ready 清单，因而不会
+          // 读到仍在复制中的文件；消费成功后才由主 App acknowledge 并清理目录。
           try KitchenNotesShareStaging.shared.writeReadyManifest(manifest, in: directory)
           self.complete()
         } catch {
