@@ -15,6 +15,11 @@ abstract final class AppTheme {
       brightness: Brightness.light,
       surface: scrapbook ? AppColor.paper : AppColor.minimalSurface,
     );
+    final appBarSurface = scrapbook ? AppColor.paper : AppColor.white;
+    final navigationSurface = scrapbook ? AppColor.card : AppColor.white;
+    final navigationIndicator = scrapbook
+        ? AppColor.blush
+        : scheme.primaryContainer;
 
     return ThemeData(
       useMaterial3: true,
@@ -29,10 +34,12 @@ abstract final class AppTheme {
         bodyColor: AppColor.ink,
         displayColor: AppColor.ink,
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: false,
-        backgroundColor: Colors.transparent,
+        backgroundColor: appBarSurface,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
         foregroundColor: AppColor.ink,
         titleTextStyle: TextStyle(
           color: AppColor.ink,
@@ -42,7 +49,7 @@ abstract final class AppTheme {
       ),
       cardTheme: CardThemeData(
         elevation: scrapbook ? 1 : 0,
-        color: scrapbook ? AppColor.card : Colors.white,
+        color: scrapbook ? AppColor.card : AppColor.white,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(
@@ -57,7 +64,7 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColor.white,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.s20,
           vertical: AppSpacing.s16,
@@ -78,11 +85,19 @@ abstract final class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: Colors.white,
-        indicatorColor: scrapbook ? AppColor.blush : scheme.primaryContainer,
-        labelTextStyle: WidgetStateProperty.all(
-          const TextStyle(fontSize: AppText.label, fontWeight: FontWeight.w600),
-        ),
+        elevation: 0,
+        backgroundColor: navigationSurface,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        indicatorColor: navigationIndicator,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return TextStyle(
+            color: selected && !scrapbook ? scheme.primary : AppColor.ink,
+            fontSize: AppText.label,
+            fontWeight: FontWeight.w600,
+          );
+        }),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(

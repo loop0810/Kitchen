@@ -108,6 +108,16 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  assets:
+    - assets/images/tab_home_selected.png
+    - assets/images/tab_home_unselected.png
+    - assets/images/tab_recipe_library_selected.png
+    - assets/images/tab_recipe_library_unselected.png
+    - assets/images/tab_import_inbox_selected.png
+    - assets/images/tab_import_inbox_unselected.png
+    - assets/images/tab_profile_selected.png
+    - assets/images/tab_profile_unselected.png
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kitchen_notes/main.dart';
@@ -21,9 +22,80 @@ void main() {
     expect(find.text('导入箱'), findsOneWidget);
     expect(find.text('我的'), findsOneWidget);
 
+    Set<String> captureVisibleTabAssets() {
+      final visibleTabImages = tester
+          .widgetList<Image>(find.byType(Image))
+          .toList();
+      expect(visibleTabImages, hasLength(4));
+      expect(
+        visibleTabImages.every(
+          (image) => image.width == 25 && image.height == 25,
+        ),
+        isTrue,
+      );
+      return visibleTabImages
+          .map((image) => (image.image as AssetImage).assetName)
+          .toSet();
+    }
+
+    final navigationBar = tester.widget<NavigationBar>(
+      find.byType(NavigationBar),
+    );
+    final destinations = navigationBar.destinations
+        .cast<NavigationDestination>()
+        .toList();
+    final tabImages = [
+      for (final destination in destinations) ...[
+        destination.icon,
+        if (destination.selectedIcon != null) destination.selectedIcon!,
+      ],
+    ].map((icon) => (icon as SizedBox).child as Image).toList();
+    final tabAssetNames = tabImages
+        .map((image) => (image.image as AssetImage).assetName)
+        .toSet();
+
+    expect(destinations, hasLength(4));
+    expect(tabImages, hasLength(8));
+    expect(
+      captureVisibleTabAssets(),
+      equals(<String>{
+        'assets/images/tab_home_selected.png',
+        'assets/images/tab_recipe_library_unselected.png',
+        'assets/images/tab_import_inbox_unselected.png',
+        'assets/images/tab_profile_unselected.png',
+      }),
+    );
+    await tester.tap(find.text('菜谱库'));
+    await tester.pumpAndSettle();
+    final recipeTabAssets = captureVisibleTabAssets();
+    expect(find.text('装配测试菜谱'), findsOneWidget);
+    expect(
+      recipeTabAssets,
+      equals(<String>{
+        'assets/images/tab_home_unselected.png',
+        'assets/images/tab_recipe_library_selected.png',
+        'assets/images/tab_import_inbox_unselected.png',
+        'assets/images/tab_profile_unselected.png',
+      }),
+    );
+
     await tester.tap(find.text('菜谱库'));
     await tester.pumpAndSettle();
     expect(find.text('装配测试菜谱'), findsOneWidget);
+
+    expect(
+      tabAssetNames,
+      containsAll(<String>[
+        'assets/images/tab_home_selected.png',
+        'assets/images/tab_home_unselected.png',
+        'assets/images/tab_recipe_library_selected.png',
+        'assets/images/tab_recipe_library_unselected.png',
+        'assets/images/tab_import_inbox_selected.png',
+        'assets/images/tab_import_inbox_unselected.png',
+        'assets/images/tab_profile_selected.png',
+        'assets/images/tab_profile_unselected.png',
+      ]),
+    );
   });
 }
 

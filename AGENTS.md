@@ -13,12 +13,12 @@
 ## OpenSpec
 
 - 仓库只使用根 `openspec/` 作为变更规划入口；从仓库根运行 OpenSpec 命令。
-- 客户端、服务端和共享变更均位于 `openspec/changes`，名称应清楚表达范围，例如 `client-*`、`server-*` 或 `shared-*`；已有历史名称无需仅为前缀重命名。
-- 产品行为、共享契约、架构边界或跨文件工作流变化先创建 OpenSpec change，再实施。
+- Change 模式下的客户端、服务端和共享变更均位于 `openspec/changes`，名称应清楚表达范围，例如 `client-*`、`server-*` 或 `shared-*`；已有历史名称无需仅为前缀重命名。
+- 产品行为、共享契约、架构边界或跨文件工作流变化按全局 Change Gate 判断；开发者明确选择 `change` 时先创建 OpenSpec Change，低风险局部任务可由开发者选择 `direct` 轻量路径。
 - 完成服务端 change 后、归档前，按 `docs/learning/server/README.md` 创建学习记录或写明学习记录豁免。
 - 通用 OpenSpec/Harness 生命周期由全局 `~/.codex/AGENTS.md` 和 `~/.codex/skills/harness/SKILL.md` 负责；执行仓库任务时再阅读 [`docs/Harness/README.md`](docs/Harness/README.md) 获取 Kitchen 技术栈扩展。
 - `docs/Harness/` 只维护本项目的读取路由、Flutter/Android、FastAPI/PostgreSQL、共享 contract、验证命令和工作区边界，不复制全局生命周期。
-- `openspec list` 存在多个活动 Change 时不得按最近修改时间猜选；必须由用户或当前会话明确当前 Change。
+- Change 模式下，`openspec list` 存在多个活动 Change 时不得按最近修改时间猜选；必须由用户或当前会话明确当前 Change。Direct 模式不创建或选择 Change。
 
 ## 修改纪律
 

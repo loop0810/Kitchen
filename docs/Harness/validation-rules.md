@@ -1,6 +1,17 @@
 # Kitchen Validation Rules
 
-全局 Harness 负责验证流程和真实证据要求；本文件只定义 Kitchen Task 的技术栈验证命令和范围矩阵。验证等级由当前 Task 和受影响边界决定；没有填写时按 `Behavior` 处理，并在 Report 中说明。
+全局 Harness 负责验证流程和真实证据要求；本文件只定义 Kitchen Change Task 的技术栈验证命令和范围矩阵，并补充 Direct 模式的最小验证。Change Task 的验证等级由当前 Task 和受影响边界决定；没有填写时按 `Behavior` 处理，并在 Report 中说明。
+
+## Level 0：Direct / Lightweight
+
+适用于开发者选择的低风险、局部、可逆修改，例如单个资源替换、样式调整、局部文案或测试修正。
+
+最低要求：
+
+- 检查 Git 现场、目标范围和差异；运行 `git diff --check`；
+- 按受影响文件运行对应的格式化、静态检查或定向测试；纯文档/规则修改运行相关链接或结构检查（若项目提供）；
+- 在没有明确需要时，不自动运行完整测试套件、设备验证、截图验证或跨端验证；
+- 如果修改触及产品行为、共享契约、架构边界、跨文件工作流、数据/安全或外部服务，暂停并重新选择 Change 路径。
 
 ## Level 1：Structural
 
@@ -46,11 +57,13 @@
 
 | 影响范围 | 需要的最低证据 |
 | --- | --- |
+| Direct 低风险局部修改 | `git diff --check`、范围/结构检查和受影响范围的格式、静态或定向测试；不默认要求完整套件或设备验证 |
 | 客户端内部 | 相关格式、分析、package 测试；Behavior 任务再加模拟器/设备流程 |
 | 服务端内部 | 相关 lock/format/type/test；涉及 DB、安全或迁移时加 PostgreSQL 集成测试 |
 | 共享 contract | 先更新 contract，再验证客户端和服务端的请求/响应、错误、版本、幂等或同步语义 |
 | 产品行为或版本 | 产品权威文档与决策记录已更新，相关端到端行为真实验收 |
-| Harness / OpenSpec / 文档 | OpenSpec validate、链接和 stale 路径检查、范围 diff；不把应用构建误报为已执行 |
+| Change 模式 Harness / OpenSpec / 文档 | OpenSpec validate、链接和 stale 路径检查、范围 diff；不把应用构建误报为已执行 |
+| Direct 模式 Harness / 文档 | 范围 diff、结构/链接检查和 `git diff --check`；不创建或验证不存在的 OpenSpec artifacts |
 
 ## 证据要求
 

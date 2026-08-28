@@ -13,6 +13,34 @@ void main() {
     expect(minimal.cardTheme.elevation, 0);
   });
 
+  test('导航壳复用两套主题的表面色和前景色', () {
+    final scrapbook = AppTheme.forStyle(AppVisualStyle.scrapbook);
+    final minimal = AppTheme.forStyle(AppVisualStyle.minimal);
+
+    expect(scrapbook.appBarTheme.backgroundColor, AppColor.paper);
+    expect(scrapbook.appBarTheme.foregroundColor, AppColor.ink);
+    expect(scrapbook.navigationBarTheme.backgroundColor, AppColor.card);
+    expect(scrapbook.navigationBarTheme.indicatorColor, AppColor.blush);
+    expect(
+      scrapbook.navigationBarTheme.labelTextStyle?.resolve({})?.color,
+      AppColor.ink,
+    );
+
+    expect(minimal.appBarTheme.backgroundColor, AppColor.white);
+    expect(minimal.appBarTheme.foregroundColor, AppColor.ink);
+    expect(minimal.navigationBarTheme.backgroundColor, AppColor.white);
+    expect(
+      minimal.navigationBarTheme.indicatorColor,
+      minimal.colorScheme.primaryContainer,
+    );
+    expect(
+      minimal.navigationBarTheme.labelTextStyle?.resolve({
+        WidgetState.selected,
+      })?.color,
+      minimal.colorScheme.primary,
+    );
+  });
+
   test('核心视觉常量保持迁移前数值', () {
     expect(AppColor.coral, const Color(0xFFD96B58));
     expect(AppSpacing.s16, 16);

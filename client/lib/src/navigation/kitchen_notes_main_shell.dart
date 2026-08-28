@@ -1,6 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+const _tabIconSize = 25.0;
+
+Widget _tabIcon(String assetPath) {
+  return SizedBox(
+    width: _tabIconSize,
+    height: _tabIconSize,
+    child: Image.asset(
+      assetPath,
+      width: _tabIconSize,
+      height: _tabIconSize,
+      fit: BoxFit.contain,
+      // NavigationDestination 已提供 Tab 语义，避免图片再次生成重复读屏内容。
+      excludeFromSemantics: true,
+    ),
+  );
+}
+
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.navigationShell});
 
@@ -19,25 +36,29 @@ class MainShell extends StatelessWidget {
             initialLocation: index == navigationShell.currentIndex,
           );
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
+            icon: _tabIcon('assets/images/tab_home_unselected.png'),
+            selectedIcon: _tabIcon('assets/images/tab_home_selected.png'),
             label: '首页',
           ),
           NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book_rounded),
+            icon: _tabIcon('assets/images/tab_recipe_library_unselected.png'),
+            selectedIcon: _tabIcon(
+              'assets/images/tab_recipe_library_selected.png',
+            ),
             label: '菜谱库',
           ),
           NavigationDestination(
-            icon: Icon(Icons.inbox_outlined),
-            selectedIcon: Icon(Icons.inbox_rounded),
+            icon: _tabIcon('assets/images/tab_import_inbox_unselected.png'),
+            selectedIcon: _tabIcon(
+              'assets/images/tab_import_inbox_selected.png',
+            ),
             label: '导入箱',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
+            icon: _tabIcon('assets/images/tab_profile_unselected.png'),
+            selectedIcon: _tabIcon('assets/images/tab_profile_selected.png'),
             label: '我的',
           ),
         ],
