@@ -22,6 +22,23 @@ void main() {
     expect(find.text('导入箱'), findsOneWidget);
     expect(find.text('我的'), findsOneWidget);
 
+    final backgroundFinder = find.byWidgetPredicate((widget) {
+      if (widget is! DecoratedBox) {
+        return false;
+      }
+      final decoration = widget.decoration;
+      if (decoration is! BoxDecoration || decoration.image == null) {
+        return false;
+      }
+      final image = decoration.image!.image;
+      return image is AssetImage &&
+          image.assetName == 'assets/images/app_background_paper_grid.png';
+    });
+    expect(backgroundFinder, findsOneWidget);
+    final backgroundBox = tester.widget<DecoratedBox>(backgroundFinder);
+    final backgroundDecoration = backgroundBox.decoration as BoxDecoration;
+    expect(backgroundDecoration.image!.fit, BoxFit.cover);
+
     Set<String> captureVisibleTabAssets() {
       final visibleTabImages = tester
           .widgetList<Image>(find.byType(Image))

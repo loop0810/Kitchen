@@ -109,6 +109,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/app_background_paper_grid.png
     - assets/images/tab_home_selected.png
     - assets/images/tab_home_unselected.png
     - assets/images/tab_recipe_library_selected.png
