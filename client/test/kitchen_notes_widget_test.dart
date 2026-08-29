@@ -55,24 +55,16 @@ void main() {
           .toSet();
     }
 
-    final navigationBar = tester.widget<NavigationBar>(
-      find.byType(NavigationBar),
+    expect(find.byKey(const Key('main-tab-bar')), findsOneWidget);
+    final tabBar = tester.widget<DecoratedBox>(
+      find.byKey(const Key('main-tab-bar')),
     );
-    final destinations = navigationBar.destinations
-        .cast<NavigationDestination>()
-        .toList();
-    final tabImages = [
-      for (final destination in destinations) ...[
-        destination.icon,
-        if (destination.selectedIcon != null) destination.selectedIcon!,
-      ],
-    ].map((icon) => (icon as SizedBox).child as Image).toList();
-    final tabAssetNames = tabImages
-        .map((image) => (image.image as AssetImage).assetName)
-        .toSet();
-
-    expect(destinations, hasLength(4));
-    expect(tabImages, hasLength(8));
+    final tabBarDecoration = tabBar.decoration as BoxDecoration;
+    expect(tabBarDecoration.color, const Color(0xFFFFFAF2));
+    expect(
+      find.byKey(const Key('main-tab-selected-indicator')),
+      findsOneWidget,
+    );
     expect(
       captureVisibleTabAssets(),
       equals(<String>{
@@ -95,24 +87,14 @@ void main() {
         'assets/images/tab_profile_unselected.png',
       }),
     );
+    expect(
+      find.byKey(const Key('main-tab-selected-indicator')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('菜谱库'));
     await tester.pumpAndSettle();
     expect(find.text('装配测试菜谱'), findsOneWidget);
-
-    expect(
-      tabAssetNames,
-      containsAll(<String>[
-        'assets/images/tab_home_selected.png',
-        'assets/images/tab_home_unselected.png',
-        'assets/images/tab_recipe_library_selected.png',
-        'assets/images/tab_recipe_library_unselected.png',
-        'assets/images/tab_import_inbox_selected.png',
-        'assets/images/tab_import_inbox_unselected.png',
-        'assets/images/tab_profile_selected.png',
-        'assets/images/tab_profile_unselected.png',
-      ]),
-    );
   });
 }
 
