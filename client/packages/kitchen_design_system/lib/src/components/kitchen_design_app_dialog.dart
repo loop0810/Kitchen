@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../foundation/kitchen_design_app_color.dart';
 import '../foundation/kitchen_design_app_radius.dart';
 import '../foundation/kitchen_design_app_spacing.dart';
+import '../foundation/kitchen_design_app_text.dart';
+import 'kitchen_design_app_scrapbook_button.dart';
 
 /// 通用弹窗中的一个操作。
 class AppDialogAction {
@@ -110,18 +112,27 @@ class AppDialog extends StatelessWidget {
                     const SizedBox(height: AppSpacing.s20),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: Wrap(
-                        alignment: WrapAlignment.end,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: AppSpacing.s8,
-                        runSpacing: AppSpacing.s8,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          for (var index = 0; index < actions.length; index++)
-                            _AppDialogActionButton(
-                              index: index,
-                              action: actions[index],
-                              emphasized: index == actions.length - 1,
+                          for (
+                            var index = 0;
+                            index < actions.length;
+                            index++
+                          ) ...[
+                            if (index > 0) const SizedBox(width: AppSpacing.s8),
+                            AppScrapbookButton(
+                              key: ValueKey('app-dialog-action-$index'),
+                              label: actions[index].title,
+                              filled: index == actions.length - 1,
+                              onPressed: actions[index].onPressed,
+                              height: 40,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s16,
+                              ),
+                              fontSize: AppText.librarySubtitle,
                             ),
+                          ],
                         ],
                       ),
                     ),
@@ -131,64 +142,6 @@ class AppDialog extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _AppDialogActionButton extends StatelessWidget {
-  const _AppDialogActionButton({
-    required this.index,
-    required this.action,
-    required this.emphasized,
-  });
-
-  final int index;
-  final AppDialogAction action;
-  final bool emphasized;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!emphasized) {
-      return TextButton(
-        key: ValueKey('app-dialog-action-$index'),
-        onPressed: action.onPressed,
-        style: TextButton.styleFrom(
-          minimumSize: const Size(0, 40),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12),
-          foregroundColor: AppColor.x60483A,
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        child: Text(action.title),
-      );
-    }
-
-    return DecoratedBox(
-      key: ValueKey('app-dialog-action-$index'),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.r16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColor.xA94B3F.withValues(alpha: 0.25),
-            offset: Offset(3, 3),
-            blurRadius: 0,
-          ),
-        ],
-      ),
-      child: FilledButton(
-        onPressed: action.onPressed,
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 40),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-          backgroundColor: AppColor.xF26A58,
-          foregroundColor: AppColor.xFFFFFF,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.r16),
-          ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        child: Text(action.title),
       ),
     );
   }

@@ -29,14 +29,46 @@ void main() {
     expect(content.style?.color, AppColor.x7E756E);
     expect(content.softWrap, isTrue);
 
-    expect(find.byType(TextButton), findsOneWidget);
-    expect(find.byType(FilledButton), findsOneWidget);
-    final emphasizedAction = tester.widget<DecoratedBox>(
+    expect(find.byType(AppScrapbookButton), findsNWidgets(2));
+    expect(find.byType(TextButton), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
+
+    final normalAction = tester.widget<AppScrapbookButton>(
+      find.byKey(const ValueKey('app-dialog-action-0')),
+    );
+    expect(normalAction.filled, isFalse);
+
+    final emphasizedAction = tester.widget<AppScrapbookButton>(
       find.byKey(const ValueKey('app-dialog-action-1')),
     );
+    expect(emphasizedAction.filled, isTrue);
+
+    final normalActionRect = tester.getRect(
+      find.byKey(const ValueKey('app-dialog-action-0')),
+    );
+    final emphasizedActionRect = tester.getRect(
+      find.byKey(const ValueKey('app-dialog-action-1')),
+    );
+    final actionsAlignRect = tester.getRect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Align && widget.alignment == Alignment.centerRight,
+      ),
+    );
+    expect(emphasizedActionRect.top, normalActionRect.top);
+    expect(emphasizedActionRect.left, greaterThan(normalActionRect.right));
+    expect(emphasizedActionRect.width, greaterThan(normalActionRect.width));
+    expect(emphasizedActionRect.right, actionsAlignRect.right);
+
+    final emphasizedDecoration = tester.widget<DecoratedBox>(
+      find.descendant(
+        of: find.byKey(const ValueKey('app-dialog-action-1')),
+        matching: find.byType(DecoratedBox),
+      ),
+    );
     final shadow =
-        (emphasizedAction.decoration as BoxDecoration).boxShadow!.single;
-    expect(shadow.color, AppColor.xA94B3F.withValues(alpha: 0.25));
+        (emphasizedDecoration.decoration as BoxDecoration).boxShadow!.single;
+    expect(shadow.color, AppColor.xA94B3F);
     expect(shadow.offset, const Offset(3, 3));
     expect(shadow.blurRadius, 0);
 

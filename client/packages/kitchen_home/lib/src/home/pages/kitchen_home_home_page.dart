@@ -163,10 +163,16 @@ class _HomePageState extends State<HomePage> {
                     child: SizedBox(
                       height: AppSize.homeControlHeight,
                       width: double.infinity,
-                      child: _QuickAction(
-                        icon: Icons.add_circle_outline_rounded,
+                      child: AppImportButton(
+                        onPressed: _showRecipeCreationOptions,
                         label: '创建菜谱',
-                        onTap: _showRecipeCreationOptions,
+                        icon: Icons.add_circle_outline_rounded,
+                        height: AppSize.homeControlHeight,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s20,
+                        ),
+                        iconSize: AppSize.icon20,
+                        fontSize: AppText.body,
                       ),
                     ),
                   ),
@@ -208,38 +214,3 @@ class _HomeShadowSurface extends StatelessWidget {
   }
 }
 
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: AppSize.icon20),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(AppSize.homeControlHeight),
-        foregroundColor: AppColor.xFFFFFF,
-        side: const BorderSide(color: AppColor.xA94B3F, width: 2),
-        backgroundColor: AppColor.xF26A58,
-        elevation: 0,
-        shadowColor: Colors.transparent,
-        textStyle: const TextStyle(
-          fontSize: AppText.body,
-          fontWeight: FontWeight.w700,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.r22),
-        ),
-      ),
-    );
-  }
-}

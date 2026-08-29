@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,7 +57,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextField, '番茄'), findsOneWidget);
     expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '收藏')).selected,
+      tester
+              .getSemantics(find.text('收藏'))
+              .getSemanticsData()
+              .flagsCollection
+              .isSelected ==
+          ui.Tristate.isTrue,
       isTrue,
     );
   });

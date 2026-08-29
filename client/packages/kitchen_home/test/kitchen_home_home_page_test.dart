@@ -40,19 +40,19 @@ void main() {
     );
     expect(searchSize, const Size(337, 56));
 
-    final createButton = tester.widget<OutlinedButton>(
-      find.byType(OutlinedButton),
+    final createButton = tester.widget<AppImportButton>(
+      find.byType(AppImportButton),
     );
-    final buttonBorder = createButton.style!.side!.resolve({});
-    expect(buttonBorder?.color, AppColor.xA94B3F);
-    expect(buttonBorder?.width, 2);
+    expect(createButton.label, '创建菜谱');
+    expect(createButton.icon, Icons.add_circle_outline_rounded);
+    expect(createButton.height, AppSize.homeControlHeight);
 
-    final createSurface = tester.widget<DecoratedBox>(
+    final createSurface = tester.widgetList<DecoratedBox>(
       find.descendant(
         of: find.byKey(const Key('home-create-surface')),
         matching: find.byType(DecoratedBox),
       ),
-    );
+    ).first;
     final createDecoration = createSurface.decoration as BoxDecoration;
     expect(createDecoration.boxShadow!.single.color, AppColor.xA94B3F);
 

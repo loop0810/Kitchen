@@ -446,22 +446,21 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
   }
 
   Future<void> _moveRecipeToTrash(RecipeEntity recipe) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('移入回收站？'),
-        content: Text('“${recipe.title}”会保留 30 天，期间可以从回收站恢复。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('移入回收站'),
-          ),
-        ],
-      ),
+      title: '移入回收站？',
+      content: '“${recipe.title}”会保留 30 天，期间可以从回收站恢复。',
+      actions: [
+        AppDialogAction(
+          title: '取消',
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true).pop(false),
+        ),
+        AppDialogAction(
+          title: '移入回收站',
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
+        ),
+      ],
     );
     if (confirmed != true || !mounted) return;
     await ref
@@ -673,72 +672,39 @@ class _LibraryControlsHeaderDelegate extends SliverPersistentHeaderDelegate {
                   child: Row(
                     children: [
                       Expanded(
-                        child: ListView(
+                        child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          children: RecipeStatusFilter.values
-                              .map(
-                                (item) => Padding(
-                                  padding: const EdgeInsets.only(
-                                    right: AppSpacing.s8,
-                                  ),
-                                  child: ChoiceChip(
-                                    label: Text(_filterLabel(item)),
-                                    selected: filter == item,
-                                    showCheckmark: false,
-                                    visualDensity: VisualDensity.compact,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.s10,
-                                    ),
-                                    labelStyle: TextStyle(
-                                      color: filter == item
-                                          ? AppColor.xFFFFFF
-                                          : AppColor.xA94B3F,
-                                      fontSize: AppText.label,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                    backgroundColor: AppColor.xFFFDF8,
-                                    selectedColor: AppColor.xF26A58,
-                                    side: const BorderSide(
-                                      color: AppColor.xE8DAC1,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        AppRadius.r12,
-                                      ),
-                                    ),
-                                    onSelected: (_) => onFilterChanged(item),
-                                  ),
+                          child: AppSegmentedButtonGroup<RecipeStatusFilter>(
+                            options: [
+                              for (final item in RecipeStatusFilter.values)
+                                AppSegmentedButtonOption(
+                                  value: item,
+                                  label: _filterLabel(item),
                                 ),
-                              )
-                              .toList(),
+                            ],
+                            selected: filter,
+                            onChanged: onFilterChanged,
+                            height: AppSize.libraryFilterHeight,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.s10,
+                            ),
+                            fontSize: AppText.label,
+                          ),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.s8),
                       SizedBox(
                         height: AppSize.libraryFilterHeight,
-                        child: FilledButton.icon(
+                        child: AppImportButton(
                           onPressed: onImport,
-                          icon: const Icon(
-                            Icons.add_circle_outline_rounded,
-                            size: AppSize.icon17,
+                          label: '导入菜谱',
+                          icon: Icons.add_circle_outline_rounded,
+                          height: AppSize.libraryFilterHeight,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.s10,
                           ),
-                          label: Text(isRecipes ? '导入菜谱' : '新建菜谱集'),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.s10,
-                            ),
-                            backgroundColor: AppColor.xF26A58,
-                            foregroundColor: AppColor.xFFFFFF,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.r12,
-                              ),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: AppText.label,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                          iconSize: AppSize.icon17,
+                          fontSize: AppText.label,
                         ),
                       ),
                     ],
