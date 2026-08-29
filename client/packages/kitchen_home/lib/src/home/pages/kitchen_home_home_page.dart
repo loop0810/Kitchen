@@ -25,6 +25,34 @@ class _HomePageState extends State<HomePage> {
     context.pushSearch(query);
   }
 
+  void _showRecipeCreationOptions() {
+    showAppActionSheet(
+      context: context,
+      title: '创建菜谱',
+      subtitle: '选择一种开始方式',
+      actions: [
+        AppActionSheetAction(
+          iconAsset: 'assets/images/recipe_creation_manual.png',
+          iconAssetPackage: 'kitchen_home',
+          title: '手动创建',
+          onTap: () => context.pushCreateRecipe<void>(),
+        ),
+        AppActionSheetAction(
+          iconAsset: 'assets/images/recipe_creation_link.png',
+          iconAssetPackage: 'kitchen_home',
+          title: '粘贴文章或链接',
+          onTap: () => context.pushPasteImport<void>(),
+        ),
+        AppActionSheetAction(
+          iconAsset: 'assets/images/recipe_creation_image.png',
+          iconAssetPackage: 'kitchen_home',
+          title: '选择图片',
+          onTap: () => context.pushImageImport<void>(),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -51,8 +79,10 @@ class _HomePageState extends State<HomePage> {
                     height: illustrationHeight,
                     child: Image.asset(
                       'assets/images/home_kitchen_illustration.png',
+                      package: 'kitchen_home',
                       fit: BoxFit.contain,
                       semanticLabel: '厨房食材插图',
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.s16),
@@ -136,7 +166,7 @@ class _HomePageState extends State<HomePage> {
                       child: _QuickAction(
                         icon: Icons.add_circle_outline_rounded,
                         label: '创建菜谱',
-                        onTap: context.showRecipeCreationOptions,
+                        onTap: _showRecipeCreationOptions,
                       ),
                     ),
                   ),

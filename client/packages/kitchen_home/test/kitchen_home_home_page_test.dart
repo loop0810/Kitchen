@@ -18,7 +18,8 @@ void main() {
             widget is Image &&
             widget.image is AssetImage &&
             (widget.image as AssetImage).assetName ==
-                'assets/images/home_kitchen_illustration.png',
+                'assets/images/home_kitchen_illustration.png' &&
+            (widget.image as AssetImage).package == 'kitchen_home',
       ),
       findsOneWidget,
     );
@@ -54,5 +55,23 @@ void main() {
     );
     final createDecoration = createSurface.decoration as BoxDecoration;
     expect(createDecoration.boxShadow!.single.color, AppColor.xA94B3F);
+
+    await tester.tap(find.text('创建菜谱'));
+    await tester.pumpAndSettle();
+    expect(find.text('选择一种开始方式'), findsOneWidget);
+    expect(find.text('手动创建'), findsOneWidget);
+    expect(find.text('粘贴文章或链接'), findsOneWidget);
+    expect(find.text('选择图片'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName ==
+                'assets/images/recipe_creation_manual.png' &&
+            (widget.image as AssetImage).package == 'kitchen_home',
+      ),
+      findsOneWidget,
+    );
   });
 }
