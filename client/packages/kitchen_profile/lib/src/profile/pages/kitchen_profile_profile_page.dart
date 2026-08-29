@@ -7,6 +7,20 @@ import '../providers/kitchen_profile_personal_recipe_config_provider.dart';
 import '../providers/kitchen_profile_visual_style_provider.dart';
 import 'kitchen_profile_personal_recipe_page.dart';
 
+const _profileChefAsset = 'assets/images/profile_hero_chef.png';
+const _profileDefaultStyleAsset =
+    'assets/images/profile_default_recipe_style.png';
+const _profilePersonalizedRecipeAsset =
+    'assets/images/profile_personalized_recipe.png';
+const _profileLocalDataAsset = 'assets/images/profile_local_data.png';
+const _profileAccountSecurityAsset =
+    'assets/images/profile_account_security.png';
+const _profilePrivacyPolicyAsset = 'assets/images/profile_privacy_policy.png';
+const _profileUserAgreementAsset = 'assets/images/profile_user_agreement.png';
+const _profileAboutInfoAsset = 'assets/images/profile_about_info.png';
+const _profileFeedbackAsset = 'assets/images/profile_feedback.png';
+const _profileNoteBookAsset = 'assets/images/profile_notebook.png';
+
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
@@ -16,6 +30,7 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   String? _lastExportPath;
+  _ProfilePreviewMode? _previewMode;
 
   @override
   Widget build(BuildContext context) {
@@ -33,116 +48,174 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final session = authRepository == null
         ? const AsyncValue<AuthSessionState>.data(AuthSessionState.anonymous())
         : ref.watch(_profileSessionProvider(authRepository));
+    final previewMode = _previewMode ?? _profilePreviewModeForSession(session);
     return Scaffold(
-      appBar: AppBar(title: const Text('我的')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.s16,
-          AppSpacing.s8,
-          AppSpacing.s16,
-          AppSpacing.s24,
-        ),
-        children: [
-          _AccountCard(
-            session: session,
-            repository: authRepository,
-            signInWithApple: signInWithApple,
-            signInWithPhone: dependencies?.signInWithPhone,
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s24,
+            AppSpacing.s12,
+            AppSpacing.s24,
+            AppSpacing.s24,
           ),
-          const SizedBox(height: AppSpacing.s12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.s16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _ProfileHeader(),
+            const SizedBox(height: AppSpacing.s28),
+            _ProfilePreviewSelector(
+              selected: previewMode,
+              onSelected: (value) => setState(() => _previewMode = value),
+            ),
+            const SizedBox(height: AppSpacing.s16),
+            _LocalUseCard(
+              mode: previewMode,
+              onTap: () => _showAccountSheet(
+                session: session,
+                repository: authRepository,
+                signInWithApple: signInWithApple,
+                signInWithPhone: dependencies?.signInWithPhone,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s20),
+            _ProfileSection(
+              title: '菜谱偏好',
+              child: _ProfileOptionList(
                 children: [
-                  Text(
-                    '默认菜谱风格',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                  _ProfileOptionRow(
+                    assetPath: _profileDefaultStyleAsset,
+                    title: '默认菜谱风格',
+                    trailing: _StyleValue(
+                      style: style,
+                      onTap: () => _showStylePicker(style),
                     ),
+                    onTap: () => _showStylePicker(style),
                   ),
-                  const SizedBox(height: AppSpacing.s14),
-                  SegmentedButton<AppVisualStyle>(
-                    segments: const [
-                      ButtonSegment(
-                        value: AppVisualStyle.scrapbook,
-                        icon: Icon(Icons.auto_awesome_rounded),
-                        label: Text('手账'),
+                  _ProfileOptionRow(
+                    assetPath: _profilePersonalizedRecipeAsset,
+                    title: '个性化食谱',
+                    subtitle: '管理分类、标签与难度',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PersonalRecipePage(),
                       ),
-                      ButtonSegment(
-                        value: AppVisualStyle.minimal,
-                        icon: Icon(Icons.crop_square_rounded),
-                        label: Text('极简'),
-                      ),
-                    ],
-                    selected: {style},
-                    onSelectionChanged: (value) => ref
-                        .read(visualStyleProvider.notifier)
-                        .setStyle(value.first),
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.s12),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.tune_rounded),
-              title: const Text('个性化食谱'),
-              subtitle: const Text('管理分类、标签与难度'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const PersonalRecipePage(),
-                ),
+            const SizedBox(height: AppSpacing.s20),
+            _ProfileSection(
+              title: '隐私与帮助',
+              child: _ProfileOptionList(
+                children: [
+                  _ProfileOptionRow(
+                    assetPath: _profileLocalDataAsset,
+                    title: '管理本机资料',
+                    // subtitle: '导出、恢复或清除本机菜谱',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => _showLocalDataDialog(context, ref),
+                  ),
+                  _ProfileOptionRow(
+                    assetPath: _profileAccountSecurityAsset,
+                    title: '账号与安全',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => _showAccountSheet(
+                      session: session,
+                      repository: authRepository,
+                      signInWithApple: signInWithApple,
+                      signInWithPhone: dependencies?.signInWithPhone,
+                    ),
+                  ),
+                  _ProfileOptionRow(
+                    assetPath: _profilePrivacyPolicyAsset,
+                    title: '隐私政策',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {},
+                  ),
+                  _ProfileOptionRow(
+                    assetPath: _profileUserAgreementAsset,
+                    title: '用户协议',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {},
+                  ),
+                  _ProfileOptionRow(
+                    assetPath: _profileAboutInfoAsset,
+                    title: '权限与数据说明',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {},
+                  ),
+                  _ProfileOptionRow(
+                    assetPath: _profileFeedbackAsset,
+                    title: '意见反馈 / 联系我们',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {},
+                  ),
+                  _ProfileOptionRow(
+                    assetPath: _profileNoteBookAsset,
+                    title: '关于厨房手记',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {},
+                  ),
+                  
+                ],
               ),
             ),
+            const SizedBox(height: AppSpacing.s20),
+            // const _AboutKitchenNotes(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showStylePicker(AppVisualStyle currentStyle) async {
+    final selected = await showModalBottomSheet<AppVisualStyle>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: AppVisualStyle.values
+              .map(
+                (value) => ListTile(
+                  leading: Icon(
+                    value == currentStyle
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                  ),
+                  title: Text(_visualStyleLabel(value)),
+                  onTap: () => Navigator.of(context).pop(value),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+    if (selected != null && mounted) {
+      ref.read(visualStyleProvider.notifier).setStyle(selected);
+    }
+  }
+
+  Future<void> _showAccountSheet({
+    required AsyncValue<AuthSessionState> session,
+    required AuthSessionRepository? repository,
+    required Future<bool> Function()? signInWithApple,
+    required Future<bool> Function(String phone, String code)? signInWithPhone,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.s16),
+          child: _AccountCard(
+            session: session,
+            repository: repository,
+            signInWithApple: signInWithApple,
+            signInWithPhone: signInWithPhone,
           ),
-          const SizedBox(height: AppSpacing.s12),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.auto_awesome_rounded),
-                  title: const Text('云端智能整理'),
-                  subtitle: const Text('本周期剩余次数将在接入服务后显示'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () {},
-                ),
-                const Divider(height: AppSpacing.s1, indent: AppSpacing.s56),
-                ListTile(
-                  leading: const Icon(Icons.ondemand_video_rounded),
-                  title: const Text('观看广告获取次数'),
-                  subtitle: const Text('广告能力尚未接入'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () {},
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s12),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.cloud_outlined),
-                  title: const Text('备份与同步'),
-                  subtitle: const Text('当前所有数据仅保存在本机'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => _showLocalDataDialog(context, ref),
-                ),
-                const Divider(height: AppSpacing.s1, indent: AppSpacing.s56),
-                ListTile(
-                  leading: const Icon(Icons.privacy_tip_outlined),
-                  title: const Text('隐私与数据'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () {},
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -353,6 +426,660 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 }
+
+enum _ProfilePreviewMode { loggedOut, loggedIn, local }
+
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '我的厨房',
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            color: AppColor.x60483A,
+            fontSize: AppText.libraryTitle,
+            fontWeight: FontWeight.w700,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s8),
+        const Text(
+          '记录每一顿认真的饭',
+          style: TextStyle(
+            color: AppColor.x7E756E,
+            fontSize: AppText.body,
+            fontWeight: FontWeight.w600,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfilePreviewSelector extends StatelessWidget {
+  const _ProfilePreviewSelector({
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final _ProfilePreviewMode selected;
+  final ValueChanged<_ProfilePreviewMode> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Text(
+          '预览状态',
+          style: TextStyle(
+            color: AppColor.x7E756E,
+            fontSize: AppText.body,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.s12),
+        Expanded(
+          child: _ProfileSegmentedControl<_ProfilePreviewMode>(
+            value: selected,
+            values: _ProfilePreviewMode.values,
+            labelBuilder: _profilePreviewModeLabel,
+            onChanged: onSelected,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileSegmentedControl<T> extends StatelessWidget {
+  const _ProfileSegmentedControl({
+    required this.value,
+    required this.values,
+    required this.labelBuilder,
+    required this.onChanged,
+  });
+
+  final T value;
+  final List<T> values;
+  final String Function(T value) labelBuilder;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.all(AppSpacing.s4),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColor.xE8DAC1, width: 2),
+        borderRadius: BorderRadius.circular(AppRadius.r22),
+      ),
+      child: Row(
+        children: [
+          for (final item in values)
+            Expanded(
+              child: GestureDetector(
+                onTap: () => onChanged(item),
+                behavior: HitTestBehavior.opaque,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: item == value
+                        ? AppColor.xF5DDD5
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(AppRadius.r16),
+                  ),
+                  child: Center(
+                    child: Text(
+                      labelBuilder(item),
+                      style: TextStyle(
+                        color: item == value
+                            ? AppColor.xA94B3F
+                            : AppColor.x7E756E,
+                        fontSize: AppText.body,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LocalUseCard extends StatelessWidget {
+  const _LocalUseCard({required this.mode, required this.onTap});
+
+  final _ProfilePreviewMode mode;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ProfileSurface(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.r28),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s20,
+            AppSpacing.s20,
+            AppSpacing.s20,
+            AppSpacing.s16,
+          ),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    _profileChefAsset,
+                    package: 'kitchen_profile',
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.contain,
+                    semanticLabel: '厨房手记插图',
+                  ),
+                  const SizedBox(width: AppSpacing.s16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _profilePreviewModeTitle(mode),
+                                style: const TextStyle(
+                                  color: AppColor.x60483A,
+                                  fontSize: AppText.title,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.s8),
+                            _ProfileStatusChip(
+                              label: _profilePreviewModeBadge(mode),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.s8),
+                        Text(
+                          _profilePreviewModeSubtitle(mode),
+                          style: const TextStyle(
+                            color: AppColor.x7E756E,
+                            fontSize: AppText.body,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s8),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColor.xA98B7C,
+                    size: AppSize.icon30,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s20),
+              const Row(
+                children: [
+                  Expanded(
+                    child: _ProfileStat(
+                      value: '12',
+                      label: '本机收藏',
+                      color: Color(0xFFD05B4B),
+                    ),
+                  ),
+                  _ProfileStatDivider(),
+                  Expanded(
+                    child: _ProfileStat(
+                      value: '8',
+                      label: '本周做过',
+                      color: Color(0xFFD99418),
+                    ),
+                  ),
+                  _ProfileStatDivider(),
+                  Expanded(
+                    child: _ProfileStat(
+                      value: '3',
+                      label: '待核对',
+                      color: Color(0xFF75A05A),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s16),
+              const _ProfileDashedDivider(),
+              const SizedBox(height: AppSpacing.s12),
+              const Text(
+                '以上数据仅来自这台设备的本地菜谱',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColor.xA98B7C,
+                  fontSize: AppText.detail,
+                  fontWeight: FontWeight.w600,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileStat extends StatelessWidget {
+  const _ProfileStat({
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: AppText.title,
+            fontWeight: FontWeight.w700,
+          ).copyWith(color: color),
+        ),
+        const SizedBox(height: AppSpacing.s4),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColor.x7E756E,
+            fontSize: AppText.detail,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileStatDivider extends StatelessWidget {
+  const _ProfileStatDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: 52, color: AppColor.xEADCC3);
+  }
+}
+
+class _ProfileDashedDivider extends StatelessWidget {
+  const _ProfileDashedDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 1,
+      width: double.infinity,
+      child: CustomPaint(painter: _ProfileDashedLinePainter()),
+    );
+  }
+}
+
+class _ProfileDashedLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColor.xEADCC3
+      ..strokeWidth = 1.5;
+    const dashWidth = 5.0;
+    const gap = 4.0;
+    var start = 0.0;
+    while (start < size.width) {
+      canvas.drawLine(
+        Offset(start, 0),
+        Offset((start + dashWidth).clamp(0, size.width), 0),
+        paint,
+      );
+      start += dashWidth + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ProfileStatusChip extends StatelessWidget {
+  const _ProfileStatusChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColor.xF5DDD5,
+        borderRadius: BorderRadius.circular(AppRadius.r10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s10,
+          vertical: AppSpacing.s4,
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: AppColor.xA94B3F,
+            fontSize: AppText.detail,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileSection extends StatelessWidget {
+  const _ProfileSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ProfileSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s20,
+              AppSpacing.s20,
+              AppSpacing.s20,
+              AppSpacing.s8,
+            ),
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: AppColor.xA98B7C,
+                fontSize: AppText.body,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileSurface extends StatelessWidget {
+  const _ProfileSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.r28);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColor.xFFFDF8,
+        border: Border.all(color: AppColor.xE8DAC1, width: 2),
+        borderRadius: radius,
+        boxShadow: const [
+          BoxShadow(color: AppColor.xEADCC3, offset: Offset(0, 4)),
+        ],
+      ),
+      child: ClipRRect(borderRadius: radius, child: child),
+    );
+  }
+}
+
+class _ProfileOptionList extends StatelessWidget {
+  const _ProfileOptionList({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var index = 0; index < children.length; index++) ...[
+          children[index],
+          if (index < children.length - 1)
+            const Divider(height: AppSpacing.s1, indent: AppSpacing.s56),
+        ],
+      ],
+    );
+  }
+}
+
+class _ProfileOptionRow extends StatelessWidget {
+  const _ProfileOptionRow({
+    required this.assetPath,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+    this.trailing,
+    this.highlighted = false,
+  });
+
+  final String assetPath;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback onTap;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s16,
+        AppSpacing.s12,
+        AppSpacing.s12,
+        AppSpacing.s12,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _ProfileIcon(assetPath: assetPath),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColor.x60483A,
+                    fontSize: AppText.body,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: AppSpacing.s4),
+                  Text(
+                    subtitle!,
+                    style: const TextStyle(
+                      color: AppColor.x7E756E,
+                      fontSize: AppText.detail,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: AppSpacing.s8),
+            trailing!,
+          ],
+        ],
+      ),
+    );
+    if (!highlighted) {
+      return InkWell(onTap: onTap, child: content);
+    }
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.s8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.r16),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0xFFFFF2D7),
+            borderRadius: BorderRadius.circular(AppRadius.r16),
+          ),
+          child: content,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileIcon extends StatelessWidget {
+  const _ProfileIcon({required this.assetPath});
+
+  final String assetPath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      assetPath,
+      package: 'kitchen_profile',
+      width: AppSize.icon20,
+      height: AppSize.icon20,
+      fit: BoxFit.contain,
+      excludeFromSemantics: true,
+    );
+  }
+}
+
+class _StyleValue extends StatelessWidget {
+  const _StyleValue({required this.style, required this.onTap});
+
+  final AppVisualStyle style;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.r10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s8,
+          vertical: AppSpacing.s4,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _visualStyleLabel(style),
+              style: const TextStyle(
+                color: AppColor.x7E756E,
+                fontSize: AppText.detail,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s8),
+            const Text(
+              '切换',
+              style: TextStyle(
+                color: AppColor.xA94B3F,
+                fontSize: AppText.detail,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AboutKitchenNotes extends StatelessWidget {
+  const _AboutKitchenNotes();
+
+  @override
+  Widget build(BuildContext context) {
+    return _ProfileSurface(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '关于厨房手记',
+              style: TextStyle(
+                color: AppColor.x60483A,
+                fontSize: AppText.body,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s8),
+            Text(
+              '登录只用于账号能力，本地菜谱的创建、导入、编辑与查看无需登录。',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColor.x7E756E,
+                fontSize: AppText.detail,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+_ProfilePreviewMode _profilePreviewModeForSession(
+  AsyncValue<AuthSessionState> session,
+) {
+  return switch (session.valueOrNull?.status) {
+    AuthSessionStatus.authenticated ||
+    AuthSessionStatus.refreshing => _ProfilePreviewMode.loggedIn,
+    AuthSessionStatus.authenticating ||
+    AuthSessionStatus.invalid ||
+    AuthSessionStatus.anonymous ||
+    null => _ProfilePreviewMode.loggedOut,
+  };
+}
+
+String _profilePreviewModeLabel(_ProfilePreviewMode mode) => switch (mode) {
+  _ProfilePreviewMode.loggedOut => '未登录',
+  _ProfilePreviewMode.loggedIn => '已登录',
+  _ProfilePreviewMode.local => '本地使用',
+};
+
+String _profilePreviewModeTitle(_ProfilePreviewMode mode) =>
+    _profilePreviewModeLabel(mode);
+
+String _profilePreviewModeBadge(_ProfilePreviewMode mode) => switch (mode) {
+  _ProfilePreviewMode.loggedOut || _ProfilePreviewMode.local => '本机资料',
+  _ProfilePreviewMode.loggedIn => '已同步',
+};
+
+String _profilePreviewModeSubtitle(_ProfilePreviewMode mode) => switch (mode) {
+  _ProfilePreviewMode.loggedOut || _ProfilePreviewMode.local => '本地菜谱无需登录即可使用',
+  _ProfilePreviewMode.loggedIn => '本地菜谱可在登录后同步使用',
+};
+
+String _visualStyleLabel(AppVisualStyle style) => switch (style) {
+  AppVisualStyle.scrapbook => '手账',
+  AppVisualStyle.minimal => '极简',
+};
 
 final _profileSessionProvider = StreamProvider.autoDispose
     .family<AuthSessionState, AuthSessionRepository>(

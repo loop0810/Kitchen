@@ -75,11 +75,71 @@ void main() {
     expect(find.text('编辑'), findsOneWidget);
     expect(find.text('管理成员'), findsOneWidget);
     expect(find.text('删除菜谱集'), findsOneWidget);
+    final actionImages = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((image) => image.image)
+        .whereType<AssetImage>()
+        .toList();
+    expect(actionImages, hasLength(3));
+    expect(
+      actionImages.map((image) => image.assetName),
+      containsAll([
+        'assets/images/recipe_collection_action_edit.png',
+        'assets/images/recipe_collection_action_manage.png',
+        'assets/images/recipe_collection_action_delete.png',
+      ]),
+    );
+    expect(
+      actionImages.every((image) => image.package == 'kitchen_recipe_library'),
+      isTrue,
+    );
     await tester.tapAt(Offset.zero);
     await tester.pumpAndSettle();
     await tester.tap(book);
     await tester.pumpAndSettle();
     expect(find.text('成员管理页'), findsOneWidget);
+  });
+
+  testWidgets('菜谱集删除弹窗在嵌套导航中取消不会弹出最后一页', (tester) async {
+    final collections = _CollectionRepository(detail: _emptyCollectionDetail);
+    await tester.pumpWidget(
+      _app(collections: collections, nestedNavigator: true),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('菜谱集'));
+    await tester.pumpAndSettle();
+
+    final book = find.byKey(const ValueKey('collection-1'));
+    await tester.longPress(book);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除菜谱集'));
+    await tester.pumpAndSettle();
+    expect(find.text('确定删除这个菜谱集？'), findsOneWidget);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(find.text('确定删除这个菜谱集？'), findsNothing);
+    expect(find.byKey(const ValueKey('collection-1')), findsOneWidget);
+  });
+
+  testWidgets('菜谱集删除弹窗在嵌套导航中确认只删除菜谱集', (tester) async {
+    final collections = _CollectionRepository(detail: _emptyCollectionDetail);
+    await tester.pumpWidget(
+      _app(collections: collections, nestedNavigator: true),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('菜谱集'));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.byKey(const ValueKey('collection-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除菜谱集'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认删除'));
+    await tester.pumpAndSettle();
+
+    expect(collections.deletedId, 'collection-1');
+    expect(find.text('确定删除这个菜谱集？'), findsNothing);
   });
 
   testWidgets('非空菜谱集单击直接进入阅读器', (tester) async {
@@ -190,6 +250,7 @@ Widget _app({
   _DeletionRepository? deletion,
   bool showActiveRecipe = false,
   bool routed = false,
+  bool nestedNavigator = false,
   bool actualReaderRoute = false,
   String initialLocation = '/recipes',
   Widget page = const RecipeLibraryPage(),
@@ -211,6 +272,7 @@ Widget _app({
             collectionRepository,
           ),
           createCollection: CreateRecipeCollectionUseCase(collectionRepository),
+          deleteCollection: DeleteRecipeCollectionUseCase(collectionRepository),
           getCollectionIdsForRecipe: GetCollectionIdsForRecipeUseCase(
             collectionRepository,
           ),
@@ -278,7 +340,14 @@ Widget _app({
               ],
             ),
           )
-        : MaterialApp(home: page),
+        : MaterialApp(
+            home: nestedNavigator
+                ? Navigator(
+                    onGenerateRoute: (_) =>
+                        MaterialPageRoute(builder: (_) => page),
+                  )
+                : page,
+          ),
   );
 }
 
@@ -449,6 +518,7 @@ class _CollectionRepository implements RecipeCollectionRepository {
   _CollectionRepository({this.detail});
   final RecipeCollectionDetailEntity? detail;
   String? createdName;
+  String? deletedId;
 
   @override
   Stream<List<RecipeCollectionEntity>> watchCollections() =>
@@ -469,7 +539,8 @@ class _CollectionRepository implements RecipeCollectionRepository {
   @override
   Future<Set<String>> getCollectionIdsForRecipe(String recipeId) async => {};
   @override
-  Future<void> deleteCollection(String collectionId) async {}
+  Future<void> deleteCollection(String collectionId) async =>
+      deletedId = collectionId;
   @override
   Future<void> updateCollection({
     required String collectionId,

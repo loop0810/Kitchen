@@ -14,9 +14,13 @@ import '../widgets/kitchen_recipe_library_recipe_card_widget.dart';
 
 enum _LibrarySection { recipes, collections }
 
-enum _RecipeCardAction { edit, collections, trash }
-
-enum _CollectionAction { edit, members, delete }
+const _recipeCollectionActionAssetPackage = 'kitchen_recipe_library';
+const _recipeCollectionEditAsset =
+    'assets/images/recipe_collection_action_edit.png';
+const _recipeCollectionManageAsset =
+    'assets/images/recipe_collection_action_manage.png';
+const _recipeCollectionDeleteAsset =
+    'assets/images/recipe_collection_action_delete.png';
 
 class RecipeLibraryPage extends ConsumerStatefulWidget {
   const RecipeLibraryPage({super.key});
@@ -273,31 +277,30 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
     Offset globalPosition,
   ) async {
     unawaited(HapticFeedback.mediumImpact());
-    final overlay =
-        Overlay.of(context).context.findRenderObject()! as RenderBox;
-    final action = await showMenu<_CollectionAction>(
+    await showAppContextMenu(
       context: context,
-      position: RelativeRect.fromLTRB(
-        globalPosition.dx,
-        globalPosition.dy,
-        overlay.size.width - globalPosition.dx,
-        overlay.size.height - globalPosition.dy,
-      ),
-      items: const [
-        PopupMenuItem(value: _CollectionAction.edit, child: Text('编辑')),
-        PopupMenuItem(value: _CollectionAction.members, child: Text('管理成员')),
-        PopupMenuItem(value: _CollectionAction.delete, child: Text('删除菜谱集')),
+      anchorPosition: globalPosition,
+      actions: [
+        AppContextMenuAction(
+          iconAsset: _recipeCollectionEditAsset,
+          iconAssetPackage: _recipeCollectionActionAssetPackage,
+          title: '编辑',
+          onTap: () => _editCollection(collection),
+        ),
+        AppContextMenuAction(
+          iconAsset: _recipeCollectionManageAsset,
+          iconAssetPackage: _recipeCollectionActionAssetPackage,
+          title: '管理成员',
+          onTap: () => context.pushRecipeCollection<void>(collection.id),
+        ),
+        AppContextMenuAction(
+          iconAsset: _recipeCollectionDeleteAsset,
+          iconAssetPackage: _recipeCollectionActionAssetPackage,
+          title: '删除菜谱集',
+          onTap: () => _deleteCollection(collection),
+        ),
       ],
     );
-    if (!mounted || action == null) return;
-    switch (action) {
-      case _CollectionAction.edit:
-        await _editCollection(collection);
-      case _CollectionAction.members:
-        await context.pushRecipeCollection<void>(collection.id);
-      case _CollectionAction.delete:
-        await _deleteCollection(collection);
-    }
   }
 
   Future<void> _editCollection(RecipeCollectionEntity collection) async {
@@ -319,22 +322,21 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
   }
 
   Future<void> _deleteCollection(RecipeCollectionEntity collection) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('删除菜谱集？'),
-        content: Text('只会删除“${collection.name}”及其成员关系，不会删除其中的菜谱。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+      title: '确定删除这个菜谱集？',
+      content: '删除菜谱集不会删除其中的菜谱。\n这里只会删除集合关系，不会删除菜谱库中的原始菜谱。',
+      actions: [
+        AppDialogAction(
+          title: '取消',
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true).pop(false),
+        ),
+        AppDialogAction(
+          title: '确认删除',
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
+        ),
+      ],
     );
     if (confirmed != true || !mounted) return;
     await ref
@@ -380,55 +382,27 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
     // 触觉反馈不应阻塞浮层出现；某些测试环境或系统设置不会返回实际反馈。
     unawaited(HapticFeedback.mediumImpact());
     if (!mounted) return;
-    final overlay =
-        Overlay.of(context).context.findRenderObject()! as RenderBox;
-    final action = await showMenu<_RecipeCardAction>(
+    await showAppContextMenu(
       context: context,
-      position: RelativeRect.fromLTRB(
-        globalPosition.dx,
-        globalPosition.dy,
-        overlay.size.width - globalPosition.dx,
-        overlay.size.height - globalPosition.dy,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.r18),
-      ),
-      items: const [
-        PopupMenuItem(
-          value: _RecipeCardAction.edit,
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.edit_outlined),
-            title: Text('编辑菜谱'),
-          ),
+      anchorPosition: globalPosition,
+      actions: [
+        AppContextMenuAction(
+          icon: Icons.edit_outlined,
+          title: '编辑菜谱',
+          onTap: () => context.pushEditRecipe<void>(summary.recipe.id),
         ),
-        PopupMenuItem(
-          value: _RecipeCardAction.collections,
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.collections_bookmark_outlined),
-            title: Text('管理菜谱集'),
-          ),
+        AppContextMenuAction(
+          icon: Icons.collections_bookmark_outlined,
+          title: '管理菜谱集',
+          onTap: () => _manageRecipeCollections(summary.recipe.id),
         ),
-        PopupMenuItem(
-          value: _RecipeCardAction.trash,
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.delete_outline_rounded),
-            title: Text('移入回收站'),
-          ),
+        AppContextMenuAction(
+          icon: Icons.delete_outline_rounded,
+          title: '移入回收站',
+          onTap: () => _moveRecipeToTrash(summary.recipe),
         ),
       ],
     );
-    if (!mounted || action == null) return;
-    switch (action) {
-      case _RecipeCardAction.edit:
-        await context.pushEditRecipe<void>(summary.recipe.id);
-      case _RecipeCardAction.collections:
-        await _manageRecipeCollections(summary.recipe.id);
-      case _RecipeCardAction.trash:
-        await _moveRecipeToTrash(summary.recipe);
-    }
   }
 
   Future<void> _manageRecipeCollections(String recipeId) async {

@@ -20,9 +20,27 @@ void main() {
     );
 
     expect(container.read(visualStyleProvider), AppVisualStyle.scrapbook);
+    await tester.tap(find.text('切换'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('极简'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(container.read(visualStyleProvider), AppVisualStyle.minimal);
+  });
+
+  testWidgets('我的页面将本机资料放入隐私与帮助', (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(child: MaterialApp(home: ProfilePage())),
+    );
+    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.text('隐私与帮助'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(find.text('隐私与帮助'), findsOneWidget);
+    expect(find.text('管理本机资料'), findsOneWidget);
+    expect(find.text('数据管理'), findsNothing);
   });
 
   testWidgets('从个性化食谱进入分类管理并新增选项', (tester) async {
@@ -77,6 +95,11 @@ void main() {
       ),
     );
 
+    await tester.pump();
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('账号与安全'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('模拟手机号登录'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), '13800138000');
@@ -107,6 +130,11 @@ void main() {
       ),
     );
 
+    await tester.pump();
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('账号与安全'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('模拟手机号登录'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), '01012345678');

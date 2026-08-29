@@ -3,6 +3,8 @@ import 'package:kitchen_design_system/kitchen_design_system.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:kitchen_recipe_template/kitchen_recipe_template.dart';
 
+const _maxDisplayedIngredients = 4;
+
 class RecipeCardWidget extends StatelessWidget {
   const RecipeCardWidget({
     super.key,
@@ -42,6 +44,7 @@ class RecipeCardWidget extends StatelessWidget {
                 ? _PlaceholderCardBody(
                     color: _placeholderColor(entity.coverColor),
                     isFavorite: entity.isFavorite,
+                    primaryIngredients: recipe.primaryIngredients,
                     onTap: onTap,
                     onFavorite: onFavorite,
                   )
@@ -60,6 +63,7 @@ class RecipeCardWidget extends StatelessWidget {
     final ingredients = recipe.primaryIngredients.isEmpty
         ? '食材待补充'
         : recipe.primaryIngredients
+              .take(_maxDisplayedIngredients)
               .map(
                 (ingredient) => '${ingredient.name} ${ingredient.amountText}',
               )
@@ -74,12 +78,14 @@ class _PlaceholderCardBody extends StatelessWidget {
   const _PlaceholderCardBody({
     required this.color,
     required this.isFavorite,
+    required this.primaryIngredients,
     required this.onTap,
     required this.onFavorite,
   });
 
   final Color color;
   final bool isFavorite;
+  final List<IngredientSummaryValueObject> primaryIngredients;
   final VoidCallback onTap;
   final VoidCallback onFavorite;
 
@@ -91,6 +97,15 @@ class _PlaceholderCardBody extends StatelessWidget {
         onTap: onTap,
         child: Stack(
           children: [
+            if (primaryIngredients.isNotEmpty)
+              Positioned(
+                left: AppSpacing.s12,
+                right: AppSpacing.s12,
+                bottom: AppSpacing.s12,
+                child: _PlaceholderIngredients(
+                  ingredients: primaryIngredients,
+                ),
+              ),
             Positioned(
               right: AppSpacing.s4,
               top: AppSpacing.s4,
@@ -108,6 +123,72 @@ class _PlaceholderCardBody extends StatelessWidget {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaceholderIngredients extends StatelessWidget {
+  const _PlaceholderIngredients({required this.ingredients});
+
+  final List<IngredientSummaryValueObject> ingredients;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayedIngredients = ingredients
+        .take(_maxDisplayedIngredients)
+        .toList();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColor.xFFFAF2.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s12,
+          vertical: AppSpacing.s10,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (index, ingredient) in displayedIngredients.indexed) ...[
+              if (index > 0)
+                const SizedBox(height: AppSpacing.s4),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      ingredient.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColor.x60483A,
+                        fontSize: AppText.detail,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (ingredient.amountText.isNotEmpty) ...[
+                    const SizedBox(width: AppSpacing.s8),
+                    Flexible(
+                      child: Text(
+                        ingredient.amountText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                          color: AppColor.x7E756E,
+                          fontSize: AppText.caption,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
           ],
         ),
       ),
