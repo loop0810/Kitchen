@@ -27,7 +27,7 @@ void main() {
     await tester.pumpWidget(_testApp(repository, const RecipeLibraryPage()));
     await tester.pumpAndSettle();
 
-    expect(find.text('番茄炒蛋'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('番茄炒蛋')), findsOneWidget);
     await tester.tap(find.text('收藏'));
     await tester.pumpAndSettle();
     expect(repository.lastQuery?.statusFilter, RecipeStatusFilter.favorite);
@@ -43,6 +43,27 @@ void main() {
     expect(find.textContaining('菜谱加载失败'), findsOneWidget);
   });
 
+  testWidgets('菜谱库纵向滚动时控制区吸顶悬浮', (tester) async {
+    final repository = _LibraryRepository(
+      streamFactory: (query) =>
+          Stream.value(List.generate(8, (index) => _summary)),
+    );
+    await tester.pumpWidget(_testApp(repository, const RecipeLibraryPage()));
+    await tester.pumpAndSettle();
+
+    final stickyControls = find.byKey(
+      const ValueKey('recipe-library-sticky-controls-recipes'),
+    );
+    expect(stickyControls, findsOneWidget);
+    await tester.drag(
+      find.byKey(const PageStorageKey('recipe-library-scroll')),
+      const Offset(0, -600),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(stickyControls).dy, closeTo(0, 1));
+  });
+
   testWidgets('长按菜谱卡片在当前位置展示管理操作', (tester) async {
     final repository = _LibraryRepository(
       streamFactory: (query) => Stream.value([_summary]),
@@ -50,7 +71,7 @@ void main() {
     await tester.pumpWidget(_testApp(repository, const RecipeLibraryPage()));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('番茄炒蛋'));
+    await tester.longPress(find.bySemanticsLabel(RegExp('番茄炒蛋')));
     await tester.pumpAndSettle();
 
     expect(find.text('编辑菜谱'), findsOneWidget);

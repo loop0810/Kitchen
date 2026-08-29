@@ -17,6 +17,10 @@ abstract final class AppSize {
   static const homeControlHeight = 56.0;
   static const importIllustration = 72.0;
   static const filterBarHeight = 42.0;
+  static const recipeLibraryHeroHeight = 126.0;
+  static const librarySegmentHeight = 48.0;
+  static const librarySearchHeight = 40.0;
+  static const libraryFilterHeight = 36.0;
   static const recipeHeaderHeight = 250.0;
   static const recipeCardAspectRatio = 2 / 3;
 }

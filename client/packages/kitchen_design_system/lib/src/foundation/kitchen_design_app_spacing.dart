@@ -1,8 +1,10 @@
 abstract final class AppSpacing {
   static const s1 = 1.0;
+  static const s3 = 3.0;
   static const s4 = 4.0;
   static const s5 = 5.0;
   static const s6 = 6.0;
+  static const s7 = 7.0;
   static const s8 = 8.0;
   static const s9 = 9.0;
   static const s10 = 10.0;
@@ -16,6 +18,7 @@ abstract final class AppSpacing {
   static const s24 = 24.0;
   static const s28 = 28.0;
   static const s32 = 32.0;
+  static const s48 = 48.0;
   static const s56 = 56.0;
   static const s120 = 120.0;
 }

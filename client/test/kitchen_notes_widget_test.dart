@@ -75,10 +75,10 @@ void main() {
         'assets/images/tab_profile_unselected.png',
       }),
     );
-    await tester.tap(find.text('菜谱库'));
+    await tester.tap(find.byKey(const Key('main-tab-1')));
     await tester.pumpAndSettle();
     final recipeTabAssets = captureVisibleTabAssets();
-    expect(find.text('装配测试菜谱'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('装配测试菜谱')), findsOneWidget);
     expect(
       recipeTabAssets,
       equals(<String>{
@@ -93,9 +93,9 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('菜谱库'));
+    await tester.tap(find.byKey(const Key('main-tab-1')));
     await tester.pumpAndSettle();
-    expect(find.text('装配测试菜谱'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('装配测试菜谱')), findsOneWidget);
   });
 }
 

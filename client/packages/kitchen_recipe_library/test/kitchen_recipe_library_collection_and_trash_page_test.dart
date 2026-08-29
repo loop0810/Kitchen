@@ -173,7 +173,7 @@ void main() {
     await tester.pumpWidget(_app(deletion: deletion, showActiveRecipe: true));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('可管理菜谱'));
+    await tester.longPress(find.bySemanticsLabel(RegExp('可管理菜谱')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('移入回收站'));
     await tester.pumpAndSettle();
