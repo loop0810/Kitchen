@@ -15,73 +15,192 @@ class ImportInboxPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(importTasksProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('导入箱'),
-        actions: [
-          IconButton(
-            tooltip: '创建菜谱',
-            onPressed: context.showRecipeCreationOptions,
-            icon: const Icon(Icons.add_rounded),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _InboxHeader(),
+            // _InboxViewToggle(emptyState: tasks.value?.isEmpty == true),
+            Expanded(
+              child: tasks.when(
+                data: (items) => items.isEmpty
+                    ? const _EmptyInbox()
+                    : _TaskList(
+                        tasks: items,
+                        onRefresh: () async =>
+                            ref.invalidate(importTasksProvider),
+                        onDelete: (task) => confirmAndDeleteImportTask(
+                          context,
+                          dependencies: ref.read(importDependenciesProvider),
+                          task: task,
+                        ),
+                      ),
+                error: (_, _) => const Center(child: Text('导入任务加载失败，请稍后重试')),
+                loading: () => const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InboxHeader extends StatelessWidget {
+  const _InboxHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s24,
+        AppSpacing.s12,
+        AppSpacing.s24,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '导入箱',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              color: AppColor.x60483A,
+              fontSize: AppText.libraryTitle,
+              fontWeight: FontWeight.w700,
+              height: 1.2,
+            ),
           ),
-          const SizedBox(width: AppSpacing.s8),
+          const SizedBox(height: AppSpacing.s8),
+          const Text(
+            '把纸上与屏幕里的好味道收好',
+            style: TextStyle(
+              color: AppColor.x7E756E,
+              fontSize: AppText.body,
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+            ),
+          ),
         ],
       ),
-      body: tasks.when(
-        data: (items) => items.isEmpty
-            ? _EmptyInbox(onCreate: context.showRecipeCreationOptions)
-            : RefreshIndicator(
-                onRefresh: () async => ref.invalidate(importTasksProvider),
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(AppSpacing.s16),
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppSpacing.s8),
-                  itemBuilder: (context, index) {
-                    final task = items[index];
-                    return Slidable(
-                      key: ValueKey(task.id),
-                      endActionPane: ActionPane(
-                        motion: const DrawerMotion(),
-                        extentRatio: 0.28,
-                        children: [
-                          SlidableAction(
-                            onPressed: (_) => confirmAndDeleteImportTask(
-                              context,
-                              dependencies: ref.read(
-                                importDependenciesProvider,
-                              ),
-                              task: task,
-                            ),
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.error,
-                            foregroundColor: Theme.of(
-                              context,
-                            ).colorScheme.onError,
-                            icon: Icons.delete_outline_rounded,
-                            label: '删除',
-                          ),
-                        ],
-                      ),
-                      child: _TaskCard(
-                        task: task,
-                        onTap: () => context.pushImportTask(task.id),
-                      ),
-                    );
-                  },
-                ),
-              ),
-        error: (_, _) => const Center(child: Text('导入任务加载失败，请稍后重试')),
-        loading: () => const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _InboxViewToggle extends StatelessWidget {
+  const _InboxViewToggle({required this.emptyState});
+
+  final bool emptyState;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: '导入箱内容视图',
+      child: Container(
+        height: AppSize.filterBarHeight,
+        margin: const EdgeInsets.fromLTRB(
+          AppSpacing.s24,
+          AppSpacing.s12,
+          AppSpacing.s24,
+          0,
+        ),
+        padding: const EdgeInsets.all(AppSpacing.s4),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColor.xE8DAC1, width: 2),
+          borderRadius: BorderRadius.circular(AppRadius.r22),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _InboxViewToggleItem(label: '任务列表', selected: !emptyState),
+            ),
+            Expanded(
+              child: _InboxViewToggleItem(label: '空状态', selected: emptyState),
+            ),
+          ],
+        ),
       ),
-      floatingActionButton: tasks.value?.isNotEmpty == true
-          ? FloatingActionButton.extended(
-              tooltip: '创建菜谱',
-              onPressed: context.showRecipeCreationOptions,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('创建菜谱'),
-            )
-          : null,
+    );
+  }
+}
+
+class _InboxViewToggleItem extends StatelessWidget {
+  const _InboxViewToggleItem({required this.label, required this.selected});
+
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: selected ? AppColor.xF5DDD5 : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.r16),
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColor.xA94B3F : AppColor.x7E756E,
+            fontSize: AppText.body,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskList extends StatelessWidget {
+  const _TaskList({
+    required this.tasks,
+    required this.onRefresh,
+    required this.onDelete,
+  });
+
+  final List<ImportTaskEntity> tasks;
+  final Future<void> Function() onRefresh;
+  final ValueChanged<ImportTaskEntity> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s24,
+          AppSpacing.s20,
+          AppSpacing.s24,
+          AppSpacing.s24,
+        ),
+        itemCount: tasks.length,
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s10),
+        itemBuilder: (context, index) {
+          final task = tasks[index];
+          return Slidable(
+            key: ValueKey(task.id),
+            endActionPane: ActionPane(
+              motion: const DrawerMotion(),
+              extentRatio: 0.28,
+              children: [
+                SlidableAction(
+                  onPressed: (_) => onDelete(task),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                  icon: Icons.delete_outline_rounded,
+                  label: '删除',
+                ),
+              ],
+            ),
+            child: _TaskCard(
+              task: task,
+              onTap: () => context.pushImportTask(task.id),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -94,7 +213,7 @@ class _TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = _statusPresentation(task.status);
+    final state = _statusPresentation(task);
     final title = task.draft?.title.value.trim().isNotEmpty == true
         ? task.draft!.title.value
         : task.originalText.split('\n').firstOrNull?.trim().isNotEmpty == true
@@ -104,73 +223,163 @@ class _TaskCard extends StatelessWidget {
         : '未命名导入';
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: ListTile(
+      child: InkWell(
         onTap: onTap,
-        minVerticalPadding: AppSpacing.s12,
-        leading: CircleAvatar(
-          child: Icon(
-            task.media.isEmpty
-                ? Icons.article_outlined
-                : Icons.photo_library_outlined,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.s12),
+          child: Row(
+            children: [
+              Image.asset(
+                state.assetPath,
+                package: 'kitchen_import',
+                width: AppSize.icon44,
+                height: AppSize.icon44,
+                fit: BoxFit.contain,
+                semanticLabel: state.label,
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColor.x60483A,
+                              fontSize: AppText.body,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s8),
+                        Text(
+                          state.label,
+                          style: TextStyle(
+                            color: state.color,
+                            fontSize: AppText.detail,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.s6),
+                    Text(
+                      state.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColor.x7E756E,
+                        fontSize: AppText.detail,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text(state.$1),
-        trailing: Icon(state.$2, color: state.$3),
       ),
     );
   }
 }
 
-(String, IconData, Color) _statusPresentation(ImportTaskStatus status) {
-  return switch (status) {
-    ImportTaskStatus.queued => (
-      '等待处理',
-      Icons.schedule_rounded,
-      AppColor.x7E756E,
+class _TaskStatusPresentation {
+  const _TaskStatusPresentation({
+    required this.assetPath,
+    required this.label,
+    required this.subtitle,
+    required this.color,
+  });
+
+  final String assetPath;
+  final String label;
+  final String subtitle;
+  final Color color;
+}
+
+_TaskStatusPresentation _statusPresentation(ImportTaskEntity task) {
+  final time = _formatTaskTime(task.updatedAt);
+  return switch (task.status) {
+    ImportTaskStatus.queued => _TaskStatusPresentation(
+      assetPath: 'assets/images/import_inbox_task_status_processing.png',
+      label: '导入中',
+      subtitle: '等待处理 · $time',
+      color: AppColor.x7E756E,
     ),
-    ImportTaskStatus.extracting => (
-      '正在提取',
-      Icons.downloading_rounded,
-      AppColor.x7E756E,
+    ImportTaskStatus.extracting => _TaskStatusPresentation(
+      assetPath: 'assets/images/import_inbox_task_status_processing.png',
+      label: '导入中',
+      subtitle: '正在提取网页内容 · $time',
+      color: AppColor.x7E756E,
     ),
-    ImportTaskStatus.recognizingImages => (
-      '正在识别图片',
-      Icons.document_scanner_outlined,
-      AppColor.x7E756E,
+    ImportTaskStatus.recognizingImages => _TaskStatusPresentation(
+      assetPath: 'assets/images/import_inbox_task_status_processing.png',
+      label: '导入中',
+      subtitle: '正在识别图片 · $time',
+      color: AppColor.x7E756E,
     ),
-    ImportTaskStatus.structuring => (
-      '正在整理菜谱',
-      Icons.auto_awesome_rounded,
-      AppColor.x7E756E,
+    ImportTaskStatus.structuring => _TaskStatusPresentation(
+      assetPath: 'assets/images/import_inbox_task_status_processing.png',
+      label: '导入中',
+      subtitle: '正在整理菜谱 · $time',
+      color: AppColor.x7E756E,
     ),
-    ImportTaskStatus.awaitingReview => (
-      '等待确认',
-      Icons.fact_check_outlined,
-      AppColor.xF26A58,
+    ImportTaskStatus.awaitingReview => _TaskStatusPresentation(
+      assetPath: 'assets/images/import_inbox_task_status_review.png',
+      label: '等待确认',
+      subtitle: '菜谱草稿已生成，请检查食材与步骤',
+      color: AppColor.xF26A58,
     ),
-    ImportTaskStatus.failed => (
-      '处理失败',
-      Icons.error_outline_rounded,
-      AppColor.xF26A58,
+    ImportTaskStatus.failed => _TaskStatusPresentation(
+      assetPath: 'assets/images/import_inbox_task_status_failed.png',
+      label: '导入失败',
+      subtitle: task.errorMessage?.trim().isNotEmpty == true
+          ? task.errorMessage!.trim()
+          : '图片文字不够清晰，请更换原图',
+      color: AppColor.xF26A58,
     ),
-    ImportTaskStatus.saved => (
-      '已保存',
-      Icons.check_circle_outline_rounded,
-      AppColor.xA9B9A2,
+    ImportTaskStatus.saved => _TaskStatusPresentation(
+      assetPath: 'assets/images/import_inbox_task_status_saved.png',
+      label: '已保存',
+      subtitle: '菜谱已生成并保存到菜谱库 · $time',
+      color: AppColor.xA9B9A2,
     ),
-    ImportTaskStatus.cancelled => (
-      '已取消',
-      Icons.cancel_outlined,
-      AppColor.x7E756E,
+    ImportTaskStatus.cancelled => _TaskStatusPresentation(
+      assetPath: 'assets/images/import_inbox_task_status_failed.png',
+      label: '已取消',
+      subtitle: '任务已取消 · $time',
+      color: AppColor.x7E756E,
     ),
   };
 }
 
-class _EmptyInbox extends StatelessWidget {
-  const _EmptyInbox({required this.onCreate});
+String _formatTaskTime(DateTime updatedAt) {
+  final difference = DateTime.now().difference(updatedAt.toLocal());
+  if (difference.isNegative || difference.inMinutes < 1) return '刚刚';
+  if (difference.inHours < 1) return '${difference.inMinutes} 分钟前';
+  if (difference.inDays < 1) return '${difference.inHours} 小时前';
+  if (difference.inDays == 1) {
+    return '昨天 ${_formatClock(updatedAt.toLocal())}';
+  }
+  final local = updatedAt.toLocal();
+  return '${local.month}月${local.day}日';
+}
 
-  final VoidCallback onCreate;
+String _formatClock(DateTime time) {
+  final hour = time.hour.toString().padLeft(2, '0');
+  final minute = time.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
+}
+
+class _EmptyInbox extends StatelessWidget {
+  const _EmptyInbox();
 
   @override
   Widget build(BuildContext context) {
@@ -179,29 +388,33 @@ class _EmptyInbox extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.s24),
         child: Column(
           children: [
-            const CircleAvatar(
-              radius: 42,
-              backgroundColor: AppColor.xF5DDD5,
-              child: Icon(
-                Icons.inbox_rounded,
-                size: AppSize.icon36,
-                color: AppColor.xF26A58,
+            Image.asset(
+              'assets/images/import_inbox_empty_state.png',
+              package: 'kitchen_import',
+              width: AppSize.importIllustration,
+              height: AppSize.importIllustration,
+              fit: BoxFit.contain,
+              semanticLabel: '导入箱为空',
+            ),
+            const SizedBox(height: AppSpacing.s24),
+            Text(
+              '导入箱还是空的',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppColor.x60483A,
+                fontSize: AppText.title,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: AppSpacing.s20),
-            Text(
-              '导入任务会出现在这里',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: AppSpacing.s8),
-            const Text('从其他 App 分享的内容也会直接进入导入箱。', textAlign: TextAlign.center),
-            const SizedBox(height: AppSpacing.s24),
-            FilledButton.icon(
-              onPressed: onCreate,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('创建菜谱'),
+            const SizedBox(height: AppSpacing.s12),
+            const Text(
+              '暂时没有导入任务，新的识别进度会在\n这里整理。',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColor.x7E756E,
+                fontSize: AppText.body,
+                fontWeight: FontWeight.w600,
+                height: 1.5,
+              ),
             ),
           ],
         ),

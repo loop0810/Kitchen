@@ -5,7 +5,7 @@ import 'package:kitchen_import/kitchen_import.dart';
 import 'package:kitchen_import_domain/kitchen_import_domain.dart';
 
 void main() {
-  testWidgets('导入箱展示任务空状态与统一创建入口', (tester) async {
+  testWidgets('导入箱展示原型空状态', (tester) async {
     final repository = _EmptyImportTaskRepository();
     await tester.pumpWidget(
       ProviderScope(
@@ -27,9 +27,10 @@ void main() {
     await tester.pump();
 
     expect(find.text('导入箱'), findsOneWidget);
-    expect(find.text('导入任务会出现在这里'), findsOneWidget);
-    expect(find.text('创建菜谱'), findsOneWidget);
-    expect(find.byTooltip('创建菜谱'), findsOneWidget);
+    expect(find.text('把纸上与屏幕里的好味道收好'), findsOneWidget);
+    expect(find.text('导入箱还是空的'), findsOneWidget);
+    expect(find.text('暂时没有导入任务，新的识别进度会在\n这里整理。'), findsOneWidget);
+    expect(find.text('创建菜谱'), findsNothing);
   });
 
   testWidgets('处理中任务侧滑删除会先确认，取消确认不改变任务', (tester) async {
