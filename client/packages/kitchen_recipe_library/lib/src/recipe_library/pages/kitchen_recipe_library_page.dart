@@ -591,7 +591,7 @@ class _CollectionBookCard extends StatelessWidget {
                         left: AppSpacing.s8,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: AppColor.paper,
+                            color: AppColor.xFFFAF2,
                             borderRadius: BorderRadius.circular(AppRadius.r12),
                             border: Border.all(color: colors.$2, width: 2),
                           ),

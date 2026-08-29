@@ -127,42 +127,42 @@ class _TaskCard extends StatelessWidget {
     ImportTaskStatus.queued => (
       '等待处理',
       Icons.schedule_rounded,
-      AppColor.mutedInk,
+      AppColor.x7E756E,
     ),
     ImportTaskStatus.extracting => (
       '正在提取',
       Icons.downloading_rounded,
-      AppColor.mutedInk,
+      AppColor.x7E756E,
     ),
     ImportTaskStatus.recognizingImages => (
       '正在识别图片',
       Icons.document_scanner_outlined,
-      AppColor.mutedInk,
+      AppColor.x7E756E,
     ),
     ImportTaskStatus.structuring => (
       '正在整理菜谱',
       Icons.auto_awesome_rounded,
-      AppColor.mutedInk,
+      AppColor.x7E756E,
     ),
     ImportTaskStatus.awaitingReview => (
       '等待确认',
       Icons.fact_check_outlined,
-      AppColor.coral,
+      AppColor.xF26A58,
     ),
     ImportTaskStatus.failed => (
       '处理失败',
       Icons.error_outline_rounded,
-      AppColor.coral,
+      AppColor.xF26A58,
     ),
     ImportTaskStatus.saved => (
       '已保存',
       Icons.check_circle_outline_rounded,
-      AppColor.sage,
+      AppColor.xA9B9A2,
     ),
     ImportTaskStatus.cancelled => (
       '已取消',
       Icons.cancel_outlined,
-      AppColor.mutedInk,
+      AppColor.x7E756E,
     ),
   };
 }
@@ -181,11 +181,11 @@ class _EmptyInbox extends StatelessWidget {
           children: [
             const CircleAvatar(
               radius: 42,
-              backgroundColor: AppColor.blush,
+              backgroundColor: AppColor.xF5DDD5,
               child: Icon(
                 Icons.inbox_rounded,
                 size: AppSize.icon36,
-                color: AppColor.coral,
+                color: AppColor.xF26A58,
               ),
             ),
             const SizedBox(height: AppSpacing.s20),

@@ -273,7 +273,7 @@ class _MediaCard extends StatelessWidget {
                             File(item.localPath),
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => const ColoredBox(
-                              color: AppColor.paper,
+                              color: AppColor.xFFFAF2,
                               child: Icon(Icons.broken_image_outlined),
                             ),
                           ),

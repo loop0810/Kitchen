@@ -4,5 +4,6 @@ abstract final class AppRadius {
   static const r14 = 14.0;
   static const r16 = 16.0;
   static const r18 = 18.0;
+  static const r22 = 22.0;
   static const r28 = 28.0;
 }

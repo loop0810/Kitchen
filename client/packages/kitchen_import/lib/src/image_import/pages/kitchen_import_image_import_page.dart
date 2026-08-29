@@ -73,7 +73,7 @@ class _ImageImportPageState extends ConsumerState<ImageImportPage> {
               const Icon(
                 Icons.photo_library_outlined,
                 size: AppSize.icon58,
-                color: AppColor.coral,
+                color: AppColor.xF26A58,
               ),
               const SizedBox(height: AppSpacing.s16),
               Text(
@@ -82,7 +82,7 @@ class _ImageImportPageState extends ConsumerState<ImageImportPage> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.s8),
-                Text(_error!, style: const TextStyle(color: AppColor.coral)),
+                Text(_error!, style: const TextStyle(color: AppColor.xF26A58)),
               ],
               const SizedBox(height: AppSpacing.s20),
               FilledButton.icon(

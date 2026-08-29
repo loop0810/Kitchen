@@ -251,7 +251,7 @@ class _ReaderJournalPage extends StatelessWidget {
                           bottom: AppSpacing.s12,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: AppColor.paper.withValues(alpha: 0.94),
+                              color: AppColor.xFFFAF2.withValues(alpha: 0.94),
                               borderRadius: BorderRadius.circular(
                                 AppRadius.r10,
                               ),

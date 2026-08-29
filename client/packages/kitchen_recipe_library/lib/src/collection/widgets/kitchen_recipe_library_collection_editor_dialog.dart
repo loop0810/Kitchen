@@ -103,7 +103,7 @@ class _CollectionEditorDialogState extends State<_CollectionEditorDialog> {
                         _previewBytes!,
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => const ColoredBox(
-                          color: AppColor.paper,
+                          color: AppColor.xFFFAF2,
                           child: Icon(Icons.broken_image_outlined),
                         ),
                       ),

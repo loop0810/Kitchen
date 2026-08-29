@@ -59,7 +59,7 @@ class _RecipeDetailContent extends ConsumerWidget {
                   recipe.isFavorite
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
-                  color: recipe.isFavorite ? AppColor.coral : null,
+                  color: recipe.isFavorite ? AppColor.xF26A58 : null,
                 ),
               ),
               const SizedBox(width: AppSpacing.s4),
@@ -71,7 +71,7 @@ class _RecipeDetailContent extends ConsumerWidget {
                   child: Icon(
                     Icons.restaurant_menu_rounded,
                     size: AppSize.icon72,
-                    color: AppColor.white70,
+                    color: Colors.white70,
                   ),
                 ),
               ),
@@ -91,7 +91,7 @@ class _RecipeDetailContent extends ConsumerWidget {
                     recipe.summary,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       height: AppText.bodyLineHeight,
-                      color: AppColor.mutedInk,
+                      color: AppColor.x7E756E,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.s18),
@@ -158,7 +158,7 @@ class _RecipeDetailContent extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.s28),
                 const _SectionTitle(title: '来源'),
                 const SizedBox(height: AppSpacing.s12),
-                const Text('手动创建', style: TextStyle(color: AppColor.mutedInk)),
+                const Text('手动创建', style: TextStyle(color: AppColor.x7E756E)),
               ],
             ),
           ),
@@ -189,14 +189,14 @@ class _InfoChip extends StatelessWidget {
         vertical: AppSpacing.s8,
       ),
       decoration: BoxDecoration(
-        color: AppColor.white,
+        color: AppColor.xFFFFFF,
         borderRadius: BorderRadius.circular(AppRadius.r12),
-        border: Border.all(color: AppColor.butter),
+        border: Border.all(color: AppColor.xE8DAC1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: AppSize.icon17, color: AppColor.coral),
+          Icon(icon, size: AppSize.icon17, color: AppColor.xF26A58),
           const SizedBox(width: AppSpacing.s6),
           Text(label),
         ],
@@ -224,7 +224,7 @@ class _SectionTitle extends StatelessWidget {
           ),
         ),
         if (trailing != null)
-          Text(trailing!, style: const TextStyle(color: AppColor.mutedInk)),
+          Text(trailing!, style: const TextStyle(color: AppColor.x7E756E)),
       ],
     );
   }
@@ -245,7 +245,7 @@ class _IngredientTile extends StatelessWidget {
             width: AppSize.icon8,
             height: AppSize.icon8,
             decoration: const BoxDecoration(
-              color: AppColor.sage,
+              color: AppColor.xA9B9A2,
               shape: BoxShape.circle,
             ),
           ),
@@ -285,13 +285,13 @@ class _StepTile extends StatelessWidget {
             height: AppSize.icon32,
             alignment: Alignment.center,
             decoration: const BoxDecoration(
-              color: AppColor.blush,
+              color: AppColor.xF5DDD5,
               shape: BoxShape.circle,
             ),
             child: Text(
               '$number',
               style: const TextStyle(
-                color: AppColor.coral,
+                color: AppColor.xF26A58,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -321,7 +321,7 @@ class _StepTile extends StatelessWidget {
                         '约 ${step.durationMinutes} 分钟',
                     ].join(' · '),
                     style: const TextStyle(
-                      color: AppColor.mutedInk,
+                      color: AppColor.x7E756E,
                       fontSize: AppText.detail,
                     ),
                   ),
@@ -346,11 +346,11 @@ class _MissingContent extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.s18),
       decoration: BoxDecoration(
-        color: AppColor.white.withValues(alpha: 0.65),
+        color: AppColor.xFFFFFF.withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(AppRadius.r14),
-        border: Border.all(color: AppColor.butter),
+        border: Border.all(color: AppColor.xE8DAC1),
       ),
-      child: Text(message, style: const TextStyle(color: AppColor.mutedInk)),
+      child: Text(message, style: const TextStyle(color: AppColor.x7E756E)),
     );
   }
 }

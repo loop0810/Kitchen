@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:kitchen_app_core/kitchen_app_core.dart';
 import 'package:kitchen_design_system/kitchen_design_system.dart';
@@ -27,60 +29,151 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-        child: Column(
-          children: [
-            const Spacer(flex: 3),
-            Container(
-              width: AppSize.icon58,
-              height: AppSize.icon58,
-              decoration: const BoxDecoration(
-                color: AppColor.blush,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.soup_kitchen_rounded,
-                color: AppColor.coral,
-                size: AppSize.icon30,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final contentWidth = math.min(
+            337.0,
+            math.max(0.0, constraints.maxWidth - AppSpacing.s56),
+          );
+          final illustrationHeight = math.min(
+            220.0,
+            math.max(140.0, constraints.maxHeight * 0.28),
+          );
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentWidth),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: contentWidth,
+                    height: illustrationHeight,
+                    child: Image.asset(
+                      'assets/images/home_kitchen_illustration.png',
+                      fit: BoxFit.contain,
+                      semanticLabel: '厨房食材插图',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s16),
+                  Text(
+                    '今天想吃点什么',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s12),
+                  Container(
+                    width: AppSpacing.s56,
+                    height: AppSpacing.s4,
+                    decoration: BoxDecoration(
+                      color: AppColor.xF5D477,
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s32),
+                  _HomeShadowSurface(
+                    key: const Key('home-search-surface'),
+                    child: SizedBox(
+                      height: AppSize.homeControlHeight,
+                      child: TextField(
+                        key: const Key('home-search-field'),
+                        controller: _searchController,
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (_) => _search(),
+                        style: const TextStyle(
+                          color: AppColor.x60483A,
+                          fontSize: AppText.body,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: '搜索菜名、食材或标签',
+                          hintStyle: const TextStyle(
+                            color: AppColor.x7E756E,
+                            fontSize: AppText.body,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            color: AppColor.x60483A,
+                            size: AppSize.icon30,
+                          ),
+                          filled: true,
+                          fillColor: AppColor.xFFFDF6,
+                          contentPadding: EdgeInsets.zero,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.r22),
+                            borderSide: const BorderSide(
+                              color: AppColor.x60483A,
+                              width: 2,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.r22),
+                            borderSide: const BorderSide(
+                              color: AppColor.x60483A,
+                              width: 2,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.r22),
+                            borderSide: const BorderSide(
+                              color: AppColor.xF26A58,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s20),
+                  _HomeShadowSurface(
+                    key: const Key('home-create-surface'),
+                    shadowColor: AppColor.xA94B3F,
+                    child: SizedBox(
+                      height: AppSize.homeControlHeight,
+                      width: double.infinity,
+                      child: _QuickAction(
+                        icon: Icons.add_circle_outline_rounded,
+                        label: '创建菜谱',
+                        onTap: context.showRecipeCreationOptions,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.s22),
-            Text(
-              '今天想吃点什么？',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s28),
-            TextField(
-              controller: _searchController,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _search(),
-              decoration: InputDecoration(
-                hintText: '搜索菜名、食材或标签',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: IconButton(
-                  tooltip: '搜索',
-                  onPressed: _search,
-                  icon: const Icon(Icons.arrow_forward_rounded),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s20),
-            SizedBox(
-              width: double.infinity,
-              child: _QuickAction(
-                icon: Icons.add_rounded,
-                label: '创建菜谱',
-                onTap: context.showRecipeCreationOptions,
-              ),
-            ),
-            const Spacer(flex: 4),
-          ],
-        ),
+          );
+        },
       ),
+    );
+  }
+}
+
+class _HomeShadowSurface extends StatelessWidget {
+  const _HomeShadowSurface({
+    super.key,
+    required this.child,
+    this.shadowColor = AppColor.xEADCC3,
+  });
+
+  final Widget child;
+  final Color shadowColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.r22),
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor,
+            offset: const Offset(3, 3),
+            blurRadius: 0,
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }
@@ -103,12 +196,18 @@ class _QuickAction extends StatelessWidget {
       icon: Icon(icon, size: AppSize.icon20),
       label: Text(label),
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
-        foregroundColor: AppColor.ink,
-        side: const BorderSide(color: AppColor.butter),
-        backgroundColor: AppColor.white.withValues(alpha: 0.7),
+        minimumSize: const Size.fromHeight(AppSize.homeControlHeight),
+        foregroundColor: AppColor.xFFFFFF,
+        side: const BorderSide(color: AppColor.xA94B3F, width: 2),
+        backgroundColor: AppColor.xF26A58,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        textStyle: const TextStyle(
+          fontSize: AppText.body,
+          fontWeight: FontWeight.w700,
+        ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.r16),
+          borderRadius: BorderRadius.circular(AppRadius.r22),
         ),
       ),
     );

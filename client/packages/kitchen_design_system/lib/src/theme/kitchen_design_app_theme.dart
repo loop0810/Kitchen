@@ -11,14 +11,14 @@ abstract final class AppTheme {
   static ThemeData forStyle(AppVisualStyle style) {
     final scrapbook = style == AppVisualStyle.scrapbook;
     final scheme = ColorScheme.fromSeed(
-      seedColor: scrapbook ? AppColor.coral : AppColor.minimalSeed,
+      seedColor: scrapbook ? AppColor.xF26A58 : AppColor.x506E67,
       brightness: Brightness.light,
-      surface: scrapbook ? AppColor.paper : AppColor.minimalSurface,
+      surface: scrapbook ? AppColor.xFFFAF2 : AppColor.xF8FAF9,
     );
-    final appBarSurface = scrapbook ? AppColor.paper : AppColor.white;
-    final navigationSurface = scrapbook ? AppColor.card : AppColor.white;
+    final appBarSurface = scrapbook ? AppColor.xFFFAF2 : AppColor.xFFFFFF;
+    final navigationSurface = scrapbook ? AppColor.xFFFDF8 : AppColor.xFFFFFF;
     final navigationIndicator = scrapbook
-        ? AppColor.blush
+        ? AppColor.xF5DDD5
         : scheme.primaryContainer;
 
     return ThemeData(
@@ -31,8 +31,8 @@ abstract final class AppTheme {
         'Microsoft YaHei',
       ],
       textTheme: ThemeData.light().textTheme.apply(
-        bodyColor: AppColor.ink,
-        displayColor: AppColor.ink,
+        bodyColor: AppColor.x60483A,
+        displayColor: AppColor.x60483A,
       ),
       appBarTheme: AppBarTheme(
         elevation: 0,
@@ -40,16 +40,16 @@ abstract final class AppTheme {
         backgroundColor: appBarSurface,
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.transparent,
-        foregroundColor: AppColor.ink,
+        foregroundColor: AppColor.x60483A,
         titleTextStyle: TextStyle(
-          color: AppColor.ink,
+          color: AppColor.x60483A,
           fontSize: AppText.title,
           fontWeight: FontWeight.w700,
         ),
       ),
       cardTheme: CardThemeData(
         elevation: scrapbook ? 1 : 0,
-        color: scrapbook ? AppColor.card : AppColor.white,
+        color: scrapbook ? AppColor.xFFFDF8 : AppColor.xFFFFFF,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(
@@ -57,14 +57,14 @@ abstract final class AppTheme {
           ),
           side: BorderSide(
             color: scrapbook
-                ? AppColor.butter.withValues(alpha: 0.6)
-                : AppColor.minimalBorder,
+                ? AppColor.xE8DAC1.withValues(alpha: 0.6)
+                : AppColor.xE6ECEA,
           ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColor.white,
+        fillColor: AppColor.xFFFFFF,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.s20,
           vertical: AppSpacing.s16,
@@ -76,7 +76,7 @@ abstract final class AppTheme {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.r28),
           borderSide: BorderSide(
-            color: scrapbook ? AppColor.butter : AppColor.minimalInputBorder,
+            color: scrapbook ? AppColor.xE8DAC1 : AppColor.xDDE5E2,
           ),
         ),
         focusedBorder: OutlineInputBorder(
@@ -93,7 +93,7 @@ abstract final class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
-            color: selected && !scrapbook ? scheme.primary : AppColor.ink,
+            color: selected && !scrapbook ? scheme.primary : AppColor.x60483A,
             fontSize: AppText.label,
             fontWeight: FontWeight.w600,
           );

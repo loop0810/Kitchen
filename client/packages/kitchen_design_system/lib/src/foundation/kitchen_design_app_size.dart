@@ -14,6 +14,7 @@ abstract final class AppSize {
   static const icon58 = 58.0;
   static const icon72 = 72.0;
   static const buttonHeight = 52.0;
+  static const homeControlHeight = 56.0;
   static const importIllustration = 72.0;
   static const filterBarHeight = 42.0;
   static const recipeHeaderHeight = 250.0;

@@ -15,7 +15,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('今天想吃点什么？'), findsOneWidget);
+    expect(find.text('今天想吃点什么'), findsOneWidget);
     expect(find.text('创建菜谱'), findsOneWidget);
     expect(find.text('首页'), findsOneWidget);
     expect(find.text('菜谱库'), findsOneWidget);
@@ -42,6 +42,7 @@ void main() {
     Set<String> captureVisibleTabAssets() {
       final visibleTabImages = tester
           .widgetList<Image>(find.byType(Image))
+          .where((image) => image.width == 25 && image.height == 25)
           .toList();
       expect(visibleTabImages, hasLength(4));
       expect(

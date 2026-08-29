@@ -71,8 +71,8 @@ class _MainTabBar extends StatelessWidget {
     return DecoratedBox(
       key: const Key('main-tab-bar'),
       decoration: const BoxDecoration(
-        color: AppColor.paper,
-        border: Border(top: BorderSide(color: AppColor.butter)),
+        color: AppColor.xFFFAF2,
+        border: Border(top: BorderSide(color: AppColor.xE8DAC1, width: 2)),
       ),
       child: SafeArea(
         top: false,
@@ -133,7 +133,7 @@ class _MainTabItem extends StatelessWidget {
         ),
         child: Material(
           key: selected ? const Key('main-tab-selected-indicator') : null,
-          color: selected ? AppColor.blush : Colors.transparent,
+          color: selected ? AppColor.xF5DDD5 : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.r14),
           child: InkWell(
             onTap: onTap,
@@ -150,7 +150,7 @@ class _MainTabItem extends StatelessWidget {
                   Text(
                     label,
                     style: TextStyle(
-                      color: selected ? AppColor.coral : AppColor.ink,
+                      color: selected ? AppColor.xA94B3F : AppColor.x60483A,
                       fontSize: AppText.label,
                       fontWeight: FontWeight.w600,
                       height: 1.2,

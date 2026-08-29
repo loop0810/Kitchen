@@ -58,7 +58,7 @@ class RecipeCardWidget extends StatelessWidget {
                           vertical: AppSpacing.s4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColor.paper.withValues(alpha: 0.94),
+                          color: AppColor.xFFFAF2.withValues(alpha: 0.94),
                           borderRadius: BorderRadius.circular(AppRadius.r10),
                         ),
                         child: const Text(
@@ -81,11 +81,13 @@ class RecipeCardWidget extends StatelessWidget {
                             ? Icons.favorite_rounded
                             : Icons.favorite_border_rounded,
                         color: entity.isFavorite
-                            ? AppColor.coral
-                            : AppColor.mutedInk,
+                            ? AppColor.xF26A58
+                            : AppColor.x7E756E,
                       ),
                       style: IconButton.styleFrom(
-                        backgroundColor: AppColor.paper.withValues(alpha: 0.88),
+                        backgroundColor: AppColor.xFFFAF2.withValues(
+                          alpha: 0.88,
+                        ),
                       ),
                     ),
                   ),
