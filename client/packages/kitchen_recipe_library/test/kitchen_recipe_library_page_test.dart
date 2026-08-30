@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kitchen_design_system/kitchen_design_system.dart';
 import 'package:kitchen_recipe_domain/kitchen_recipe_domain.dart';
 import 'package:kitchen_recipe_library/kitchen_recipe_library.dart';
 
@@ -43,6 +44,84 @@ void main() {
     expect(find.textContaining('菜谱加载失败'), findsOneWidget);
   });
 
+  testWidgets('菜谱库顶部切换组件使用手账边框和偏移阴影', (tester) async {
+    final repository = _LibraryRepository(
+      streamFactory: (query) => Stream.value([_summary]),
+    );
+    await tester.pumpWidget(_testApp(repository, const RecipeLibraryPage()));
+    await tester.pumpAndSettle();
+
+    final outer = tester.widget<DecoratedBox>(
+      find.byKey(const ValueKey('recipe-library-section-switcher-recipes')),
+    );
+    final outerDecoration = outer.decoration as BoxDecoration;
+    expect(outerDecoration.color, AppColor.xF7ECD9);
+    expect(outerDecoration.border?.top.color, AppColor.xEAD7BD);
+    expect(outerDecoration.border?.top.width, 2);
+    expect(outerDecoration.boxShadow, const [
+      BoxShadow(color: AppColor.xEADCC3, offset: Offset(1, 2)),
+    ]);
+
+    final selected = tester.widget<DecoratedBox>(
+      find.byKey(const ValueKey('recipe-library-section-selection-indicator')),
+    );
+    final selectedDecoration = selected.decoration as BoxDecoration;
+    expect(selectedDecoration.color, AppColor.xFFFDF6);
+    expect(selectedDecoration.border?.top.color, AppColor.xEF6859);
+    expect(selectedDecoration.border?.top.width, 2);
+    expect(selectedDecoration.boxShadow, const [
+      BoxShadow(color: AppColor.xD9A091, offset: Offset(1, 2)),
+    ]);
+  });
+
+  testWidgets('菜谱与菜谱集切换的选中指示器水平动画', (tester) async {
+    final repository = _LibraryRepository(
+      streamFactory: (query) => Stream.value([_summary]),
+    );
+    await tester.pumpWidget(_testApp(repository, const RecipeLibraryPage()));
+    await tester.pumpAndSettle();
+
+    final indicator = find.byKey(
+      const ValueKey('recipe-library-section-selection-indicator'),
+    );
+    final start = tester.getCenter(indicator);
+    await tester.tap(find.text('菜谱集'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 130));
+    final middle = tester.getCenter(indicator);
+    await tester.pumpAndSettle();
+    final end = tester.getCenter(indicator);
+
+    expect(middle.dx, greaterThan(start.dx));
+    expect(end.dx, greaterThan(start.dx));
+  });
+
+  testWidgets('搜索框有无排序后缀时保持相同高度', (tester) async {
+    final repository = _LibraryRepository(
+      streamFactory: (query) => Stream.value([_summary]),
+    );
+    await tester.pumpWidget(_testApp(repository, const RecipeLibraryPage()));
+    await tester.pumpAndSettle();
+
+    final searchField = find.byKey(
+      const ValueKey('recipe-library-search-field'),
+    );
+    final recipeSearch = tester.widget<TextField>(searchField);
+    final recipeHeight = tester.getSize(searchField).height;
+    expect(recipeSearch.decoration?.suffixIcon, isA<IconButton>());
+
+    await tester.tap(find.text('菜谱集'));
+    await tester.pumpAndSettle();
+
+    final collectionSearch = tester.widget<TextField>(searchField);
+    expect(collectionSearch.decoration?.suffixIcon, isA<SizedBox>());
+    expect(
+      (collectionSearch.decoration?.suffixIcon! as SizedBox).height,
+      AppSize.librarySearchHeight,
+    );
+    expect(tester.getSize(searchField).height, recipeHeight);
+  });
+
   testWidgets('菜谱库纵向滚动时控制区吸顶悬浮', (tester) async {
     final repository = _LibraryRepository(
       streamFactory: (query) =>
@@ -55,13 +134,24 @@ void main() {
       const ValueKey('recipe-library-sticky-controls-recipes'),
     );
     expect(stickyControls, findsOneWidget);
+    expect(
+      tester.getTopLeft(stickyControls).dy,
+      closeTo(AppSize.pageHeaderExpandedHeight, 1),
+    );
     await tester.drag(
       find.byKey(const PageStorageKey('recipe-library-scroll')),
       const Offset(0, -600),
     );
     await tester.pumpAndSettle();
 
-    expect(tester.getTopLeft(stickyControls).dy, closeTo(0, 1));
+    expect(
+      tester.getTopLeft(stickyControls).dy,
+      closeTo(AppSize.pageHeaderCollapsedHeight, 1),
+    );
+    expect(
+      tester.widget<Material>(stickyControls).color,
+      isNot(Colors.transparent),
+    );
   });
 
   testWidgets('长按菜谱卡片在当前位置展示管理操作', (tester) async {

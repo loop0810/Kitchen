@@ -24,7 +24,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('请输入菜谱集名称'), findsOneWidget);
     expect(find.text('设置封面图片'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '  周末菜单  ');
+    await tester.enterText(find.byType(TextField).last, '  周末菜单  ');
     await tester.tap(find.text('创建'));
     await tester.pumpAndSettle();
 
@@ -51,7 +51,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '番茄');
     await tester.tap(find.text('收藏'));
+
+    final indicator = find.byKey(
+      const ValueKey('recipe-library-section-selection-indicator'),
+    );
+    final start = tester.getCenter(indicator);
     await tester.drag(find.byType(PageView), const Offset(-500, 0));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(tester.getCenter(indicator).dx, greaterThan(start.dx));
     await tester.pumpAndSettle();
     expect(find.text('把常做的菜整理进菜谱集'), findsOneWidget);
 
@@ -67,6 +75,32 @@ void main() {
           ui.Tristate.isTrue,
       isTrue,
     );
+  });
+
+  testWidgets('菜谱集搜索覆盖集合名称和成员菜谱且隐藏状态筛选', (tester) async {
+    final collections = _CollectionRepository(
+      detail: _nonEmptyCollectionDetail,
+    );
+    await tester.pumpWidget(
+      _app(collections: collections, showActiveRecipe: true),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('菜谱集'));
+    await tester.pumpAndSettle();
+
+    final searchField = tester.widget<TextField>(
+      find.byKey(const ValueKey('recipe-library-search-field')),
+    );
+    expect(searchField.decoration?.hintText, '搜索菜谱集或菜谱');
+    expect(find.text('全部'), findsNothing);
+    expect(find.text('创建菜谱集'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('recipe-library-search-field')),
+      '周末面包',
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('collection-2')), findsOneWidget);
   });
 
   testWidgets('空菜谱集单击进入成员管理，长按仍显示管理菜单', (tester) async {
@@ -487,14 +521,13 @@ class _RecipeRepository implements RecipeRepository {
   final bool showActiveRecipe;
 
   @override
-  Stream<List<RecipeJournalSummaryEntity>> watchRecipes(RecipeQuery query) =>
-      Stream.value(
-        query.scope == RecipeListScope.trash
-            ? [_summary]
-            : showActiveRecipe
-            ? [_activeSummary]
-            : const [],
-      );
+  Stream<List<RecipeJournalSummaryEntity>> watchRecipes(RecipeQuery query) {
+    if (query.scope == RecipeListScope.trash) return Stream.value([_summary]);
+    if (!showActiveRecipe) return Stream.value(const []);
+    if (query.text == '周末面包') return Stream.value([_secondActiveSummary]);
+    return Stream.value([_activeSummary]);
+  }
+
   @override
   Future<String> createRecipe(CreateRecipeInput input) async => 'recipe-1';
   @override

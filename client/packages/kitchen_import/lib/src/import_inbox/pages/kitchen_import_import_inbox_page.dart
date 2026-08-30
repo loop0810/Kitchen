@@ -18,102 +18,67 @@ class ImportInboxPage extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _InboxHeader(),
-            // _InboxViewToggle(emptyState: tasks.value?.isEmpty == true),
-            Expanded(
-              child: tasks.when(
+        child: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(importTasksProvider),
+          child: CustomScrollView(
+            key: const PageStorageKey('import-inbox-scroll'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              const AppSliverPageHeader(
+                key: ValueKey('import-inbox-page-header'),
+                title: '导入箱',
+                subtitle: '把纸上与屏幕里的好味道收好',
+              ),
+              tasks.when(
                 data: (items) => items.isEmpty
-                    ? const _EmptyInbox()
+                    ? const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _EmptyInbox(),
+                      )
                     : _TaskList(
                         tasks: items,
-                        onRefresh: () async =>
-                            ref.invalidate(importTasksProvider),
                         onDelete: (task) => confirmAndDeleteImportTask(
                           context,
                           dependencies: ref.read(importDependenciesProvider),
                           task: task,
                         ),
                       ),
-                error: (_, _) => const Center(child: Text('导入任务加载失败，请稍后重试')),
-                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, _) => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: Text('导入任务加载失败，请稍后重试')),
+                ),
+                loading: () => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _InboxHeader extends StatelessWidget {
-  const _InboxHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.s24,
-        AppSpacing.s12,
-        AppSpacing.s24,
-        0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '导入箱',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              color: AppColor.x60483A,
-              fontSize: AppText.libraryTitle,
-              fontWeight: FontWeight.w700,
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s8),
-          const Text(
-            '把纸上与屏幕里的好味道收好',
-            style: TextStyle(
-              color: AppColor.x7E756E,
-              fontSize: AppText.body,
-              fontWeight: FontWeight.w600,
-              height: 1.35,
-            ),
-          ),
-        ],
       ),
     );
   }
 }
 
 class _TaskList extends StatelessWidget {
-  const _TaskList({
-    required this.tasks,
-    required this.onRefresh,
-    required this.onDelete,
-  });
+  const _TaskList({required this.tasks, required this.onDelete});
 
   final List<ImportTaskEntity> tasks;
-  final Future<void> Function() onRefresh;
   final ValueChanged<ImportTaskEntity> onDelete;
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.s24,
-          AppSpacing.s20,
-          AppSpacing.s24,
-          AppSpacing.s24,
-        ),
-        itemCount: tasks.length,
-        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s10),
-        itemBuilder: (context, index) {
-          final task = tasks[index];
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s24,
+        AppSpacing.s20,
+        AppSpacing.s24,
+        AppSpacing.s24,
+      ),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          if (index.isOdd) return const SizedBox(height: AppSpacing.s10);
+          final task = tasks[index ~/ 2];
           return Slidable(
             key: ValueKey(task.id),
             endActionPane: ActionPane(
@@ -134,7 +99,7 @@ class _TaskList extends StatelessWidget {
               onTap: () => context.pushImportTask(task.id),
             ),
           );
-        },
+        }, childCount: tasks.length * 2 - 1),
       ),
     );
   }

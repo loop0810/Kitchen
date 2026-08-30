@@ -64,25 +64,67 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
         RecipeQuery(text: _query, statusFilter: _filter, sortOrder: _sortOrder),
       ),
     );
-    final collections = ref.watch(recipeCollectionsProvider);
+    final collections = ref.watch(recipeCollectionsSearchProvider(_query));
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: PageView(
-          controller: _pageController,
-          onPageChanged: (index) =>
-              setState(() => _section = _LibrarySection.values[index]),
-          children: [
-            _buildRecipeSection(recipes),
-            _buildCollectionSection(collections),
+        child: NestedScrollView(
+          headerSliverBuilder: (context, _) => [
+            _buildPageHeader(),
+            _buildControlsHeader(),
           ],
+          body: PageView(
+            key: const ValueKey('recipe-library-sections'),
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            children: [
+              _buildRecipeSection(recipes),
+              _buildCollectionSection(collections),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPageHeader() {
+    return AppSliverPageHeader(
+      key: const ValueKey('recipe-library-page-header'),
+      title: '菜谱库',
+      subtitle: '12 道菜谱 · 慢慢做，认真吃',
+      subtitleColor: AppColor.x60483A,
+      action: IconButton(
+        tooltip: '回收站',
+        onPressed: () => context.pushRecipeTrash<void>(),
+        icon: const Icon(Icons.delete_outline_rounded),
+        color: AppColor.x60483A,
+      ),
+      // expandedDecoration: const _RecipeLibraryHeaderDecorations(),
+    );
+  }
+
+  Widget _buildControlsHeader() {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _LibraryControlsHeaderDelegate(
+        section: _section,
+        pageController: _pageController,
+        controller: _searchController,
+        filter: _filter,
+        onSectionChanged: _selectSection,
+        onQueryChanged: (value) => setState(() => _query = value),
+        onFilterChanged: (value) => setState(() => _filter = value),
+        onSortOrder: _chooseSortOrder,
+        onImport: _section == _LibrarySection.recipes
+            ? context.showRecipeCreationOptions
+            : _createCollection,
       ),
     );
   }
 
   void _selectSection(_LibrarySection section) {
     if (_section == section) return;
+    setState(() => _section = section);
     _pageController.animateToPage(
       section.index,
       duration: const Duration(milliseconds: 260),
@@ -90,176 +132,39 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
     );
   }
 
+  void _onPageChanged(int index) {
+    final section = _LibrarySection.values[index];
+    if (_section == section) return;
+    setState(() => _section = section);
+  }
+
   Widget _buildRecipeSection(
     AsyncValue<List<RecipeJournalSummaryEntity>> recipes,
   ) {
-    return CustomScrollView(
-      key: const PageStorageKey('recipe-library-scroll'),
-      slivers: [
-        SliverToBoxAdapter(
-          child: _RecipeLibraryHero(
-            onTrash: () => context.pushRecipeTrash<void>(),
+    return _RecipeSection(
+      recipes: recipes,
+      hasFilter: _query.isNotEmpty || _filter != RecipeStatusFilter.all,
+      onCreate: context.showRecipeCreationOptions,
+      onTap: (summary) => context.pushRecipeDetail(summary.recipe.id),
+      onFavorite: (summary) => ref
+          .read(recipeLibraryDependenciesProvider)
+          .setFavorite(
+            recipeId: summary.recipe.id,
+            isFavorite: !summary.recipe.isFavorite,
           ),
-        ),
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _LibraryControlsHeaderDelegate(
-            section: _LibrarySection.recipes,
-            controller: _searchController,
-            filter: _filter,
-            onSectionChanged: _selectSection,
-            onQueryChanged: (value) => setState(() => _query = value),
-            onFilterChanged: (value) => setState(() => _filter = value),
-            onSortOrder: _chooseSortOrder,
-            onImport: context.showRecipeCreationOptions,
-          ),
-        ),
-        recipes.when(
-          data: (items) => items.isEmpty
-              ? SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _EmptyLibrary(
-                    hasFilter:
-                        _query.isNotEmpty || _filter != RecipeStatusFilter.all,
-                    onCreate: context.showRecipeCreationOptions,
-                  ),
-                )
-              : SliverLayoutBuilder(
-                  builder: (context, constraints) {
-                    final textScale = MediaQuery.textScalerOf(context).scale(1);
-                    final columns =
-                        constraints.crossAxisExtent < 320 || textScale > 1.3
-                        ? 1
-                        : 2;
-                    return SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.s16,
-                        AppSpacing.s10,
-                        AppSpacing.s16,
-                        AppSpacing.s24,
-                      ),
-                      sliver: SliverGrid(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final summary = items[index];
-                          return RecipeCardWidget(
-                            recipe: summary,
-                            placeholder: true,
-                            onTap: () =>
-                                context.pushRecipeDetail(summary.recipe.id),
-                            onFavorite: () => ref
-                                .read(recipeLibraryDependenciesProvider)
-                                .setFavorite(
-                                  recipeId: summary.recipe.id,
-                                  isFavorite: !summary.recipe.isFavorite,
-                                ),
-                            onLongPress: (position) =>
-                                _showRecipeActions(summary, position),
-                          );
-                        }, childCount: items.length),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: columns,
-                          crossAxisSpacing: AppSpacing.s12,
-                          mainAxisSpacing: AppSpacing.s12,
-                          childAspectRatio: AppSize.recipeCardAspectRatio,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-          error: (_, _) => const SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: Text('菜谱加载失败，请稍后重试')),
-          ),
-          loading: () => const SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        ),
-      ],
+      onLongPress: _showRecipeActions,
     );
   }
 
   Widget _buildCollectionSection(
-    AsyncValue<List<RecipeCollectionEntity>> value,
+    AsyncValue<List<RecipeCollectionEntity>> collections,
   ) {
-    return CustomScrollView(
-      key: const PageStorageKey('recipe-collection-scroll'),
-      slivers: [
-        SliverToBoxAdapter(
-          child: _RecipeLibraryHero(
-            onTrash: () => context.pushRecipeTrash<void>(),
-          ),
-        ),
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _LibraryControlsHeaderDelegate(
-            section: _LibrarySection.collections,
-            controller: _searchController,
-            filter: _filter,
-            onSectionChanged: _selectSection,
-            onQueryChanged: (value) => setState(() => _query = value),
-            onFilterChanged: (value) => setState(() => _filter = value),
-            onSortOrder: _chooseSortOrder,
-            onImport: _createCollection,
-          ),
-        ),
-        value.when(
-          data: (items) => items.isEmpty
-              ? SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _EmptyCollections(onCreate: _createCollection),
-                )
-              : SliverLayoutBuilder(
-                  builder: (context, constraints) {
-                    final textScale = MediaQuery.textScalerOf(context).scale(1);
-                    final columns =
-                        constraints.crossAxisExtent < 320 || textScale > 1.3
-                        ? 1
-                        : 2;
-                    return SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.s16,
-                        AppSpacing.s10,
-                        AppSpacing.s16,
-                        AppSpacing.s24,
-                      ),
-                      sliver: SliverGrid(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final collection = items[index];
-                          return _CollectionBookCard(
-                            key: ValueKey(collection.id),
-                            collection: collection,
-                            onTap: () => collection.memberCount == 0
-                                ? context.pushRecipeCollection<void>(
-                                    collection.id,
-                                  )
-                                : context.pushRecipeCollectionReader<void>(
-                                    collection.id,
-                                  ),
-                            onLongPress: (position) =>
-                                _showCollectionActions(collection, position),
-                          );
-                        }, childCount: items.length),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: columns,
-                          crossAxisSpacing: AppSpacing.s16,
-                          mainAxisSpacing: AppSpacing.s20,
-                          childAspectRatio: columns == 1 ? 0.9 : 0.7,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-          error: (_, _) => const SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: Text('菜谱集加载失败，请稍后重试')),
-          ),
-          loading: () => const SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        ),
-      ],
+    return _CollectionSection(
+      collections: collections,
+      onTap: (collection) => collection.memberCount == 0
+          ? context.pushRecipeCollection<void>(collection.id)
+          : context.pushRecipeCollectionReader<void>(collection.id),
+      onLongPress: _showCollectionActions,
     );
   }
 
@@ -486,80 +391,154 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
   }
 }
 
-class _RecipeLibraryHero extends StatelessWidget {
-  const _RecipeLibraryHero({required this.onTrash});
+class _RecipeSection extends StatelessWidget {
+  const _RecipeSection({
+    required this.recipes,
+    required this.hasFilter,
+    required this.onCreate,
+    required this.onTap,
+    required this.onFavorite,
+    required this.onLongPress,
+  });
 
-  final VoidCallback onTrash;
+  final AsyncValue<List<RecipeJournalSummaryEntity>> recipes;
+  final bool hasFilter;
+  final VoidCallback onCreate;
+  final ValueChanged<RecipeJournalSummaryEntity> onTap;
+  final ValueChanged<RecipeJournalSummaryEntity> onFavorite;
+  final void Function(RecipeJournalSummaryEntity, Offset) onLongPress;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return SizedBox(
-      height: AppSize.recipeLibraryHeroHeight,
-      child: Stack(
-        children: [
-          const Positioned(
-            left: AppSpacing.s16,
-            top: AppSpacing.s8,
-            child: Text('🍅', style: TextStyle(fontSize: AppSize.icon30)),
-          ),
-          const Positioned(
-            right: AppSpacing.s48,
-            top: AppSpacing.s12,
-            child: Text('🍞', style: TextStyle(fontSize: AppSize.icon30)),
-          ),
-          const Positioned(
-            right: AppSpacing.s56,
-            top: AppSpacing.s16,
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              color: AppColor.xF5D477,
-              size: AppSize.icon20,
-            ),
-          ),
-          Positioned(
-            right: AppSpacing.s4,
-            top: AppSpacing.s4,
-            child: IconButton(
-              tooltip: '回收站',
-              onPressed: onTrash,
-              icon: const Icon(Icons.delete_outline_rounded),
-              color: AppColor.x60483A,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.s24,
-              AppSpacing.s48,
-              AppSpacing.s24,
-              AppSpacing.s12,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '菜谱库',
-                  style: textTheme.displaySmall?.copyWith(
-                    color: AppColor.x60483A,
-                    fontSize: AppText.libraryTitle,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
+    return CustomScrollView(
+      key: const PageStorageKey('recipe-library-scroll'),
+      slivers: [
+        recipes.when(
+          data: (items) => items.isEmpty
+              ? SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _EmptyLibrary(
+                    hasFilter: hasFilter,
+                    onCreate: onCreate,
                   ),
+                )
+              : SliverLayoutBuilder(
+                  builder: (context, constraints) {
+                    final textScale = MediaQuery.textScalerOf(context).scale(1);
+                    final columns =
+                        constraints.crossAxisExtent < 320 || textScale > 1.3
+                        ? 1
+                        : 2;
+                    return SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.s16,
+                        AppSpacing.s10,
+                        AppSpacing.s16,
+                        AppSpacing.s24,
+                      ),
+                      sliver: SliverGrid(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final summary = items[index];
+                          return RecipeCardWidget(
+                            recipe: summary,
+                            placeholder: true,
+                            onTap: () => onTap(summary),
+                            onFavorite: () => onFavorite(summary),
+                            onLongPress: (position) =>
+                                onLongPress(summary, position),
+                          );
+                        }, childCount: items.length),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: AppSpacing.s12,
+                          mainAxisSpacing: AppSpacing.s12,
+                          childAspectRatio: AppSize.recipeCardAspectRatio,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(height: AppSpacing.s8),
-                Text(
-                  '12 道菜谱 · 慢慢做，认真吃',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: AppColor.x60483A,
-                    fontSize: AppText.librarySubtitle,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+          error: (_, _) => const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: Text('菜谱加载失败，请稍后重试')),
           ),
-        ],
-      ),
+          loading: () => const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CollectionSection extends StatelessWidget {
+  const _CollectionSection({
+    required this.collections,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  final AsyncValue<List<RecipeCollectionEntity>> collections;
+  final ValueChanged<RecipeCollectionEntity> onTap;
+  final void Function(RecipeCollectionEntity, Offset) onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      key: const PageStorageKey('recipe-collection-scroll'),
+      slivers: [
+        collections.when(
+          data: (items) => items.isEmpty
+              ? SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: const _EmptyCollections(),
+                )
+              : SliverLayoutBuilder(
+                  builder: (context, constraints) {
+                    final textScale = MediaQuery.textScalerOf(context).scale(1);
+                    final columns =
+                        constraints.crossAxisExtent < 320 || textScale > 1.3
+                        ? 1
+                        : 2;
+                    return SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.s16,
+                        AppSpacing.s10,
+                        AppSpacing.s16,
+                        AppSpacing.s24,
+                      ),
+                      sliver: SliverGrid(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final collection = items[index];
+                          return _CollectionBookCard(
+                            key: ValueKey(collection.id),
+                            collection: collection,
+                            onTap: () => onTap(collection),
+                            onLongPress: (position) =>
+                                onLongPress(collection, position),
+                          );
+                        }, childCount: items.length),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: AppSpacing.s16,
+                          mainAxisSpacing: AppSpacing.s20,
+                          childAspectRatio: columns == 1 ? 0.9 : 0.7,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+          error: (_, _) => const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: Text('菜谱集加载失败，请稍后重试')),
+          ),
+          loading: () => const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -567,6 +546,7 @@ class _RecipeLibraryHero extends StatelessWidget {
 class _LibraryControlsHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _LibraryControlsHeaderDelegate({
     required this.section,
+    required this.pageController,
     required this.controller,
     required this.filter,
     required this.onSectionChanged,
@@ -577,6 +557,7 @@ class _LibraryControlsHeaderDelegate extends SliverPersistentHeaderDelegate {
   });
 
   final _LibrarySection section;
+  final PageController pageController;
   final TextEditingController controller;
   final RecipeStatusFilter filter;
   final ValueChanged<_LibrarySection> onSectionChanged;
@@ -585,11 +566,12 @@ class _LibraryControlsHeaderDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback onSortOrder;
   final VoidCallback onImport;
 
-  static const _recipesHeight = 153.0;
-  static const _collectionsHeight = 62.0;
+  static const _recipeControlsHeight = 149.0;
+  static const _collectionControlsHeight = 106.0;
 
-  double get _height =>
-      section == _LibrarySection.recipes ? _recipesHeight : _collectionsHeight;
+  double get _height => section == _LibrarySection.recipes
+      ? _recipeControlsHeight
+      : _collectionControlsHeight;
 
   @override
   double get minExtent => _height;
@@ -606,7 +588,7 @@ class _LibraryControlsHeaderDelegate extends SliverPersistentHeaderDelegate {
     final isRecipes = section == _LibrarySection.recipes;
     return Material(
       key: ValueKey('recipe-library-sticky-controls-${section.name}'),
-      color: AppColor.xFFFAF2,
+      color: Theme.of(context).colorScheme.surface,
       elevation: overlapsContent ? 2 : 0,
       shadowColor: AppColor.x60483A.withValues(alpha: 0.14),
       child: DecoratedBox(
@@ -626,56 +608,15 @@ class _LibraryControlsHeaderDelegate extends SliverPersistentHeaderDelegate {
                 height: AppSize.librarySegmentHeight,
                 child: _LibrarySectionSwitcher(
                   selected: section,
+                  pageController: pageController,
                   onChanged: onSectionChanged,
                 ),
               ),
+              const SizedBox(height: AppSpacing.s8),
               if (isRecipes) ...[
-                const SizedBox(height: AppSpacing.s8),
                 SizedBox(
                   height: AppSize.librarySearchHeight,
-                  child: TextField(
-                    controller: controller,
-                    onChanged: onQueryChanged,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      hintText: '搜索菜谱、食材或标签',
-                      prefixIcon: const Icon(
-                        Icons.search_rounded,
-                        size: AppSize.icon20,
-                      ),
-                      suffixIcon: IconButton(
-                        tooltip: '菜谱排序',
-                        onPressed: onSortOrder,
-                        icon: const Icon(Icons.tune_rounded),
-                      ),
-                      prefixIconConstraints: const BoxConstraints(
-                        minWidth: AppSize.librarySearchHeight,
-                      ),
-                      suffixIconConstraints: const BoxConstraints(
-                        minWidth: AppSize.librarySearchHeight,
-                      ),
-                      isDense: true,
-                      filled: true,
-                      fillColor: AppColor.xFFFDF8,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.s12,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.r16),
-                        borderSide: const BorderSide(
-                          color: AppColor.x60483A,
-                          width: 1.4,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.r16),
-                        borderSide: const BorderSide(
-                          color: AppColor.xF26A58,
-                          width: 1.8,
-                        ),
-                      ),
-                    ),
-                  ),
+                  child: _buildSearchField(isRecipes: true),
                 ),
                 const SizedBox(height: AppSpacing.s7),
                 SizedBox(
@@ -704,27 +645,82 @@ class _LibraryControlsHeaderDelegate extends SliverPersistentHeaderDelegate {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.s8),
-                      SizedBox(
-                        height: AppSize.libraryFilterHeight,
-                        child: AppImportButton(
-                          onPressed: onImport,
-                          label: '导入菜谱',
-                          icon: Icons.add_circle_outline_rounded,
-                          height: AppSize.libraryFilterHeight,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.s10,
-                          ),
-                          iconSize: AppSize.icon17,
-                          fontSize: AppText.label,
-                        ),
-                      ),
+                      _buildImportButton(label: '导入菜谱'),
                     ],
                   ),
                 ),
-              ],
+              ] else
+                SizedBox(
+                  height: AppSize.librarySearchHeight,
+                  child: Row(
+                    children: [
+                      Expanded(child: _buildSearchField(isRecipes: false)),
+                      const SizedBox(width: AppSpacing.s8),
+                      _buildImportButton(label: '创建菜谱集'),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSearchField({required bool isRecipes}) {
+    return TextField(
+      key: const ValueKey('recipe-library-search-field'),
+      controller: controller,
+      onChanged: onQueryChanged,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: isRecipes ? '搜索菜谱、食材或标签' : '搜索菜谱集或菜谱',
+        prefixIcon: const Icon(Icons.search_rounded, size: AppSize.icon20),
+        suffixIcon: isRecipes
+            ? IconButton(
+                tooltip: '菜谱排序',
+                onPressed: onSortOrder,
+                icon: const Icon(Icons.tune_rounded),
+              )
+            : const SizedBox(
+                width: AppSize.librarySearchHeight,
+                height: AppSize.librarySearchHeight,
+              ),
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: AppSize.librarySearchHeight,
+        ),
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: AppSize.librarySearchHeight,
+          minHeight: AppSize.librarySearchHeight,
+          maxHeight: AppSize.librarySearchHeight,
+        ),
+        isDense: true,
+        filled: true,
+        fillColor: AppColor.xFFFDF8,
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.r16),
+          borderSide: const BorderSide(color: AppColor.x60483A, width: 1.4),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.r16),
+          borderSide: const BorderSide(color: AppColor.xF26A58, width: 1.8),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImportButton({required String label}) {
+    return SizedBox(
+      height: AppSize.libraryFilterHeight,
+      child: AppImportButton(
+        onPressed: onImport,
+        label: label,
+        icon: Icons.add_circle_outline_rounded,
+        height: AppSize.libraryFilterHeight,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10),
+        iconSize: AppSize.icon17,
+        fontSize: AppText.label,
       ),
     );
   }
@@ -738,30 +734,88 @@ class _LibraryControlsHeaderDelegate extends SliverPersistentHeaderDelegate {
 class _LibrarySectionSwitcher extends StatelessWidget {
   const _LibrarySectionSwitcher({
     required this.selected,
+    required this.pageController,
     required this.onChanged,
   });
 
   final _LibrarySection selected;
+  final PageController pageController;
   final ValueChanged<_LibrarySection> onChanged;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
+      key: ValueKey('recipe-library-section-switcher-${selected.name}'),
       decoration: BoxDecoration(
-        color: AppColor.xEADCC3.withValues(alpha: 0.48),
+        color: AppColor.xF7ECD9,
         borderRadius: BorderRadius.circular(AppRadius.r16),
-        border: Border.all(color: AppColor.xE8DAC1),
+        border: Border.all(color: AppColor.xEAD7BD, width: 2),
+        boxShadow: const [
+          BoxShadow(color: AppColor.xEADCC3, offset: Offset(1, 2)),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.s3),
-        child: Row(
+        child: Stack(
           children: [
-            _buildItem(_LibrarySection.recipes, '菜谱'),
-            _buildItem(_LibrarySection.collections, '菜谱集'),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: pageController,
+                  builder: (context, child) => LayoutBuilder(
+                    builder: (context, constraints) {
+                      final halfWidth = constraints.maxWidth / 2;
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Positioned(
+                            left: halfWidth * _pageProgress,
+                            top: 0,
+                            bottom: 0,
+                            width: halfWidth,
+                            child: child!,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  child: DecoratedBox(
+                    key: const ValueKey(
+                      'recipe-library-section-selection-indicator',
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColor.xFFFDF6,
+                      border: Border.all(color: AppColor.xEF6859, width: 2),
+                      borderRadius: BorderRadius.circular(AppRadius.r12),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: AppColor.xD9A091,
+                          offset: Offset(1, 2),
+                        ),
+                      ],
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                _buildItem(_LibrarySection.recipes, '菜谱'),
+                _buildItem(_LibrarySection.collections, '菜谱集'),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  double get _pageProgress {
+    final page = pageController.hasClients
+        ? pageController.page
+        : selected.index.toDouble();
+    return (page ?? selected.index.toDouble()).clamp(0.0, 1.0).toDouble();
   }
 
   Widget _buildItem(_LibrarySection section, String label) {
@@ -777,21 +831,8 @@ class _LibrarySectionSwitcher extends StatelessWidget {
             onTap: () => onChanged(section),
             borderRadius: BorderRadius.circular(AppRadius.r12),
             child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: isSelected ? AppColor.xFFFDF6 : Colors.transparent,
-                borderRadius: BorderRadius.circular(AppRadius.r12),
-                border: isSelected
-                    ? Border.all(color: AppColor.xF26A58, width: 1.5)
-                    : null,
-                boxShadow: isSelected
-                    ? const [
-                        BoxShadow(
-                          color: AppColor.xEADCC3,
-                          offset: Offset(1, 2),
-                        ),
-                      ]
-                    : null,
-              ),
+              key: ValueKey('recipe-library-section-option-${section.name}'),
+              decoration: const BoxDecoration(),
               child: Center(
                 child: Text(
                   label,
@@ -1011,23 +1052,16 @@ class _EmptyLibrary extends StatelessWidget {
 }
 
 class _EmptyCollections extends StatelessWidget {
-  const _EmptyCollections({required this.onCreate});
-  final VoidCallback onCreate;
+  const _EmptyCollections();
 
   @override
   Widget build(BuildContext context) => Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.collections_bookmark_outlined, size: AppSize.icon54),
+        Icon(Icons.collections_bookmark_outlined, size: AppSize.icon54),
         const SizedBox(height: AppSpacing.s16),
         const Text('把常做的菜整理进菜谱集'),
-        const SizedBox(height: AppSpacing.s16),
-        FilledButton.icon(
-          onPressed: onCreate,
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('创建菜谱集'),
-        ),
       ],
     ),
   );

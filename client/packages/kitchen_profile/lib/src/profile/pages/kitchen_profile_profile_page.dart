@@ -53,116 +53,129 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.s24,
-            AppSpacing.s12,
-            AppSpacing.s24,
-            AppSpacing.s24,
-          ),
-          children: [
-            const _ProfileHeader(),
-            const SizedBox(height: AppSpacing.s28),
-            _ProfilePreviewSelector(
-              selected: previewMode,
-              onSelected: (value) => setState(() => _previewMode = value),
+        child: CustomScrollView(
+          key: const PageStorageKey('profile-scroll'),
+          slivers: [
+            const AppSliverPageHeader(
+              key: ValueKey('profile-page-header'),
+              title: '我的厨房',
+              subtitle: '记录每一顿认真的饭',
             ),
-            const SizedBox(height: AppSpacing.s16),
-            _LocalUseCard(
-              mode: previewMode,
-              onTap: () => _showAccountSheet(
-                session: session,
-                repository: authRepository,
-                signInWithApple: signInWithApple,
-                signInWithPhone: dependencies?.signInWithPhone,
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s24,
+                AppSpacing.s28,
+                AppSpacing.s24,
+                AppSpacing.s24,
               ),
-            ),
-            const SizedBox(height: AppSpacing.s20),
-            _ProfileSection(
-              title: '菜谱偏好',
-              child: _ProfileOptionList(
-                children: [
-                  _ProfileOptionRow(
-                    assetPath: _profileDefaultStyleAsset,
-                    title: '默认菜谱风格',
-                    trailing: _StyleValue(
-                      style: style,
-                      onTap: () => _showStylePicker(style),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    _ProfilePreviewSelector(
+                      selected: previewMode,
+                      onSelected: (value) =>
+                          setState(() => _previewMode = value),
                     ),
-                    onTap: () => _showStylePicker(style),
-                  ),
-                  _ProfileOptionRow(
-                    assetPath: _profilePersonalizedRecipeAsset,
-                    title: '个性化食谱',
-                    subtitle: '管理分类、标签与难度',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const PersonalRecipePage(),
+                    const SizedBox(height: AppSpacing.s16),
+                    _LocalUseCard(
+                      mode: previewMode,
+                      onTap: () => _showAccountSheet(
+                        session: session,
+                        repository: authRepository,
+                        signInWithApple: signInWithApple,
+                        signInWithPhone: dependencies?.signInWithPhone,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s20),
-            _ProfileSection(
-              title: '隐私与帮助',
-              child: _ProfileOptionList(
-                children: [
-                  _ProfileOptionRow(
-                    assetPath: _profileLocalDataAsset,
-                    title: '管理本机资料',
-                    // subtitle: '导出、恢复或清除本机菜谱',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => _showLocalDataDialog(context, ref),
-                  ),
-                  _ProfileOptionRow(
-                    assetPath: _profileAccountSecurityAsset,
-                    title: '账号与安全',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => _showAccountSheet(
-                      session: session,
-                      repository: authRepository,
-                      signInWithApple: signInWithApple,
-                      signInWithPhone: dependencies?.signInWithPhone,
+                    const SizedBox(height: AppSpacing.s20),
+                    _ProfileSection(
+                      title: '菜谱偏好',
+                      child: _ProfileOptionList(
+                        children: [
+                          _ProfileOptionRow(
+                            assetPath: _profileDefaultStyleAsset,
+                            title: '默认菜谱风格',
+                            trailing: _StyleValue(
+                              style: style,
+                              onTap: () => _showStylePicker(style),
+                            ),
+                            onTap: () => _showStylePicker(style),
+                          ),
+                          _ProfileOptionRow(
+                            assetPath: _profilePersonalizedRecipeAsset,
+                            title: '个性化食谱',
+                            subtitle: '管理分类、标签与难度',
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const PersonalRecipePage(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  _ProfileOptionRow(
-                    assetPath: _profilePrivacyPolicyAsset,
-                    title: '隐私政策',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {},
-                  ),
-                  _ProfileOptionRow(
-                    assetPath: _profileUserAgreementAsset,
-                    title: '用户协议',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {},
-                  ),
-                  _ProfileOptionRow(
-                    assetPath: _profileAboutInfoAsset,
-                    title: '权限与数据说明',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {},
-                  ),
-                  _ProfileOptionRow(
-                    assetPath: _profileFeedbackAsset,
-                    title: '意见反馈 / 联系我们',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {},
-                  ),
-                  _ProfileOptionRow(
-                    assetPath: _profileNoteBookAsset,
-                    title: '关于厨房手记',
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {},
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.s20),
+                    _ProfileSection(
+                      title: '隐私与帮助',
+                      child: _ProfileOptionList(
+                        children: [
+                          _ProfileOptionRow(
+                            assetPath: _profileLocalDataAsset,
+                            title: '管理本机资料',
+                            // subtitle: '导出、恢复或清除本机菜谱',
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => _showLocalDataDialog(context, ref),
+                          ),
+                          _ProfileOptionRow(
+                            assetPath: _profileAccountSecurityAsset,
+                            title: '账号与安全',
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => _showAccountSheet(
+                              session: session,
+                              repository: authRepository,
+                              signInWithApple: signInWithApple,
+                              signInWithPhone: dependencies?.signInWithPhone,
+                            ),
+                          ),
+                          _ProfileOptionRow(
+                            assetPath: _profilePrivacyPolicyAsset,
+                            title: '隐私政策',
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {},
+                          ),
+                          _ProfileOptionRow(
+                            assetPath: _profileUserAgreementAsset,
+                            title: '用户协议',
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {},
+                          ),
+                          _ProfileOptionRow(
+                            assetPath: _profileAboutInfoAsset,
+                            title: '权限与数据说明',
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {},
+                          ),
+                          _ProfileOptionRow(
+                            assetPath: _profileFeedbackAsset,
+                            title: '意见反馈 / 联系我们',
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {},
+                          ),
+                          _ProfileOptionRow(
+                            assetPath: _profileNoteBookAsset,
+                            title: '关于厨房手记',
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () {},
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s20),
+                    // const _AboutKitchenNotes(),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: AppSpacing.s20),
-            // const _AboutKitchenNotes(),
           ],
         ),
       ),
@@ -426,38 +439,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 }
 
 enum _ProfilePreviewMode { loggedOut, loggedIn, local }
-
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '我的厨房',
-          style: Theme.of(context).textTheme.displaySmall?.copyWith(
-            color: AppColor.x60483A,
-            fontSize: AppText.libraryTitle,
-            fontWeight: FontWeight.w700,
-            height: 1.2,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s8),
-        const Text(
-          '记录每一顿认真的饭',
-          style: TextStyle(
-            color: AppColor.x7E756E,
-            fontSize: AppText.body,
-            fontWeight: FontWeight.w600,
-            height: 1.35,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _ProfilePreviewSelector extends StatelessWidget {
   const _ProfilePreviewSelector({

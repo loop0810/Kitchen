@@ -96,7 +96,10 @@ void main() {
     );
 
     await tester.pump();
-    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.drag(
+      find.byKey(const PageStorageKey('profile-scroll')),
+      const Offset(0, -300),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('账号与安全'));
     await tester.pumpAndSettle();
@@ -131,7 +134,10 @@ void main() {
     );
 
     await tester.pump();
-    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.drag(
+      find.byKey(const PageStorageKey('profile-scroll')),
+      const Offset(0, -300),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('账号与安全'));
     await tester.pumpAndSettle();

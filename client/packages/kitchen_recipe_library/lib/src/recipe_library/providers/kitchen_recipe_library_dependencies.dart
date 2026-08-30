@@ -80,6 +80,58 @@ final recipeCollectionsProvider =
       return useCase == null ? Stream.value(const []) : useCase();
     });
 
+/// 菜谱集页的搜索结果，同时覆盖集合名称和集合成员菜谱。
+///
+/// 集合摘要只保存成员数量，成员菜谱由详情 UseCase 提供；因此搜索逻辑放在
+/// Feature provider 中组合两个已有的本地查询，不把展示层细节下沉到 Domain/Data。
+final recipeCollectionsSearchProvider = FutureProvider.autoDispose
+    .family<List<RecipeCollectionEntity>, String>((ref, query) async {
+      final collections = await ref.watch(recipeCollectionsProvider.future);
+      final normalizedQuery = query.trim();
+      if (normalizedQuery.isEmpty) return collections;
+
+      final dependencies = ref.watch(recipeLibraryDependenciesProvider);
+      final getDetail = dependencies.getCollectionDetail;
+      final foldedQuery = normalizedQuery.toLowerCase();
+      final nameMatches = collections
+          .where(
+            (collection) => collection.name.toLowerCase().contains(foldedQuery),
+          )
+          .toList(growable: false);
+      if (getDetail == null || nameMatches.length == collections.length) {
+        return nameMatches;
+      }
+
+      final matches = await ref.watch(
+        recipesProvider(
+          RecipeQuery(
+            text: normalizedQuery,
+            statusFilter: RecipeStatusFilter.all,
+          ),
+        ).future,
+      );
+      final matchingRecipeIds = matches.map((item) => item.recipe.id).toSet();
+
+      final filtered = await Future.wait(
+        collections.map((collection) async {
+          if (nameMatches.contains(collection)) return collection;
+          try {
+            final detail = await getDetail(collection.id);
+            final containsMatchingRecipe = detail?.members.any(
+              (member) => matchingRecipeIds.contains(member.recipe.recipe.id),
+            );
+            return containsMatchingRecipe == true ? collection : null;
+          } catch (_) {
+            // 集合名称仍可搜索；单个集合详情失败不应阻断其他结果。
+            return null;
+          }
+        }),
+      );
+      return filtered.whereType<RecipeCollectionEntity>().toList(
+        growable: false,
+      );
+    });
+
 final recipeCollectionDetailProvider = FutureProvider.autoDispose
     .family<RecipeCollectionDetailEntity?, String>((ref, collectionId) {
       final useCase = ref

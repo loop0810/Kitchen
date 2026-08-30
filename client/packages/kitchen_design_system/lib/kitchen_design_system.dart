@@ -5,6 +5,7 @@ export 'src/components/kitchen_design_app_import_button.dart';
 export 'src/components/kitchen_design_app_scrapbook_button.dart';
 export 'src/components/kitchen_design_app_segmented_button_group.dart';
 export 'src/components/kitchen_design_app_single_select_sheet.dart';
+export 'src/components/kitchen_design_app_sliver_page_header.dart';
 export 'src/foundation/kitchen_design_app_color.dart';
 export 'src/foundation/kitchen_design_app_radius.dart';
 export 'src/foundation/kitchen_design_app_size.dart';

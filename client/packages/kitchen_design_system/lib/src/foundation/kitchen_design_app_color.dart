@@ -5,6 +5,7 @@ abstract final class AppColor {
   static const xFFFAF2 = Color(0xFFFFFAF2);
   static const xF26A58 = Color(0xFFF26A58);
   static const xE8DAC1 = Color(0xFFE8DAC1);
+  static const xEAD7BD = Color(0xFFEAD7BD);
   static const xF5D477 = Color(0xFFF5D477);
   static const xA9B9A2 = Color(0xFFA9B9A2);
   static const x60483A = Color(0xFF60483A);
@@ -18,5 +19,8 @@ abstract final class AppColor {
   static const xE6ECEA = Color(0xFFE6ECEA);
   static const xDDE5E2 = Color(0xFFDDE5E2);
   static const xFFFDF8 = Color(0xFFFFFDF8);
+  static const xF7ECD9 = Color(0xFFF7ECD9);
+  static const xEF6859 = Color(0xFFEF6859);
+  static const xD9A091 = Color(0xFFD9A091);
   static const xA98B7C = Color(0xFFA98B7C);
 }
