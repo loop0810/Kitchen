@@ -264,7 +264,7 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
   }
 
   Future<void> _createCollection() async {
-    final result = await showCollectionEditorDialog(context, title: '创建菜谱集');
+    final result = await showCollectionCreationDialog(context);
     if (result == null || !mounted) return;
     await ref
         .read(recipeLibraryDependenciesProvider)
@@ -346,26 +346,37 @@ class _RecipeLibraryPageState extends ConsumerState<RecipeLibraryPage> {
   }
 
   Future<void> _chooseSortOrder() async {
-    final chosen = await showModalBottomSheet<RecipeSortOrder>(
+    final chosen = await showAppSingleSelectSheet<RecipeSortOrder>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: RecipeSortOrder.values
-              .map(
-                (order) => ListTile(
-                  leading: Icon(
-                    order == _sortOrder
-                        ? Icons.radio_button_checked_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                  ),
-                  title: Text(_sortOrderLabel(order)),
-                  onTap: () => Navigator.pop(context, order),
-                ),
-              )
-              .toList(),
+      title: '选择排序方式',
+      subtitle: '更容易找到这一刻想做的菜',
+      selected: _sortOrder,
+      options: const [
+        AppSingleSelectSheetOption<RecipeSortOrder>(
+          value: RecipeSortOrder.recentlyUpdated,
+          title: '最近更新',
+          subtitle: '刚添加的新灵感排在前面',
+          icon: Icons.sync_rounded,
+          iconBackgroundColor: AppColor.xF26A58,
+          iconColor: AppColor.xFFFDF8,
         ),
-      ),
+        AppSingleSelectSheetOption<RecipeSortOrder>(
+          value: RecipeSortOrder.recentlySaved,
+          title: '最近保存',
+          subtitle: '先看看你收藏的好味道',
+          icon: Icons.bookmark_rounded,
+          iconBackgroundColor: AppColor.xE6ECEA,
+          iconColor: AppColor.x506E67,
+        ),
+        AppSingleSelectSheetOption<RecipeSortOrder>(
+          value: RecipeSortOrder.title,
+          title: '菜名',
+          subtitle: '按名字顺序慢慢翻找',
+          icon: Icons.title_rounded,
+          iconBackgroundColor: AppColor.xF5D477,
+          iconColor: AppColor.x60483A,
+        ),
+      ],
     );
     if (chosen == null || !mounted) return;
     setState(() => _sortOrder = chosen);
@@ -1026,10 +1037,4 @@ String _filterLabel(RecipeStatusFilter filter) => switch (filter) {
   RecipeStatusFilter.all => '全部',
   RecipeStatusFilter.favorite => '收藏',
   RecipeStatusFilter.incomplete => '待完善',
-};
-
-String _sortOrderLabel(RecipeSortOrder order) => switch (order) {
-  RecipeSortOrder.recentlyUpdated => '最近更新',
-  RecipeSortOrder.recentlySaved => '最近保存',
-  RecipeSortOrder.title => '菜名',
 };

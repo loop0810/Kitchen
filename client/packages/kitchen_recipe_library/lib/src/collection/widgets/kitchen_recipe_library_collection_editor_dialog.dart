@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -23,12 +24,31 @@ Future<CollectionEditorResult?> showCollectionEditorDialog(
   required String title,
   String initialName = '',
   Uint8List? initialCoverBytes,
+}) => _showCollectionEditorDialog(
+  context,
+  title: title,
+  initialName: initialName,
+  initialCoverBytes: initialCoverBytes,
+);
+
+/// 展示创建菜谱集时使用的手账风格弹框。
+Future<CollectionEditorResult?> showCollectionCreationDialog(
+  BuildContext context,
+) => _showCollectionEditorDialog(context, title: '创建菜谱集', creationStyle: true);
+
+Future<CollectionEditorResult?> _showCollectionEditorDialog(
+  BuildContext context, {
+  required String title,
+  String initialName = '',
+  Uint8List? initialCoverBytes,
+  bool creationStyle = false,
 }) => showDialog<CollectionEditorResult>(
   context: context,
   builder: (context) => _CollectionEditorDialog(
     title: title,
     initialName: initialName,
     initialCoverBytes: initialCoverBytes,
+    creationStyle: creationStyle,
   ),
 );
 
@@ -37,11 +57,13 @@ class _CollectionEditorDialog extends StatefulWidget {
     required this.title,
     required this.initialName,
     required this.initialCoverBytes,
+    required this.creationStyle,
   });
 
   final String title;
   final String initialName;
   final Uint8List? initialCoverBytes;
+  final bool creationStyle;
 
   @override
   State<_CollectionEditorDialog> createState() =>
@@ -70,7 +92,11 @@ class _CollectionEditorDialogState extends State<_CollectionEditorDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => widget.creationStyle
+      ? _buildCreationDialog(context)
+      : _buildEditorDialog(context);
+
+  Widget _buildEditorDialog(BuildContext context) => AlertDialog(
     title: Text(widget.title),
     content: SingleChildScrollView(
       child: Column(
@@ -149,6 +175,202 @@ class _CollectionEditorDialogState extends State<_CollectionEditorDialog> {
     ],
   );
 
+  Widget _buildCreationDialog(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.r18);
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s16,
+        vertical: AppSpacing.s24,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColor.xFFFAF2,
+          borderRadius: radius,
+          border: Border.all(color: AppColor.xA98B7C, width: AppSpacing.s3),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColor.xA98B7C,
+              offset: Offset(0, AppSpacing.s4),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          clipBehavior: Clip.antiAlias,
+          borderRadius: radius,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s24,
+              AppSpacing.s28,
+              AppSpacing.s24,
+              AppSpacing.s24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      widget.title,
+                      style: const TextStyle(
+                        color: AppColor.x60483A,
+                        fontSize: AppText.title,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s24),
+                    TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      maxLength: 40,
+                      decoration: InputDecoration(
+                        hintText: '请输入菜谱集名称',
+                        hintStyle: const TextStyle(
+                          color: AppColor.xA98B7C,
+                          fontSize: AppText.body,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        errorText: _errorText,
+                        counterText: '',
+                        filled: true,
+                        fillColor: AppColor.xFFFDF8,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s20,
+                          vertical: AppSpacing.s16,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.r18),
+                          borderSide: const BorderSide(
+                            color: AppColor.xA98B7C,
+                            width: AppSpacing.s3,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.r18),
+                          borderSide: const BorderSide(
+                            color: AppColor.xA98B7C,
+                            width: AppSpacing.s3,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.r18),
+                          borderSide: const BorderSide(
+                            color: AppColor.xF26A58,
+                            width: AppSpacing.s3,
+                          ),
+                        ),
+                      ),
+                      onSubmitted: (_) => _submit(),
+                    ),
+                    const SizedBox(height: AppSpacing.s16),
+                    _buildCreationCoverPicker(),
+                    const SizedBox(height: AppSpacing.s48),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        AppScrapbookButton(
+                          label: '取消',
+                          filled: false,
+                          onPressed: _isPicking
+                              ? null
+                              : () => Navigator.pop(context),
+                          height: AppSize.buttonHeight,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.s20,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s16),
+                        AppScrapbookButton(
+                          label: '创建',
+                          filled: true,
+                          onPressed: _isPicking ? null : _submit,
+                          height: AppSize.buttonHeight,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.s24,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreationCoverPicker() {
+    final hasCover = _previewBytes != null;
+    final radius = BorderRadius.circular(AppRadius.r16);
+    return Semantics(
+      button: true,
+      label: hasCover ? '更换封面图片' : '设置封面图片，可选',
+      child: CustomPaint(
+        painter: const _DashedRoundedBorderPainter(),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _isPicking ? null : _pickAndCrop,
+            borderRadius: radius,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 68),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+                child: Row(
+                  children: [
+                    Icon(
+                      hasCover
+                          ? Icons.photo_rounded
+                          : Icons.add_photo_alternate_outlined,
+                      color: AppColor.xF26A58,
+                      size: AppSize.icon30,
+                    ),
+                    const SizedBox(width: AppSpacing.s12),
+                    Expanded(
+                      child: Text(
+                        hasCover ? '更换封面图片' : '设置封面图片',
+                        style: const TextStyle(
+                          color: AppColor.x60483A,
+                          fontSize: AppText.title,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    if (_isPicking)
+                      const SizedBox(
+                        width: AppSize.icon20,
+                        height: AppSize.icon20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: AppSpacing.s3,
+                          color: AppColor.xF26A58,
+                        ),
+                      )
+                    else
+                      Text(
+                        hasCover ? '已设置' : '可选',
+                        style: const TextStyle(
+                          color: AppColor.xA98B7C,
+                          fontSize: AppText.body,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickAndCrop() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked == null || !mounted) return;
@@ -220,4 +442,35 @@ class _CollectionEditorDialogState extends State<_CollectionEditorDialog> {
       setState(() => _errorText = error.message?.toString());
     }
   }
+}
+
+class _DashedRoundedBorderPainter extends CustomPainter {
+  const _DashedRoundedBorderPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          const Radius.circular(AppRadius.r16),
+        ),
+      );
+    final paint = Paint()
+      ..color = AppColor.xE8DAC1
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = AppSpacing.s3;
+
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = math.min(distance + AppSpacing.s8, metric.length);
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance += AppSpacing.s16;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

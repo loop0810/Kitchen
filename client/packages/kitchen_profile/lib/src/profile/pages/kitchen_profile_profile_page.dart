@@ -158,7 +158,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () {},
                   ),
-                  
                 ],
               ),
             ),
@@ -171,26 +170,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Future<void> _showStylePicker(AppVisualStyle currentStyle) async {
-    final selected = await showModalBottomSheet<AppVisualStyle>(
+    final selected = await showAppSingleSelectSheet<AppVisualStyle>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: AppVisualStyle.values
-              .map(
-                (value) => ListTile(
-                  leading: Icon(
-                    value == currentStyle
-                        ? Icons.radio_button_checked_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                  ),
-                  title: Text(_visualStyleLabel(value)),
-                  onTap: () => Navigator.of(context).pop(value),
-                ),
-              )
-              .toList(),
+      selected: currentStyle,
+      options: const [
+        AppSingleSelectSheetOption<AppVisualStyle>(
+          value: AppVisualStyle.scrapbook,
+          title: '手账',
+          icon: Icons.auto_stories_rounded,
+          iconBackgroundColor: AppColor.xF5DDD5,
+          iconColor: AppColor.xA94B3F,
         ),
-      ),
+        AppSingleSelectSheetOption<AppVisualStyle>(
+          value: AppVisualStyle.minimal,
+          title: '极简',
+          icon: Icons.crop_square_rounded,
+          iconBackgroundColor: AppColor.xE6ECEA,
+          iconColor: AppColor.x506E67,
+        ),
+      ],
     );
     if (selected != null && mounted) {
       ref.read(visualStyleProvider.notifier).setStyle(selected);

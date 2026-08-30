@@ -22,8 +22,10 @@ void main() {
     expect(find.text('把常做的菜整理进菜谱集'), findsOneWidget);
     await tester.tap(find.text('创建菜谱集'));
     await tester.pumpAndSettle();
+    expect(find.text('请输入菜谱集名称'), findsOneWidget);
+    expect(find.text('设置封面图片'), findsOneWidget);
     await tester.enterText(find.byType(TextField), '  周末菜单  ');
-    await tester.tap(find.text('保存'));
+    await tester.tap(find.text('创建'));
     await tester.pumpAndSettle();
 
     expect(collections.createdName, '周末菜单');
